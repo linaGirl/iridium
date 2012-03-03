@@ -4,26 +4,41 @@
 	// import this as fake sub repository into your project
 
 	var prorotype = require( "./core/prototype" )
-		,log = require( "./core/log");
+		, log = require( "./core/log")
+		, path = require( "path" );
+
+
+
 
 
 	module.exports = function( productName, version ){
+		// grret th euser
 		printLogo( productName, version );
 
+		// get the frameworks path
+		var iridium_path = path.resolve( "./" );
 
 
-		log.debug();
 
-
-		return {};
+		return {
+			  modules: 		iridium_path + "/modules/"
+			, depencies: 	iridium_path + "/depencies/"
+			, core: 		iridium_path + "/core/"
+		};
 	};
 
 
 
 
 
-
-
+	// global error catching
+	process.on( "uncaughtException", function (err) {
+		
+		log.error( "Uncaught Exception:", { $id: "main.js:main" } );
+		log.trace( err );
+		log.highlight( "Bye ...", { $id: "main.js:main" }  );
+		process.exit();
+	});
 
 
 

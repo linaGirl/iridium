@@ -6,6 +6,8 @@
 			var properties = {}
 				, Class = function( options ){
 					var instance = Object.create( Class.$prototype );
+					// debugging shit
+					instance.$id = module.parent.id.substr( module.id.lastIndexOf( "/" )  + 1 ) + ":" + ( instance.$id || "-" );
 					if ( instance.constructor ) instance.constructor( options );
 					return instance;
 				}
@@ -33,7 +35,7 @@
 			}
 
 			Class.$prototype = Object.create( parent, properties );
-			
+
 			return Class;
 		}
 		else {
