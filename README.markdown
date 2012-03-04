@@ -5,17 +5,21 @@ the irdium framework is used to create distributed high performance applications
 
 # installing
 
-git clone https://github.com/eventemitter/iridium.git
-cd build
-bash build
+	git clone https://github.com/eventemitter/iridium.git
+	cd build
+	bash build
 
 
 # API
 
 include the framwork. this provides the now glbally available modules Class, Events, log and zero ( which provides the statistics collector interface )
+	
+	// additionally prints the iridium start screen
+    require( "/path/to/iridium/" )( "my app name", 1 );
 
-    require( "iridium", "my app name", 1 );
-
+    // load the framework quietly
+    require( "/path/to/iridium/" );
+ 
 
 ## Class
 
@@ -45,8 +49,8 @@ include the framwork. this provides the now glbally available modules Class, Eve
 
 	var myClassInstance = new MyClass( { 
 		name: "john"
-		, on: { // events in this object will automatically added to the class instance as soon the class is extending the Events class
-			hello: function( to ){
+		, on: { 						// events in this object will automatically be added to 
+			hello: function( to ){		// the class instance as soon the class is extending the Events class
 				log.warn( "myClassInstance had to say hello to", to );
 			}.bind( this ) 
 		}
@@ -55,6 +59,13 @@ include the framwork. this provides the now glbally available modules Class, Eve
 	myClassInstance.sayHello( "ramon" );
 
 
+
+	// prints:
+	// 04 18:16:26.164 >       log.js:MyClass >>> myclass is executing its constructor 
+	// 04 18:16:26.165 >       log.js:MyClass >>> my name is sven 
+	// 04 18:16:26.165 >       log.js:MyClass >>> now my name is michael 
+	// 04 18:16:26.165 >       log.js:MyClass >>> hi ramon 
+	// 04 18:16:26.166 >                    - >>> myClassInstance had to say hello to ramon
 
 
 ## Events
