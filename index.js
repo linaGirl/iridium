@@ -4,27 +4,25 @@
 	// import this as fake sub repository into your project
 
 	var prorotype = require( "./core/prototype" )
-		, log = require( "./core/log")
 		, path = require( "path" );
 
+		require( "./core/log" );
+		require( "./core/class" );
+		require( "./core/events" );
 
 
 
+	exports._I = _I = path.resolve( "./modules/" ) + "/";
 
+	exports.iridium = iridium = function( module ){
+		return require( _I + module )
+	};
+
+	
 	module.exports = function( productName, version ){
 		// grret th euser
 		printLogo( productName, version );
-
-		// get the frameworks path
-		var iridium_path = path.resolve( "./" );
-
-
-
-		return {
-			  modules: 		iridium_path + "/modules/"
-			, depencies: 	iridium_path + "/depencies/"
-			, core: 		iridium_path + "/core/"
-		};
+		return {};
 	};
 
 

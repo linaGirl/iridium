@@ -8,6 +8,7 @@
 					var instance = Object.create( Class.$prototype );
 					// debugging shit
 					instance.$id = module.parent.id.substr( module.id.lastIndexOf( "/" )  + 1 ) + ":" + ( instance.$id || "-" );
+					if ( options && options.on && instance.$events ) instance.on( options.on ); // add events if availble
 					if ( instance.constructor ) instance.constructor( options );
 					return instance;
 				}

@@ -1,11 +1,11 @@
 
 
 
-	var Class = require( "./class" );
+	require( "./class" );
 
 
 	// cutom events, because they less suck
-	module.exports = new Class( {
+	module.exports = Events = new Class( {
 		$id: "events"
 		
 		, $events: {}
@@ -18,7 +18,7 @@
 				while( i-- ){
 					current = this.$events[ event ][ i ];
 					if ( typeof current.listener === "function" ){
-						current.listener().apply( null, Array.prototype.slice.call( arguments, 1 ) );
+						current.listener.apply( null, Array.prototype.slice.call( arguments, 1 ) );
 						if ( current.once ) this.$events[ event ].splice( i, 1 );
 					}
 					else {

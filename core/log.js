@@ -12,7 +12,7 @@
 
 
 	// the logger is a singleton
-	module.exports = new ( new Class( {
+	module.exports = log = new ( new Class( {
 		$id: "log"
 
 		// debug
@@ -111,7 +111,7 @@
 						break;
 
 					default:
-						result.text +=  current.toString() + " ";
+						result.text +=  current + " ";
 				}
 			}
 			return result;

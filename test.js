@@ -1,30 +1,46 @@
 
-	var iridium = require( "./main" )( "iridium test", 1 );
-	var log = require(  iridium.core + "log" );
+	require( "./" )( "iridium test", 1 );
 
-var t = {
-		my: {
-			name: "is mike"
-			, an: [
-				{
-					type: true
-				}
-				, 433
-				, ""
-				, "eesdffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
-				, null
-				, undefined
-				, new Buffer( "dssdfsda fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkerasufs" )
-			]
+
+
+
+	var MyClass = new Class( {
+		$id: "MyClass"  	// used for logging
+		, Extends: Events 
+
+		, name: "sven"
+
+
+		, constructor: function( options ){
+			log.info( "myclass is executing its constructor", this ); // the "this" argument is used for logging 
+			log.debug( "my name is", this.name, this );
+
+			this.name = "michael"
+			log.highlight( "now my name is", this.name, this );
 		}
-	} ;
-
-	log.dir( process, t, this, log );
-	log.debug( "sdf", 2323, true, "gay", log );
-	log.info( "sdf", 2323, true, "gay", log );
-	log.warn( "sdf", 2323, true, "gay", log, "eesdfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdöghdflkghsfdkghfdg lkdhg lkdfyjhg lfdkgh fdlk  ghfdlkjgh ydflk ghdf gkljdsfh glkjfdshg ldfkghfdgkl jh kj" );
-	log.error( "sdf", 2323, true, "gay", log );
-	log.highlight( "sdf", 2323, true, "gay",new Buffer( "dssdfsda fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpsdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkera fdsafsdaf sdagköl dfjpglkerasufs" ) , log, t );
 
 
-	throw new Error( "even cathing uncaught's" );
+		, sayHello: function( to ){
+			log.info( "hi", to, this );
+
+			this.emit( "hello", to );
+		}
+	} );
+
+
+	var myClassInstance = new MyClass( { 
+		name: "john"
+		, on: {
+			hello: function( to ){
+				log.warn( "myClassInstance had to say hello to", to );
+			}.bind( this ) 
+		}
+	} );
+
+	myClassInstance.sayHello( "ramon" );
+
+
+	var net = iridium( "net" );
+
+
+	new net.Connection();
