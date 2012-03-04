@@ -61,11 +61,15 @@ include the framwork. this provides the now glbally available modules Class, Eve
 
 
 	// prints:
-	// 04 18:16:26.164 >       log.js:MyClass >>> myclass is executing its constructor 
-	// 04 18:16:26.165 >       log.js:MyClass >>> my name is sven 
-	// 04 18:16:26.165 >       log.js:MyClass >>> now my name is michael 
-	// 04 18:16:26.165 >       log.js:MyClass >>> hi ramon 
-	// 04 18:16:26.166 >                    - >>> myClassInstance had to say hello to ramon
+	// 04 18:31:21.922 >             MyClass@test.js:31 >>> myclass is executing its constructor 
+	// 04 18:31:21.923 >             MyClass@test.js:31 >>> my name is sven 
+	// 04 18:31:21.923 >             MyClass@test.js:31 >>> now my name is michael 
+	// 04 18:31:21.923 >             MyClass@test.js:31 >>> hi ramon 
+	// 04 18:31:21.923 >                              - >>> myClassInstance had to say hello to ramon 
+
+	// |     |							|       |           
+    // date  time			class id ( $id )   file:line where the class was instantiated
+
 
 
 ## Events

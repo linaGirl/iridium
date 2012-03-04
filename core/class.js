@@ -7,7 +7,7 @@
 				, Class = function( options ){
 					var instance = Object.create( Class.$prototype );
 					// debugging shit
-					instance.$id = module.parent.id.substr( module.id.lastIndexOf( "/" )  + 1 ) + ":" + ( instance.$id || "-" );
+					instance.$id = ( instance.$id || "-" ) + "@" + ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
 					if ( options && options.on && instance.$events ) instance.on( options.on ); // add events if availble
 					if ( instance.constructor ) instance.constructor( options );
 					return instance;

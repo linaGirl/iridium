@@ -256,7 +256,7 @@
 			result += this.__pad( date.getMilliseconds(), 3 );
 
 			result += " > "
-			result += this.__pad( ( source && source.$id ) || "-", 20, " " );
+			result += this.__pad( ( source && source.$id ) || "-", 30, " " );
 			result += " >>> "
 
 			return result.grey;
