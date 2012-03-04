@@ -1,5 +1,7 @@
 
-
+	
+	var net = require( "net" )
+		crypto = require( "crypto" );
 
 
 	module.exports = new Class( {
@@ -10,7 +12,7 @@
 			if( typeof options !== "object" ) throw new Error( "net.Connection expects a socket or conenction parameters as init options!" );
 			
 			if ( typeof options.socket === "object" ){
-				this.__initWithSocket( options.socket );
+				this.__initbySocket( options.socket );
 			}
 			else if ( typeof options.address === "string" && typeof options.port === "" ){
 				this.__connect( options.address, options.port );
@@ -22,14 +24,19 @@
 
 
 
-
 		// send a message throough the pipe, the only public accesible property
-		, send: function( message ){
-
+		, send: function( message, callback ){
+			if ( message && Buffer.isBuffer( message ) ){
+				
+			}
+			else {
+				throw new Error( "send takes only buffer as argument 0!" );
+				log.dir( message );
+			}
 		}
 
 		// init by socket
-		, __initWithSocket: function( socket ){
+		, __initbySocket: function( socket ){
 			
 		}
 

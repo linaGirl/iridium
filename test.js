@@ -1,9 +1,20 @@
 
 	require( "./" )( "iridium test", 1 );
 
+	var Net = iridium( "net" );
 
 
-	var net = iridium( "net" );
-
-
-	new net.Connection();
+	new Net( {
+		credentials: {
+			one: {}
+		}
+		, listen: [
+			{
+				port: 7897
+				, secure: true
+				, verify: "one"
+				, credentials: "one"
+				, bind: []
+			}
+		]
+	} );

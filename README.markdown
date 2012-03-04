@@ -84,13 +84,13 @@ add an eventlistener to the class instance
     classInstance.on( eventName, listener, [once] );
 
     // same interface as on, but the once parameter is not needed but set always to true
-    classInstance.onnce( eventName, listener );
+    classInstance.once( eventName, listener );
 
 ### off
 
 remove events
 	
-	classInstance.off( [eventName], [lsitener] );
+	classInstance.off( [eventName], [listener] );
 
 	// remove all event listeners
 	classInstance.off();
@@ -104,7 +104,7 @@ remove events
 
 ### emit
 
-emit events, pases arguments if available
+emit events, passes arguments if available
 	
 	classInstance.emit( eventName, [arg], [arg], [...] );
 
@@ -114,12 +114,12 @@ emit events, pases arguments if available
 simple colorful logging
 
 	
-	log.debug( [item], [item], [...], [callinĝClass] );
-	log.info( [item], [item], [...], [callinĝClass] );
-	log.warn( [item], [item], [...], [callinĝClass] );
-	log.error( [item], [item], [...], [callinĝClass] );
-	log.highlight( [item], [item], [...], [callinĝClass] );
+	log.debug( [item], [item], [...], [callingClass] );
+	log.info( [item], [item], [...], [callingClass] );
+	log.warn( [item], [item], [...], [callingClass] );
+	log.error( [item], [item], [...], [callingClass] );
+	log.highlight( [item], [item], [...], [callingClass] );
 
 	log.dir( [item], [item], [...] );
 
-	log.trace( err, [callinĝClass] );
+	log.trace( err, [callingClass] );
