@@ -16,40 +16,112 @@
 		$id: "log"
 
 		// debug
-		, debug: function( message, source ){
-			console.log( this.__createSignature( source ) + message.grey );
+		, debug: function(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.grey );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
 		}
 
 		// info
 		, info: function( message, source ){
-			console.log( this.__createSignature( source ) + message.white );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.white );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
 		}
 
 		// warn
 		, warn: function( message, source ){
-			console.log( this.__createSignature( source ) + message.yellow.bold );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.yellow.bold );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
 		}
 
 		// error ( uncatchable )
 		, error: function( message, source ){
-			console.log( this.__createSignature( source ) + message.red.bold );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.red.bold );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
 		}
 
 
 
 		// highlight a message
 		, highlight: function( message, source ){
-			console.log( this.__createSignature( source ) + message.white.bold);
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
+		}
+
+
+
+
+		// extract message
+		, __extractMessage: function( items ){
+			var result = { text: "", dir: [] }, current;
+
+			for ( var i = 0, l = items.length; i < l; i++ ){
+				current = items[ i ];
+
+				switch ( typeof current ){
+					case "object":
+						if ( current === null ){
+							result.text += "null "
+						}
+						else if ( Buffer.isBuffer( current ) ){
+							for ( var k = 0, m = current.length; k < m; k++ ){
+								result.text += current[ k ].toString( 16 ) + " ";
+								if ( k > 200 ) break;
+							}
+						}
+						else {
+							if ( current.$id ){
+								result.source = current;
+							}
+							else {
+								result.dir.push( current );
+							}
+						}
+						break;
+
+					default:
+						result.text +=  current.toString() + " ";
+				}
+			}
+			return result;
 		}
 
 
 
 		// dir an object displaying an optional message
-		, dir: function( data, margin, name, first ){
-			margin = margin || 0;
-			name = ( typeof name === "string" ? name + ": " : "" ).white;
-			first = typeof first === "boolean" ? first :  true ;
+		, dir: function(){
+			var items = Array.prototype.slice.call( arguments );
 
+			for ( var i = 0, l = items.length; i < l; i++ ){
+				this.__dir( items[ i ], 0, null, true, [] );
+			}
+		}
+
+
+
+
+		// private dir
+		, __dir: function( data, margin, name, first, knownObjects  ){
+			name = ( typeof name === "string" ? name + ": " : "" ).white;
 
 			switch ( typeof data ){
 				case "object":
@@ -71,6 +143,12 @@
 						console.log( result );
 					}
 					else {
+						if ( knownObjects.indexOf( data ) >= 0 ){
+							return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + "[ circular ]".grey );
+						}
+						else {
+							knownObjects.push( data );
+						}
 						var keys = Object.keys( data ), i = keys.length, l = i, k = 0
 							, isArray = Object.prototype.hasOwnProperty.call( data, "length" );
 
@@ -83,13 +161,13 @@
 						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "[" : "{" ).grey );
 						first = true;
 						while( i-- ){
-							if ( k > 20 ) {
+							if ( k > 50 ) {
 								console.log( this.__pad( "", ( margin + 1 ) * 4, " " ) + ", ".grey + ( isArray ? "" : name ) + "... ( omitted ".grey + ( i + 1 + "" ).grey + " ) // max items per object reached".grey );
 								console.log( this.__pad( "", margin * 4, " " ) + ( isArray ? "]" : "}" ).grey );
 								return;
 							}
 
-							this.dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? null : keys[ l - i - 1  ] ), first );
+							this.__dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? null : keys[ l - i - 1  ] ), first, knownObjects );
 							if ( first ) first = false;
 							k++
 						}
@@ -114,16 +192,16 @@
 					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toString().yellow );
 					break;
 
+				case "function":
+					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toString().substr( 0, 100 ).replace( /\n|\t|\s{2,}/gi, " " ).grey );
+					break;
+
 				default:
 					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data );
 					break;
 
 			}
-			if ( typeof data === "object" ){
-				
-			}
 		}
-
 
 
 
