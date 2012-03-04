@@ -223,7 +223,7 @@
 			if ( err && err.stack ){
 
 				console.log( this.__pad( "", 80, "#" ).grey );
-				console.log( "\n" + ( source && source.$id ? source.$id + ": " : "Error: " ).grey + ( err.message ? err.message : "-" ).white + "\n" );
+				console.log( "\n" + ( source && source.$id ? source.$id + ": " : "Error: " ).grey + ( err.message ? err.message : "-" ).white.bold + "\n" );
 
 				lines = err.stack.split( "\n" );
 				i = lines.length, l = i;

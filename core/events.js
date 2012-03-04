@@ -86,6 +86,6 @@
 
 		// kill myself
 		, destroy: function(){
-			this.$events = {}; // be nice, let the user reuse this object
+			this.$events = {}; // be nice, let the user re-use this object
 		}
 	} );

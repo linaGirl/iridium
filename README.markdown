@@ -73,3 +73,53 @@ include the framwork. this provides the now glbally available modules Class, Eve
 
 
 ## Events
+	
+the events class provides a very simple interface to manage the events of a class.
+
+### on
+
+add an eventlistener to the class instance
+
+	// add an event, if once is set to true the event will be removed after its fired once
+    classInstance.on( eventName, listener, [once] );
+
+    // same interface as on, but the once parameter is not needed but set always to true
+    classInstance.onnce( eventName, listener );
+
+### off
+
+remove events
+	
+	classInstance.off( [eventName], [lsitener] );
+
+	// remove all event listeners
+	classInstance.off();
+
+	// remove all "listen" event listeners
+	classInstance.off( "listen" );
+
+	// remove specific listener from "listen" event
+	classInstance.off( "listen", fn );
+
+
+### emit
+
+emit events, pases arguments if available
+	
+	classInstance.emit( eventName, [arg], [arg], [...] );
+
+
+## log
+
+simple colorful logging
+
+	
+	log.debug( [item], [item], [...], [callinĝClass] );
+	log.info( [item], [item], [...], [callinĝClass] );
+	log.warn( [item], [item], [...], [callinĝClass] );
+	log.error( [item], [item], [...], [callinĝClass] );
+	log.highlight( [item], [item], [...], [callinĝClass] );
+
+	log.dir( [item], [item], [...] );
+
+	log.trace( err, [callinĝClass] );
