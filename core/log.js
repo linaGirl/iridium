@@ -85,7 +85,10 @@
 						else if ( Buffer.isBuffer( current ) ){
 							for ( var k = 0, m = current.length; k < m; k++ ){
 								result.text += current[ k ].toString( 16 ) + " ";
-								if ( k > 200 ) break;
+								if ( k > 400 ) {
+									result.text += "[ ... ] "
+									break;
+								}
 							}
 						}
 						else {
@@ -95,6 +98,15 @@
 							else {
 								result.dir.push( current );
 							}
+						}
+						break;
+
+					case "string":
+						if ( current.length > 1000 ){
+							result.text +=  current.substr( 0, 1000 ) + " [ ... ] ";
+						}
+						else {
+							result.text +=  current + " ";
 						}
 						break;
 
