@@ -6,8 +6,12 @@
 			var properties = {}
 				, Class = function( options ){
 					var instance = Object.create( Class.$prototype );
+					
 					// debugging shit
-					instance.$id = ( instance.$id || "-" ) + "@" + ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
+					var modulename = ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
+					if ( /index.js/.test( modulename ) ) modulename = ( /.*\n.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
+					instance.$id = ( instance.$id || "-" ) + "@" + modulename;
+
 					if ( options && options.on && instance.$events ) instance.on( options.on ); // add events if availble
 					if ( instance.constructor ) instance.constructor( options );
 					return instance;

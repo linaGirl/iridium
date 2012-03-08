@@ -1,20 +1,16 @@
 
 	require( "./" )( "iridium test", 1 );
 
-	var Net = iridium( "net" );
+
+	var net = iridium( "net" );
 
 
-	new Net( {
-		credentials: {
-			one: {}
-		}
-		, listen: [
-			{
-				port: 7897
-				, secure: true
-				, verify: "one"
-				, credentials: "one"
-				, bind: []
-			}
-		]
-	} );
+	
+
+	var connectionPool = net.createConnectionPool();
+	var server = net.createServer();
+
+
+	connectionPool.getConnection( "10.0.0.1", 80 );
+
+	

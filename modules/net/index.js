@@ -1,39 +1,26 @@
 
 	
-	var server = require( "./lib/server" )
-		, Connection = require( "./lib/connection" );
+	var Server = require( "./lib/server" )
+		, ConnectionPool = require( "./lib/connectionPool" );
 
 
 
-	module.exports = new Class( {
-		$id: "net"
-		, Extends: Events
+	module.exports = {
 		
-		, constructor: function( options ){
-			log.dir( options );
+
+		// server
+		createServer:  function( port, bind, credentials ){
+			return Server( {
+				port: port
+				, bind: bind
+				, credentials: credentials
+			} );
 		}
 
 
 
-		// add credentials for accepting connections
-		, addCredentials: function( credentials ){
-			
+		// connection pool
+		, createConnectionPool: function(){
+			return new ConnectionPool();
 		}
-
-
-
-		// send data to a target
-		, send: function( packet, target, callback ){
-			
-		}
-
-
-
-		// connect to a host
-		, __connect: function(){
-
-		}
-	} );
-
-
-
+	};
