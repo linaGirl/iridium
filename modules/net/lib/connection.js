@@ -40,9 +40,15 @@
 			}
 
 			this.on( "close", this.__destroy.bind( this ) );
+
+			this.parent();
 		}
 
 
+
+		, on: function(){
+			this.parent.apply( this, arguments );
+		}
 
 
 

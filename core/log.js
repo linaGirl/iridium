@@ -210,7 +210,7 @@
 					break;
 
 				case "function":
-					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( "function " + fnname ).grey );
+					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( "function " + ( fnname || "" ) ).grey );
 					break;
 
 				default:

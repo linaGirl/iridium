@@ -21,11 +21,17 @@
 
 	module.exports = Class = function( definition ){
 		if ( definition ){
-			var   properties = {} // direct class properties, scalar values, functions
-				, hasOwnProperty = Object.prototype.hasOwnProperty
+			var hasOwnProperty = Object.prototype.hasOwnProperty
+				, properties = {
+					parent: { value: function parent(){
+						if ( hasOwnProperty.call( parentClass, parent.caller.$name ) ){
+							parentClass[ parent.caller.$name ].apply( this, arguments );
+						}
+					} }
+				} // direct class properties, scalar values, functions
 				, extend = hasOwnProperty.call( definition, "Extends" ) // does this class extend another?
-				, parent = extend && hasOwnProperty.call( definition.Extends, "$prototype" ) ? definition.Extends.$prototype : {}
-				, classProperties = extend && hasOwnProperty.call( parent, "$properties" ) ? parent.$properties : {} // properties typof object which must be cloned
+				, parentClass = extend ? ( hasOwnProperty.call( definition.Extends, "$prototype" ) ? definition.Extends.$prototype : definition.Extends ) : {}
+				, classProperties = extend && hasOwnProperty.call( parentClass, "$properties" ) ? parentClass.$properties : {} // properties typof object which must be cloned
 				, keys = Object.keys( definition )
 				, i = keys.length
 				, current
@@ -45,21 +51,19 @@
 
 			while( i-- ){
 				current = definition[ keys[ i ] ];
-				if ( keys[ i ] === "Extends" ){
-					parent = hasOwnProperty.call( current, "$prototype" ) ? current.$prototype : current;
-				}
-				else {
+				if ( keys[ i ] !== "Extends" ){
 					if ( typeof current === "object" ){
 						classProperties[ keys[ i ] ] = current;
 					}
 					else {
-						properties[ keys[ i ] ] = { value: current };
+						if ( typeof current === "function" ) current.$name = keys[ i ];
+						properties[ keys[ i ] ] = { value: current, enumerable: true };
 					}
 				}
 			}
 
 			// store references used for ectending classes
-			Class.$prototype = Object.create( parent, properties );
+			Class.$prototype = Object.create( parentClass, properties );
 			Class.$prototype.$properties = classProperties;
 
 			return Class;
