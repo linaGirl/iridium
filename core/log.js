@@ -133,13 +133,17 @@
 
 		// private dir
 		, __dir: function( data, margin, name, first, knownObjects  ){
+			var fnname = name;
 			name = ( typeof name === "string" ? name + ": " : "" ).white;
 
 			switch ( typeof data ){
 				case "object":
+					// null
 					if ( data === null ){
 						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + "null".white );
 					}
+
+					// buffer
 					else if ( Buffer.isBuffer( data ) ){
 						var result =  this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name;
 
@@ -155,6 +159,7 @@
 						console.log( result );
 					}
 					else {
+						// dont do circular things
 						if ( knownObjects.indexOf( data ) >= 0 ){
 							return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + "[ circular ]".grey );
 						}
@@ -162,24 +167,24 @@
 							knownObjects.push( data );
 						}
 						var keys = Object.keys( data ), i = keys.length, l = i, k = 0
-							, isArray = Object.prototype.hasOwnProperty.call( data, "length" );
+							, isArray = data instanceof Array;
 
-						if ( margin > 20 ) return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ": ".grey + ( isArray ? "[ ... ]" : "{ ... }" ).grey + " // max inspection depth reached".grey );
+						if ( margin > 20 ) return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ": ".grey + ( isArray ?  "(" + data.length + "):[ ... ]" : "{ ... }" ).grey + " // max inspection depth reached".grey );
 
 						if ( i === 0 ){
-							return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "[]" : "{}" ).grey );
+							return console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "(" + data.length + "):[]" : "{}" ).grey );
 						}
 
-						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "[" : "{" ).grey );
+						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "(" + data.length + "):[" : "{" ).grey );
 						first = true;
 						while( i-- ){
 							if ( k > 50 ) {
-								console.log( this.__pad( "", ( margin + 1 ) * 4, " " ) + ", ".grey + ( isArray ? "" : name ) + "... ( omitted ".grey + ( i + 1 + "" ).grey + " ) // max items per object reached".grey );
+								console.log( this.__pad( "", ( margin + 1 ) * 4, " " ) + ", ".grey + ( isArray ? "" + name : name ) + "... ( omitted ".grey + ( i + 1 + "" ).grey + " ) // max items per object reached".grey );
 								console.log( this.__pad( "", margin * 4, " " ) + ( isArray ? "]" : "}" ).grey );
 								return;
 							}
 
-							this.__dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? null : keys[ l - i - 1  ] ), first, knownObjects );
+							this.__dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? "" +  keys[ l - i - 1  ]  : keys[ l - i - 1  ] ), first, knownObjects );
 							if ( first ) first = false;
 							k++
 						}
@@ -205,7 +210,7 @@
 					break;
 
 				case "function":
-					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toString().substr( 0, 100 ).replace( /\n|\t|\s{2,}/gi, " " ).grey );
+					console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( "function " + fnname ).grey );
 					break;
 
 				default:
