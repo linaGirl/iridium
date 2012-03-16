@@ -24,10 +24,12 @@
 			var hasOwnProperty = Object.prototype.hasOwnProperty
 				, properties = {
 					parent: { value: function parent(){
-						if ( hasOwnProperty.call( parentClass, parent.caller.$name ) ){
+						if ( parent.caller.$name && hasOwnProperty.call( parentClass, parent.caller.$name ) ){
 							parentClass[ parent.caller.$name ].apply( this, arguments );
 						}
+						else throw new Error( "parent class has no method <" + ( parent.caller.$name || parent.caller.name || "[undefined]" ) + "> !" );
 					} }
+					, $retId: { value: function(){ return this.$id; } }
 				} // direct class properties, scalar values, functions
 				, extend = hasOwnProperty.call( definition, "Extends" ) // does this class extend another?
 				, parentClass = extend ? ( hasOwnProperty.call( definition.Extends, "$prototype" ) ? definition.Extends.$prototype : definition.Extends ) : {}
@@ -42,7 +44,7 @@
 					// debugging stuff, will slow all down
 					var modulename = ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
 					if ( /index.js/.test( modulename ) ) modulename = ( /.*\n.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
-					instance.$id = ( instance.$id || "-" ) + "@" + modulename;
+					instance.$id = ( instance.$id || "-" ) + " <" + modulename + ">" ;
 
 					if ( options && options.on && instance.$events ) instance.on( options.on ); // add events if availble
 					if ( instance.constructor ) instance.constructor( options );
@@ -56,7 +58,7 @@
 						classProperties[ keys[ i ] ] = current;
 					}
 					else {
-						if ( typeof current === "function" ) current.$name = keys[ i ];
+						if ( typeof current === "function" ) current.$name = keys[ i ], current.$id = ( definition.$id || "<>" ) ;
 						properties[ keys[ i ] ] = { value: current, enumerable: true };
 					}
 				}

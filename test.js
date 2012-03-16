@@ -30,7 +30,3 @@
 		log.dir( connection2);
 	}.bind( this ) );
 
-
-	var a = new Array( 30 );
-	a.push( "w")
-	log.dir( a );

@@ -1,14 +1,7 @@
 	
 
 
-	var Class = require( "./class" )
-		, prototype = require( "./prototype" );
-
-
-
-
-
-
+	var Class = require( "./class" );
 
 
 	// the logger is a singleton
@@ -16,8 +9,10 @@
 		$id: "log"
 
 		// debug
-		, debug: function(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+		, debug: function debug(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), debug.caller.$id );
+			logs.source = debug.caller.$name + "@" + logs.source;
+
 			console.log( this.__createSignature( logs.source ) + logs.text.grey );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -26,8 +21,10 @@
 		}
 
 		// info
-		, info: function( message, source ){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+		, info: function info(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), info.caller.$id );
+			logs.source = info.caller.$name + "@" + logs.source;
+
 			console.log( this.__createSignature( logs.source ) + logs.text.white );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -36,8 +33,10 @@
 		}
 
 		// warn
-		, warn: function( message, source ){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+		, warn: function warn(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), warn.caller.$id );
+			logs.source = warn.caller.$name + "@" + logs.source;
+
 			console.log( this.__createSignature( logs.source ) + logs.text.yellow.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -46,8 +45,10 @@
 		}
 
 		// error ( uncatchable )
-		, error: function( message, source ){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+		, error: function error(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), error.caller.$id );
+			logs.source = error.caller.$name + "@" + logs.source;
+
 			console.log( this.__createSignature( logs.source ) + logs.text.red.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -58,8 +59,10 @@
 
 
 		// highlight a message
-		, highlight: function( message, source ){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+		, highlight: function highlight(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), highlight.caller.$id );
+			logs.source = highlight.caller.$name + "@" + logs.source;
+
 			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -71,7 +74,7 @@
 
 
 		// extract message
-		, __extractMessage: function( items ){
+		, __extractMessage: function extract( items, fallbackSource ){
 			var result = { text: "", dir: [] }, current;
 
 			for ( var i = 0, l = items.length; i < l; i++ ){
@@ -93,7 +96,7 @@
 						}
 						else {
 							if ( current.$id ){
-								result.source = current;
+								result.source = current.$id;
 							}
 							else {
 								result.dir.push( current );
@@ -114,6 +117,7 @@
 						result.text +=  current + " ";
 				}
 			}
+			if ( ! result.source ) result.source = fallbackSource;
 			return result;
 		}
 
@@ -223,12 +227,13 @@
 
 
 		// trace an error displaying an optional message
-		, trace: function( err, source ){
+		, trace: function trace( err, source ){
+			source = source && source.$id ? ( trace.caller.$name ? trace.caller.$name + "@" : "" ) + source.$id : ( trace.caller.$name ? trace.caller.$name + "@" + trace.caller.$id : "" );
 			var lines, current, i, l;
 			if ( err && err.stack ){
 
 				console.log( this.__pad( "", 80, "#" ).grey );
-				console.log( "\n" + ( source && source.$id ? source.$id + ": " : "Error: " ).grey + ( err.message ? err.message : "-" ).white + "\n" );
+				console.log( "\n" + ( source ? source + ": " : "Error: " ).grey + ( err.message ? err.message : "-" ).white + "\n" );
 
 				lines = err.stack.split( "\n" );
 				i = lines.length, l = i;
@@ -252,7 +257,7 @@
 
 		// create logsignature
 		, __createSignature: function( source ){
-			var sourceName = ( source && source.$id ), date = new Date(), result;
+			var date = new Date(), result;
 
 			result  = this.__pad( date.getDate(), 2 ) + " ";
 			result += this.__pad( date.getHours(), 2 ) + ":";
@@ -261,7 +266,7 @@
 			result += this.__pad( date.getMilliseconds(), 3 );
 
 			result += " > "
-			result += this.__pad( ( source && source.$id ) || "-", 30, " " );
+			result += this.__pad( ( source || "-" ), 30, " " );
 			result += " >>> "
 
 			return result.grey;
