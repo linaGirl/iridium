@@ -1,5 +1,5 @@
-
-	require( "./" )( "iridium test", 1 );
+	
+	var iridium = require( "./" )( "iridium test", 1 );
 
 	// iridium net implementation
 	var net = iridium( "net" );

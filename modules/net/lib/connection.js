@@ -209,7 +209,7 @@
 			// clear the buffer
 			var i = this.__buffer.length;
 			while( i-- ){
-				this.__buffer.splice( i, 1 )[ 0 ].callback( new Error( "socket_close" ), this.__buffer[ i ].data );
+				this.__buffer.splice( i, 1 )[ 0 ].callback( new Error( "connection_closed" ), this.__buffer[ i ].data );
 			}
 
 			process.nextTick( function(){

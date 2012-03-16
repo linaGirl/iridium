@@ -10,9 +10,7 @@
 
 		// debug
 		, debug: function debug(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), debug.caller.$id );
-			logs.source = debug.caller.$name + "@" + logs.source;
-
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
 			console.log( this.__createSignature( logs.source ) + logs.text.grey );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -22,9 +20,7 @@
 
 		// info
 		, info: function info(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), info.caller.$id );
-			logs.source = info.caller.$name + "@" + logs.source;
-
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
 			console.log( this.__createSignature( logs.source ) + logs.text.white );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -34,9 +30,7 @@
 
 		// warn
 		, warn: function warn(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), warn.caller.$id );
-			logs.source = warn.caller.$name + "@" + logs.source;
-
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
 			console.log( this.__createSignature( logs.source ) + logs.text.yellow.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -46,9 +40,7 @@
 
 		// error ( uncatchable )
 		, error: function error(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), error.caller.$id );
-			logs.source = error.caller.$name + "@" + logs.source;
-
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
 			console.log( this.__createSignature( logs.source ) + logs.text.red.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -60,9 +52,7 @@
 
 		// highlight a message
 		, highlight: function highlight(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), highlight.caller.$id );
-			logs.source = highlight.caller.$name + "@" + logs.source;
-
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
 			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -228,13 +218,13 @@
 
 		// trace an error displaying an optional message
 		, trace: function trace( err, source ){
-			source = source && source.$id ? ( trace.caller.$name ? trace.caller.$name + "@" : "" ) + source.$id : ( trace.caller.$name ? trace.caller.$name + "@" + trace.caller.$id : "" );
+			source = source && source.$id ? source.$id : "" ;
 			var lines, current, i, l;
 			if ( err && err.stack ){
 
 				console.log( this.__pad( "", 80, "#" ).grey );
-				console.log( "\n" + ( source ? source + ": " : "Error: " ).grey + ( err.message ? err.message : "-" ).white + "\n" );
-
+				console.log( "\n" + ( source ? source + ": " : "Error: " ).grey + ( err.name === "AssertionError" ? ( "AssertionError: <" + err.actual + "> " + err.operator + " <" + err.expected + ">" ) : ( err.message ? err.message : "-" ) ).white + "\n" );
+			
 				lines = err.stack.split( "\n" );
 				i = lines.length, l = i;
 

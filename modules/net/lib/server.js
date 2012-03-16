@@ -2,7 +2,7 @@
 	// server abstraction which implements connection pooling
 	
 	module.exports = new Class( {
-		$id: "Server"
+		$id: "net.Server"
 
 		, Extends: Events
 

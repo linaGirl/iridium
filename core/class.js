@@ -22,15 +22,7 @@
 	module.exports = Class = function( definition ){
 		if ( definition ){
 			var hasOwnProperty = Object.prototype.hasOwnProperty
-				, properties = {
-					parent: { value: function parent(){
-						if ( parent.caller.$name && hasOwnProperty.call( parentClass, parent.caller.$name ) ){
-							parentClass[ parent.caller.$name ].apply( this, arguments );
-						}
-						else throw new Error( "parent class has no method <" + ( parent.caller.$name || parent.caller.name || "[undefined]" ) + "> !" );
-					} }
-					, $retId: { value: function(){ return this.$id; } }
-				} // direct class properties, scalar values, functions
+				, properties = {} // direct class properties, scalar values, functions
 				, extend = hasOwnProperty.call( definition, "Extends" ) // does this class extend another?
 				, parentClass = extend ? ( hasOwnProperty.call( definition.Extends, "$prototype" ) ? definition.Extends.$prototype : definition.Extends ) : {}
 				, classProperties = extend && hasOwnProperty.call( parentClass, "$properties" ) ? parentClass.$properties : {} // properties typof object which must be cloned
@@ -58,7 +50,17 @@
 						classProperties[ keys[ i ] ] = current;
 					}
 					else {
-						if ( typeof current === "function" ) current.$name = keys[ i ], current.$id = ( definition.$id || "<>" ) ;
+						if ( typeof current === "function" ) {
+							current.$name = keys[ i ], current.$id = ( definition.$id || "<>" ) ;
+							( function( name ){
+								current.parent = function(){
+									if ( hasOwnProperty.call( parentClass, name ) ){
+										return parentClass[ name ].apply( arguments[ 0 ], Array.prototype.slice.call ( arguments, 1 ) );
+									}
+									else throw new Error( "parent class has no method <" + name + "> !" );
+								}
+							} )( keys[ i ] );
+						}
 						properties[ keys[ i ] ] = { value: current, enumerable: true };
 					}
 				}

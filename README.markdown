@@ -2,6 +2,8 @@
 
 the irdium framework is used to create distributed high performance applications for the web. it provides basic abstractions for several software layers so the programmer can focus on implementing the application itself. Beside this it provides some basic modules like a Class implementation, simpler Events abstration, an advanced logging facility and a stats data collector ( analyzer is a separate project depending on this framework ).
 
+the complete framework code runs under the "strict mode".
+
 
 # installing
 
@@ -15,10 +17,10 @@ the irdium framework is used to create distributed high performance applications
 include the framwork. this provides the now glbally available modules Class, Events, log and zero ( which provides the statistics collector interface )
 	
 	// additionally prints the iridium start screen
-    require( "/path/to/iridium/" )( "my app name", 1 );
+    var iridium = require( "/path/to/iridium/" )( "my app name", 1 );
 
     // load the framework quietly
-    require( "/path/to/iridium/" );
+    var iridium = require( "/path/to/iridium/" );
  
 
 ## Class

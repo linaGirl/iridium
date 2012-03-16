@@ -1,10 +1,11 @@
-
+	"use strict";
 
 	// this is the mainfile required for operating using the iridium framework
 	// import this as fake sub repository into your project
 
 	var prorotype = require( "./core/prototype" )
-		, path = require( "path" );
+		, path = require( "path" )
+		, iridium;
 
 		require( "./core/log" );
 		require( "./core/class" );
@@ -12,17 +13,17 @@
 
 
 
-	exports._I = _I = path.resolve( "./modules/" ) + "/";
+	exports._I = path.resolve( "./modules/" ) + "/";
 
 	exports.iridium = iridium = function( module ){
-		return require( _I + module )
+		return require( exports._I + module )
 	};
 
 	
 	module.exports = function( productName, version ){
 		// grret th euser
 		printLogo( productName, version );
-		return {};
+		return iridium;
 	};
 
 
@@ -79,7 +80,7 @@
 			, "           \\_ `---".blue.bold + "'".yellow.bold + "--'\" ,".blue.bold + "'^".yellow.bold + "-;".yellow.bold + "'".yellow.bold + "        |   | |   | \\   \\  |   | |    \"    | |   | |    \"    | |   |  |   |".white
 			, "           (_`     ---'\" ,-') ".blue.bold + "        |___| |___|  \\___\\ |___| |________.' |___|  \\________| |___|  |___|".white
 			, "           / `--.__,. ,-'    \\ ".blue.bold + "        ___                ___               ___".white
-			, "           )-.__,-- ||___,--' `-. ".blue.bold + "    |___|              |___|             |___|".white + new Array( ( 45 - productString.length ) ).join( " " ) + productString 
+			, "           )-.__,-- ||___,--' `-. ".blue.bold + "    |___|              |___|             |___|".white + new Array( ( productString.length.length < 45 ? 45 - productString.length : 2) ).join( " " ) + productString 
 			, "          /".white + "._______,|__________,'".blue.bold+"\\ ".white
 			, "         `--.____,'|_________,-'´".white
 			, "\n\n"
