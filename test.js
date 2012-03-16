@@ -12,23 +12,26 @@
 	// iridium connection
 	var connection = net.createConnection( "joinbox.com", 80 );
 	var connection2 = net.createConnection( "sbb.ch", 80 );
+	var connection3 = net.createConnection( "saddöfgkhjsdaf sdfhl lkj .ch", 80 );
 
+
+	connection3.on( "error", function( err ){
+		log.error( "conenction failed: " + err.message );
+	}.bind( this ) )
 
 	connection.on( "close", function(){
 		log.warn( "socket was closed ...." );
-		log.dir( connection);
 	}.bind( this ) )
 
 	connection.on( "connect", function(){
-		log.dir( connection);
+		log.info( "connected to [" + connection.id() + "] ..." );
 	}.bind( this ) );
 
 	connection2.on( "close", function(){
 		log.warn( "socket was closed ...." );
-		log.dir( connection2);
 	}.bind( this ) )
 
 	connection2.on( "connect", function(){
-		log.dir( connection2);
+		log.info( "connected to [" + connection2.id() + "] ..." );
 	}.bind( this ) );
 	

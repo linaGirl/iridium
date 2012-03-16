@@ -9,11 +9,11 @@
 		if ( typeof item === "object" ){
 			if ( item === null ) return item;
 			else if ( Buffer.isBuffer( item ) ) {
-				return buf = new Buffer( item.length ), item.copy( buf ), firstLevel ? { enumerable: true, value: buf } : buf;
+				return buf = new Buffer( item.length ), item.copy( buf ), firstLevel ? { writable: true, configurable: true, enumerable: true, value: buf } : buf;
 			}
 			else {
 				var no = item instanceof Array ? [] : {}, keys = Object.keys( item ), i = keys.length;
-				while( i-- ){ no[ keys[ i ] ] = firstLevel ? { enumerable: true, value: clone( item[ keys [ i ] ] ) } : clone( item[ keys [ i ] ] ); };
+				while( i-- ){ no[ keys[ i ] ] = firstLevel ? { writable: true, configurable: true, enumerable: true, value: clone( item[ keys [ i ] ] ) } : clone( item[ keys [ i ] ] ); };
 				return no;
 			}
 		}

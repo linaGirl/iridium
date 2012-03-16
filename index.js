@@ -7,27 +7,25 @@
 		, path = require( "path" )
 		, mpath =  path.resolve( "./modules/" ) + "/"
 		, cpath =  path.resolve( "./core/" ) + "/"
-		, iridium
 		, log = require( "./core/log" );
 
 
 
-
-	iridium = function( module ){
+	// the iridium module loader
+	global.iridium = function( module ){
 		if ( module === "class" || module === "log" || module === "events" ){
 			return require( cpath + module );
 		}
 		else {
 			return require( mpath + module );
 		}
-	};
+	}
 
-	global.iridium = iridium;
 	
+
+	// print iridium intro
 	module.exports = function( productName, version ){
-		// grret th euser
 		printLogo( productName, version );
-		return iridium;
 	};
 
 

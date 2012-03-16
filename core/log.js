@@ -10,7 +10,7 @@
 
 		// debug
 		, debug: function debug(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.grey );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -20,7 +20,7 @@
 
 		// info
 		, info: function info(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.white );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -30,7 +30,7 @@
 
 		// warn
 		, warn: function warn(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.yellow.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -40,7 +40,7 @@
 
 		// error ( uncatchable )
 		, error: function error(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.red.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -52,7 +52,7 @@
 
 		// highlight a message
 		, highlight: function highlight(){
-			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ), "-" );
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
@@ -64,9 +64,8 @@
 
 
 		// extract message
-		, __extractMessage: function extract( items, fallbackSource ){
+		, __extractMessage: function extract( items ){
 			var result = { text: "", dir: [] }, current;
-
 			for ( var i = 0, l = items.length; i < l; i++ ){
 				current = items[ i ];
 
@@ -107,7 +106,6 @@
 						result.text +=  current + " ";
 				}
 			}
-			if ( ! result.source ) result.source = fallbackSource;
 			return result;
 		}
 

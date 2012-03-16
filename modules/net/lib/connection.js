@@ -185,8 +185,7 @@
 			else {
 				dns.lookup( host, function( err, address ){
 					if ( err ){
-						log.error( "could not connect to target host: " + err, this );
-						this.emit( "error", new Error( "could not connect to target host: " + err ) );
+						this.emit( "error", new Error( "nx_domain" ) );
 					} else {
 						if ( address ){
 							this.__address = address;
@@ -194,8 +193,7 @@
 							callback( address );
 						}
 						else {
-							log.error( "could not connect to target host: nx_domain", this );
-							this.emit( "error", new Error( "could not connect to target host: nx_domain" ) );
+							this.emit( "error", new Error( "nx_domain" ) );
 						}
 					}
 				}.bind( this ) );
