@@ -17,13 +17,18 @@ the complete framework code runs under the "strict mode".
 include the framwork. this provides the now glbally available modules Class, Events, log and zero ( which provides the statistics collector interface )
 	
 	// additionally prints the iridium start screen
-    var iridium = require( "/path/to/iridium/" )( "my app name", 1 );
+    require( "/path/to/iridium/" )( "my app name", 1 );
 
     // load the framework quietly
-    var iridium = require( "/path/to/iridium/" );
+    require( "/path/to/iridium/" );
  
 
 ## Class
+	
+	require( "/path/to/iridium/" );
+
+	var Class = iridium( "class" )
+		, log = iridium( "log" );
 
 	var MyClass = new Class( {
 		$id: "MyClass"  	// used for logging
@@ -59,7 +64,7 @@ include the framwork. this provides the now glbally available modules Class, Eve
 
 
 	var myClassInstance = new MyClass( { 
-		name: "john"
+		name: "john"   
 		, on: { 						// events in this object will automatically be added to 
 			hello: function( to ){		// the class instance as soon the class is extending the Events class
 				log.warn( "myClassInstance had to say hello to", to );

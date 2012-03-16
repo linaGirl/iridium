@@ -1,5 +1,9 @@
-
+	"use strict";
 	
+	var Class = iridium( "class" )
+		, Events = iridium( "events" )
+		, log = iridium( "log" );
+
 	var net = require( "net" )
 		, dns = require( "dns" )
 		, crypto = require( "crypto" );

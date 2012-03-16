@@ -1,4 +1,6 @@
+	"use strict";
 
+	
 	// simpler classes by @eventEmitter;
 
 
@@ -19,7 +21,7 @@
 	}
 
 
-	module.exports = Class = function( definition ){
+	module.exports = function( definition ){
 		if ( definition ){
 			var hasOwnProperty = Object.prototype.hasOwnProperty
 				, properties = {} // direct class properties, scalar values, functions

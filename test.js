@@ -1,8 +1,10 @@
 	
-	var iridium = require( "./" )( "iridium test", 1 );
+	require( "./" )( "iridium test", 1 );
+
 
 	// iridium net implementation
-	var net = iridium( "net" );
+	var net = iridium( "net" )
+		log = iridium( "log" );
 
 	// iridium server
 	var server = net.createServer();
@@ -29,4 +31,4 @@
 	connection2.on( "connect", function(){
 		log.dir( connection2);
 	}.bind( this ) );
-
+	

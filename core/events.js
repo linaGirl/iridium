@@ -1,11 +1,11 @@
+	"use strict";
 
 
-
-	require( "./class" );
+	var Class = require( "./class" );
 
 
 	// cutom events, because they less suck
-	module.exports = Events = new Class( {
+	module.exports = new Class( {
 		$id: "events"
 		
 		, $events: {}

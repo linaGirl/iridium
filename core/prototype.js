@@ -1,3 +1,4 @@
+	"use strict";
 
 	// silly simple class
 	( function(){
@@ -20,7 +21,7 @@
 				, "red": 		[ 31, 39 ]
 				, "yellow": 	[ 33, 39 ]
 			};
-			return "\033[" + styles[ style ][ 0 ] + "m" + str + "\033[" + styles[ style ][ 1 ] + "m";
+			return '\x1b[' + ( styles[ style ][ 0 ] ) + "m" + str + '\x1b[' + ( styles[ style ][ 1 ] ) + "m";
 		};
 		
 		[ "bold", "underline", "italic", "inverse", "grey", "yellow", "red", "green", "blue", "white", "cyan", "magenta" ].forEach( function( style ) {

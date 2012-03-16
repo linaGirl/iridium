@@ -5,20 +5,24 @@
 
 	var prorotype = require( "./core/prototype" )
 		, path = require( "path" )
-		, iridium;
-
-		require( "./core/log" );
-		require( "./core/class" );
-		require( "./core/events" );
-
+		, mpath =  path.resolve( "./modules/" ) + "/"
+		, cpath =  path.resolve( "./core/" ) + "/"
+		, iridium
+		, log = require( "./core/log" );
 
 
-	exports._I = path.resolve( "./modules/" ) + "/";
 
-	exports.iridium = iridium = function( module ){
-		return require( exports._I + module )
+
+	iridium = function( module ){
+		if ( module === "class" || module === "log" || module === "events" ){
+			return require( cpath + module );
+		}
+		else {
+			return require( mpath + module );
+		}
 	};
 
+	global.iridium = iridium;
 	
 	module.exports = function( productName, version ){
 		// grret th euser
@@ -80,7 +84,7 @@
 			, "           \\_ `---".blue.bold + "'".yellow.bold + "--'\" ,".blue.bold + "'^".yellow.bold + "-;".yellow.bold + "'".yellow.bold + "        |   | |   | \\   \\  |   | |    \"    | |   | |    \"    | |   |  |   |".white
 			, "           (_`     ---'\" ,-') ".blue.bold + "        |___| |___|  \\___\\ |___| |________.' |___|  \\________| |___|  |___|".white
 			, "           / `--.__,. ,-'    \\ ".blue.bold + "        ___                ___               ___".white
-			, "           )-.__,-- ||___,--' `-. ".blue.bold + "    |___|              |___|             |___|".white + new Array( ( productString.length.length < 45 ? 45 - productString.length : 2) ).join( " " ) + productString 
+			, "           )-.__,-- ||___,--' `-. ".blue.bold + "    |___|              |___|             |___|".white + new Array( ( productString.length < 45 ? 45 - productString.length : 2) ).join( " " ) + productString 
 			, "          /".white + "._______,|__________,'".blue.bold+"\\ ".white
 			, "         `--.____,'|_________,-'´".white
 			, "\n\n"

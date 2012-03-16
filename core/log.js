@@ -1,11 +1,11 @@
-	
+	"use strict";
 
 
 	var Class = require( "./class" );
 
 
 	// the logger is a singleton
-	module.exports = log = new ( new Class( {
+	module.exports = new ( new Class( {
 		$id: "log"
 
 		// debug

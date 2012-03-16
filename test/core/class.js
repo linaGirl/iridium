@@ -1,5 +1,4 @@
 
-
 	var assert = require( "assert" );
 
 	// tests class, constructor, parent, extends, properties usgin scalar values, objects and arrays
