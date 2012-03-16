@@ -41,6 +41,15 @@ include the framwork. this provides the now glbally available modules Class, Eve
 		}
 
 
+		// smae function is provided by the Events class which is Extended by this class
+		// if you want to be able to call the on method in the parent class this instance
+		// of the function has to be a named function.
+		, on: function on( event, listener, once ){
+			// if calling a parent function parameter 0 must be the current scope, e.g. this
+			on.parent( this, event, listener, once );
+		}
+
+
 		, sayHello: function( to ){
 			log.info( "hi", to, this );
 
