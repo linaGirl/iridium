@@ -43,7 +43,10 @@
 				throw new Error( "constructor expects either a socket or connection parameters ( host, port, optional credentials )!" );
 			}
 
+			// destroy on close
 			this.on( "close", this.__destroy.bind( this ) );
+			// close on error
+			this.on( "error", function(){ this.emit( "close" ) }.bind( this ) );
 		}
 
 
@@ -78,7 +81,7 @@
 
 		// returns the id of the connection 
 		, id: function(){
-			return this.__address + this.__port;
+			return ( this.__address || this.__host ) + ":" + this.__port;
 		}
 
 

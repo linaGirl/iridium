@@ -3,7 +3,7 @@
 
 
 	// iridium net implementation
-	var net = iridium( "net" )
+	var net = iridium.module( "net" )
 		log = iridium( "log" );
 
 	// iridium server
@@ -17,21 +17,24 @@
 
 	connection3.on( "error", function( err ){
 		log.error( "conenction failed: " + err.message );
-	}.bind( this ) )
+	}.bind( this ) );
+	connection3.on( "close", function(){
+		log.warn( "socket was closed [" + connection3.id() + "] ...." );
+	}.bind( this ) );
+
 
 	connection.on( "close", function(){
-		log.warn( "socket was closed ...." );
-	}.bind( this ) )
+		log.warn( "socket was closed [" + connection.id() + "] ...." );
+	}.bind( this ) );
 
 	connection.on( "connect", function(){
 		log.info( "connected to [" + connection.id() + "] ..." );
 	}.bind( this ) );
 
 	connection2.on( "close", function(){
-		log.warn( "socket was closed ...." );
-	}.bind( this ) )
+		log.warn( "socket was closed [" + connection2.id() + "] ...." );
+	}.bind( this ) );
 
 	connection2.on( "connect", function(){
 		log.info( "connected to [" + connection2.id() + "] ..." );
 	}.bind( this ) );
-	

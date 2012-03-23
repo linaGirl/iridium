@@ -11,21 +11,25 @@
 		, $events: {}
 
 		, emit: function( event ){
-			var i, current;
+			var args = arguments;
+			// emit awas on next tick
+			process.nextTick( function(){
+				var i, current;
 
-			if ( this.$events[ event ] ){
-				i = this.$events[ event ].length;
-				while( i-- ){
-					current = this.$events[ event ][ i ];
-					if ( typeof current.listener === "function" ){
-						current.listener.apply( null, Array.prototype.slice.call( arguments, 1 ) );
-						if ( current.once ) this.$events[ event ].splice( i, 1 );
-					}
-					else {
-						this.$events[ event ].splice( i, 1 );
+				if ( this.$events[ event ] ){
+					i = this.$events[ event ].length;
+					while( i-- ){
+						current = this.$events[ event ][ i ];
+						if ( typeof current.listener === "function" ){
+							current.listener.apply( null, Array.prototype.slice.call( args, 1 ) );
+							if ( current.once ) this.$events[ event ].splice( i, 1 );
+						}
+						else {
+							this.$events[ event ].splice( i, 1 );
+						}
 					}
 				}
-			}
+			}.bind( this ) );
 		}
 
 

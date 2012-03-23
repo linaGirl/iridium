@@ -4,24 +4,31 @@
 	// import this as fake sub repository into your project
 
 	var prorotype = require( "./core/prototype" )
-		, path = require( "path" )
-		, mpath =  path.resolve( "./modules/" ) + "/"
-		, cpath =  path.resolve( "./core/" ) + "/"
+		, path = module.filename.substr( 0, module.filename.lastIndexOf( "/" ) + 1 )
+		, mpath = path + "modules/"
+		, cpath = path + "core/"
+		, spath = path + "services/"
 		, log = require( "./core/log" );
 
 
 
 	// the iridium module loader
-	global.iridium = function( module ){
-		if ( module === "class" || module === "log" || module === "events" ){
-			return require( cpath + module );
-		}
-		else {
-			return require( mpath + module );
-		}
+	global.iridium = function( coreModule ){
+		return require( cpath + coreModule );
+	}
+
+
+	global.iridium.module = function( moduleName ){
+		return require( mpath + moduleName );
+	}
+
+
+	global.iridium.service = function( serviceName ){
+		return require( spath + serviceName );
 	}
 
 	
+
 
 	// print iridium intro
 	module.exports = function( productName, version ){
