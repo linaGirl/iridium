@@ -160,41 +160,26 @@ QueryString.stringify = QueryString.encode = function(obj, sep, eq, name) {
 };
 
 // Parse a key=val string.
-QueryString.parse = QueryString.decode = function(qs, sep, eq, options) {
+QueryString.parse = QueryString.decode = function(qs, sep, eq) {
   sep = sep || '&';
   eq = eq || '=';
-  var obj = {},
-      maxKeys = 1000;
-
-  // Handle maxKeys = 0 case
-  if (options && typeof options.maxKeys === 'number') {
-    maxKeys = options.maxKeys;
-  }
+  var obj = {};
 
   if (typeof qs !== 'string' || qs.length === 0) {
     return obj;
   }
 
-  var regexp = /\+/g;
-  qs = qs.split(sep);
-
-  // maxKeys <= 0 means that we should not limit keys count
-  if (maxKeys > 0) {
-    qs = qs.slice(0, maxKeys);
-  }
-
-  for (var i = 0, len = qs.length; i < len; ++i) {
-    var x = qs[i].replace(regexp, '%20'),
-        idx = x.indexOf(eq),
-        kstr = x.substring(0, idx),
-        vstr = x.substring(idx + 1), k, v;
-
+  qs.split(sep).forEach(function(kvp) {
+    var x = kvp.split(eq), k, v, useQS=false;
     try {
-      k = decodeURIComponent(kstr);
-      v = decodeURIComponent(vstr);
-    } catch (e) {
-      k = QueryString.unescape(kstr, true);
-      v = QueryString.unescape(vstr, true);
+      if (kvp.match(/\+/)) {	// decodeURIComponent does not decode + to space
+        throw "has +";
+      }
+      k = decodeURIComponent(x[0]);
+      v = decodeURIComponent(x.slice(1).join(eq) || "");
+    } catch(e) {
+      k = QueryString.unescape(x[0], true);
+      v = QueryString.unescape(x.slice(1).join(eq), true);
     }
 
     if (!hasOwnProperty(obj, k)) {
@@ -204,7 +189,7 @@ QueryString.parse = QueryString.decode = function(qs, sep, eq, options) {
     } else {
       obj[k].push(v);
     }
-  }
+  });
 
   return obj;
 };

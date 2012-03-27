@@ -33,6 +33,25 @@
 		}
 
 
+		, emitNow: function( event ){
+			var args = arguments, i, current;
+			
+			if ( this.$events[ event ] ){
+				i = this.$events[ event ].length;
+				while( i-- ){
+					current = this.$events[ event ][ i ];
+					if ( typeof current.listener === "function" ){
+						current.listener.apply( null, Array.prototype.slice.call( args, 1 ) );
+						if ( current.once ) this.$events[ event ].splice( i, 1 );
+					}
+					else {
+						this.$events[ event ].splice( i, 1 );
+					}
+				}
+			}
+		}
+
+
 		// remove all event s( no args ), all listeners of a specific event ( first arg ) or a specific listener ( two args )
 		, off: function( event, listener ){
 			var i;

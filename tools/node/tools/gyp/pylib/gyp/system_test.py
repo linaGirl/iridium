@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Copyright (c) 2011 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -8,7 +8,6 @@ import os
 import tempfile
 import shutil
 import subprocess
-
 
 def TestCommands(commands, files={}, env={}):
   """Run commands in a temporary directory, returning true if they all succeed.
@@ -51,7 +50,21 @@ def TestArSupportsT(ar_command='ar', cc_command='cc'):
                       env={'ar': ar_command, 'cc': cc_command})
 
 
-def main():
+def TestLinkerSupportsThreads(cc_command='cc'):
+  """Test whether the linker supports the --threads flag."""
+  return TestCommands(['%(cc)s -Wl,--threads test.c'],
+                      files={'test.c': 'int main(){}'},
+                      env={'cc': cc_command})
+
+
+def TestLinkerSupportsICF(cc_command='cc'):
+  """Test whether the linker supports identical code folding."""
+  return TestCommands(['%(cc)s -Wl,--icf=safe test.c'],
+                      files={'test.c': 'int main(){}'},
+                      env={'cc': cc_command})
+
+
+if __name__ == '__main__':
   # Run the various test functions and print the results.
   def RunTest(description, function, **kwargs):
     print "Testing " + description + ':',
@@ -61,8 +74,4 @@ def main():
       print 'fail'
   RunTest("ar 'T' flag", TestArSupportsT)
   RunTest("ar 'T' flag with ccache", TestArSupportsT, cc_command='ccache cc')
-  return 0
-
-
-if __name__ == '__main__':
-  sys.exit(main())
+  RunTest("ld --threads", TestLinkerSupportsThreads)

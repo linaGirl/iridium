@@ -74,9 +74,7 @@ static uint64_t CpuFeaturesImpliedByCompiler() {
 
 
 void CpuFeatures::Probe() {
-  unsigned standard_features = (OS::CpuFeaturesImpliedByPlatform() |
-                                CpuFeaturesImpliedByCompiler());
-  ASSERT(supported_ == 0 || supported_ == standard_features);
+  ASSERT(!initialized_);
 #ifdef DEBUG
   initialized_ = true;
 #endif
@@ -84,7 +82,8 @@ void CpuFeatures::Probe() {
   // Get the features implied by the OS and the compiler settings. This is the
   // minimal set of features which is also allowed for generated code in the
   // snapshot.
-  supported_ |= standard_features;
+  supported_ |= OS::CpuFeaturesImpliedByPlatform();
+  supported_ |= CpuFeaturesImpliedByCompiler();
 
   if (Serializer::enabled()) {
     // No probing for features if we might serialize (generate snapshot).
@@ -301,7 +300,7 @@ Assembler::Assembler(Isolate* arg_isolate, void* buffer, int buffer_size)
     own_buffer_ = false;
   }
 
-  // Set up buffer pointers.
+  // Setup buffer pointers.
   ASSERT(buffer_ != NULL);
   pc_ = buffer_;
   reloc_info_writer.Reposition(buffer_ + buffer_size, pc_);
@@ -337,7 +336,7 @@ Assembler::~Assembler() {
 
 void Assembler::GetCode(CodeDesc* desc) {
   ASSERT(pc_ <= reloc_info_writer.pos());  // No overlap.
-  // Set up code descriptor.
+  // Setup code descriptor.
   desc->buffer = buffer_;
   desc->buffer_size = buffer_size_;
   desc->instr_size = pc_offset();
@@ -1245,7 +1244,6 @@ void Assembler::and_(Register rd, Register rs, Register rt) {
 
 
 void Assembler::andi(Register rt, Register rs, int32_t j) {
-  ASSERT(is_uint16(j));
   GenInstrImmediate(ANDI, rs, rt, j);
 }
 
@@ -1256,7 +1254,6 @@ void Assembler::or_(Register rd, Register rs, Register rt) {
 
 
 void Assembler::ori(Register rt, Register rs, int32_t j) {
-  ASSERT(is_uint16(j));
   GenInstrImmediate(ORI, rs, rt, j);
 }
 
@@ -1267,7 +1264,6 @@ void Assembler::xor_(Register rd, Register rs, Register rt) {
 
 
 void Assembler::xori(Register rt, Register rs, int32_t j) {
-  ASSERT(is_uint16(j));
   GenInstrImmediate(XORI, rs, rt, j);
 }
 
@@ -1448,7 +1444,6 @@ void Assembler::swr(Register rd, const MemOperand& rs) {
 
 
 void Assembler::lui(Register rd, int32_t j) {
-  ASSERT(is_uint16(j));
   GenInstrImmediate(LUI, zero_reg, rd, j);
 }
 
@@ -1974,7 +1969,7 @@ void Assembler::GrowBuffer() {
   }
   CHECK_GT(desc.buffer_size, 0);  // No overflow.
 
-  // Set up new buffer.
+  // Setup new buffer.
   desc.buffer = NewArray<byte>(desc.buffer_size);
 
   desc.instr_size = pc_offset();
@@ -2023,8 +2018,7 @@ void Assembler::dd(uint32_t data) {
 
 
 void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
-  // We do not try to reuse pool constants.
-  RelocInfo rinfo(pc_, rmode, data, NULL);
+  RelocInfo rinfo(pc_, rmode, data);  // We do not try to reuse pool constants.
   if (rmode >= RelocInfo::JS_RETURN && rmode <= RelocInfo::DEBUG_BREAK_SLOT) {
     // Adjust code for new modes.
     ASSERT(RelocInfo::IsDebugBreakSlot(rmode)
@@ -2047,7 +2041,7 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
     }
     ASSERT(buffer_space() >= kMaxRelocSize);  // Too late to grow buffer here.
     if (rmode == RelocInfo::CODE_TARGET_WITH_ID) {
-      RelocInfo reloc_info_with_ast_id(pc_, rmode, RecordedAstId(), NULL);
+      RelocInfo reloc_info_with_ast_id(pc_, rmode, RecordedAstId());
       ClearRecordedAstId();
       reloc_info_writer.Write(&reloc_info_with_ast_id);
     } else {

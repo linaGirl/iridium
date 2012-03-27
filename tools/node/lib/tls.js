@@ -26,13 +26,12 @@ var events = require('events');
 var stream = require('stream');
 var END_OF_FILE = 42;
 var assert = require('assert').ok;
-var constants = require('constants');
 
 // Allow {CLIENT_RENEG_LIMIT} client-initiated session renegotiations
 // every {CLIENT_RENEG_WINDOW} seconds. An error event is emitted if more
 // renegotations are seen. The settings are applied to all remote client
 // connections.
-exports.CLIENT_RENEG_LIMIT = 3;
+exports.CLIENT_RENEG_LIMIT  = 3;
 exports.CLIENT_RENEG_WINDOW = 600;
 
 
@@ -166,18 +165,13 @@ CryptoStream.prototype.resume = function() {
 };
 
 
-CryptoStream.prototype.setTimeout = function(timeout, callback) {
-  if (this.socket) this.socket.setTimeout(timeout, callback);
+CryptoStream.prototype.setTimeout = function(n) {
+  if (this.socket) this.socket.setTimeout(n);
 };
 
 
-CryptoStream.prototype.setNoDelay = function(noDelay) {
-  if (this.socket) this.socket.setNoDelay(noDelay);
-};
-
-
-CryptoStream.prototype.setKeepAlive = function(enable, initialDelay) {
-  if (this.socket) this.socket.setKeepAlive(enable, initialDelay);
+CryptoStream.prototype.setNoDelay = function() {
+  if (this.socket) this.socket.setNoDelay();
 };
 
 
@@ -197,14 +191,7 @@ function parseCertString(s) {
     if (sepIndex > 0) {
       var key = parts[i].slice(0, sepIndex);
       var value = parts[i].slice(sepIndex + 1);
-      if (key in out) {
-        if (!Array.isArray(out[key])) {
-          out[key] = [out[key]];
-        }
-        out[key].push(value);
-      } else {
-        out[key] = value;
-      }
+      out[key] = value;
     }
   }
   return out;
@@ -482,6 +469,9 @@ CryptoStream.prototype._pull = function() {
       debug('drain ' + (this === this.pair.cleartext ? 'clear' : 'encrypted'));
       var self = this;
       process.nextTick(function() {
+        if (typeof self.ondrain === 'function') {
+          self.ondrain();
+        }
         self.emit('drain');
       });
       this._needDrain = false;
@@ -916,8 +906,6 @@ function Server(/* [options], listener */) {
 
   if (!(this instanceof Server)) return new Server(options, listener);
 
-  this._contexts = [];
-
   var self = this;
 
   // Handle option defaults:
@@ -1016,11 +1004,7 @@ Server.prototype.setOptions = function(options) {
   if (options.crl) this.crl = options.crl;
   if (options.ciphers) this.ciphers = options.ciphers;
   if (options.secureProtocol) this.secureProtocol = options.secureProtocol;
-  var secureOptions = options.secureOptions || 0;
-  if (options.honorCipherOrder) {
-    secureOptions |= constants.SSL_OP_CIPHER_SERVER_PREFERENCE;
-  }
-  if (secureOptions) this.secureOptions = secureOptions;
+  if (options.secureOptions) this.secureOptions = options.secureOptions;
   if (options.NPNProtocols) convertNPNProtocols(options.NPNProtocols, this);
   if (options.SNICallback) {
     this.SNICallback = options.SNICallback;
@@ -1037,6 +1021,7 @@ Server.prototype.setOptions = function(options) {
 };
 
 // SNI Contexts High-Level API
+Server.prototype._contexts = [];
 Server.prototype.addContext = function(servername, credentials) {
   if (!servername) {
     throw 'Servername is required parameter for Server.addContext';
@@ -1065,7 +1050,7 @@ Server.prototype.SNICallback = function(servername) {
 
 // Target API:
 //
-//  var s = tls.connect({port: 8000, host: "google.com"}, function() {
+//  var s = tls.connect(8000, "google.com", options, function() {
 //    if (!s.authorized) {
 //      s.destroy();
 //      return;
@@ -1077,33 +1062,24 @@ Server.prototype.SNICallback = function(servername) {
 //  });
 //
 //
-exports.connect = function(/* [port, host], options, cb */) {
-  var options, port, host, cb;
+// TODO:  make port, host part of options!
+exports.connect = function(port /* host, options, cb */) {
+  // parse args
+  var host, options = {}, cb;
+  for (var i = 1; i < arguments.length; i++) {
+    switch (typeof arguments[i]) {
+      case 'string':
+        host = arguments[i];
+        break;
 
-  if (typeof arguments[0] === 'object') {
-    options = arguments[0];
-  } else if (typeof arguments[1] === 'object') {
-    options = arguments[1];
-    port = arguments[0];
-  } else if (typeof arguments[2] === 'object') {
-    options = arguments[2];
-    port = arguments[0];
-    host = arguments[1];
-  } else {
-    // This is what happens when user passes no `options` argument, we can't
-    // throw `TypeError` here because it would be incompatible with old API
-    if (typeof arguments[0] === 'number') {
-      port = arguments[0];
+      case 'object':
+        options = arguments[i];
+        break;
+
+      case 'function':
+        cb = arguments[i];
+        break;
     }
-    if (typeof arguments[1] === 'string') {
-      host = arguments[1];
-    }
-  }
-
-  options = util._extend({ port: port, host: host }, options || {});
-
-  if (typeof arguments[arguments.length - 1] === 'function') {
-    cb = arguments[arguments.length - 1];
   }
 
   var socket = options.socket ? options.socket : new net.Stream();
@@ -1111,11 +1087,10 @@ exports.connect = function(/* [port, host], options, cb */) {
   var sslcontext = crypto.createCredentials(options);
 
   convertNPNProtocols(options.NPNProtocols, this);
-  var pair = new SecurePair(sslcontext, false, true,
-                            options.rejectUnauthorized === true ? true : false,
+  var pair = new SecurePair(sslcontext, false, true, false,
                             {
                               NPNProtocols: this.NPNProtocols,
-                              servername: options.servername || options.host
+                              servername: options.servername || host
                             });
 
   if (options.session) {
@@ -1128,11 +1103,7 @@ exports.connect = function(/* [port, host], options, cb */) {
   }
 
   if (!options.socket) {
-    socket.connect({
-      port: options.port,
-      host: options.host,
-      localAddress: options.localAddress
-    });
+    socket.connect(port, host);
   }
 
   pair.on('secure', function() {
@@ -1143,17 +1114,11 @@ exports.connect = function(/* [port, host], options, cb */) {
     if (verifyError) {
       cleartext.authorized = false;
       cleartext.authorizationError = verifyError;
-
-      if (pair._rejectUnauthorized) {
-        cleartext.emit('error', verifyError);
-        pair.destroy();
-      } else {
-        cleartext.emit('secureConnect');
-      }
     } else {
       cleartext.authorized = true;
-      cleartext.emit('secureConnect');
     }
+
+    cleartext.emit('secureConnect');
   });
   pair.on('error', function(err) {
     cleartext.emit('error', err);

@@ -1,4 +1,4 @@
-// Copyright 2012 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -32,7 +32,6 @@
 
 #include "v8.h"
 
-#include "codegen.h"
 #include "platform.h"
 #include "vm-state-inl.h"
 
@@ -59,25 +58,20 @@ int localtime_s(tm* out_tm, const time_t* time) {
 }
 
 
-int fopen_s(FILE** pFile, const char* filename, const char* mode) {
-  *pFile = fopen(filename, mode);
-  return *pFile != NULL ? 0 : 1;
-}
-
-
-#ifndef __MINGW64_VERSION_MAJOR
-
 // Not sure this the correct interpretation of _mkgmtime
 time_t _mkgmtime(tm* timeptr) {
   return mktime(timeptr);
 }
 
 
+int fopen_s(FILE** pFile, const char* filename, const char* mode) {
+  *pFile = fopen(filename, mode);
+  return *pFile != NULL ? 0 : 1;
+}
+
+
 #define _TRUNCATE 0
 #define STRUNCATE 80
-
-#endif  // __MINGW64_VERSION_MAJOR
-
 
 int _vsnprintf_s(char* buffer, size_t sizeOfBuffer, size_t count,
                  const char* format, va_list argptr) {
@@ -113,15 +107,10 @@ int strncpy_s(char* dest, size_t dest_size, const char* source, size_t count) {
 }
 
 
-#ifndef __MINGW64_VERSION_MAJOR
-
 inline void MemoryBarrier() {
   int barrier = 0;
   __asm__ __volatile__("xchgl %%eax,%0 ":"=r" (barrier));
 }
-
-#endif  // __MINGW64_VERSION_MAJOR
-
 
 #endif  // __MINGW32__
 
@@ -207,33 +196,9 @@ double modulo(double x, double y) {
 
 #endif  // _WIN64
 
-
-static Mutex* transcendental_function_mutex = OS::CreateMutex();
-
-#define TRANSCENDENTAL_FUNCTION(name, type)                   \
-static TranscendentalFunction fast_##name##_function = NULL;  \
-double fast_##name(double x) {                                \
-  if (fast_##name##_function == NULL) {                       \
-    ScopedLock lock(transcendental_function_mutex);           \
-    TranscendentalFunction temp =                             \
-        CreateTranscendentalFunction(type);                   \
-    MemoryBarrier();                                          \
-    fast_##name##_function = temp;                            \
-  }                                                           \
-  return (*fast_##name##_function)(x);                        \
-}
-
-TRANSCENDENTAL_FUNCTION(sin, TranscendentalCache::SIN)
-TRANSCENDENTAL_FUNCTION(cos, TranscendentalCache::COS)
-TRANSCENDENTAL_FUNCTION(tan, TranscendentalCache::TAN)
-TRANSCENDENTAL_FUNCTION(log, TranscendentalCache::LOG)
-
-#undef TRANSCENDENTAL_FUNCTION
-
-
 // ----------------------------------------------------------------------------
 // The Time class represents time on win32. A timestamp is represented as
-// a 64-bit integer in 100 nanoseconds since January 1, 1601 (UTC). JavaScript
+// a 64-bit integer in 100 nano-seconds since January 1, 1601 (UTC). JavaScript
 // timestamps are represented as a doubles in milliseconds since 00:00:00 UTC,
 // January 1, 1970.
 
@@ -563,7 +528,7 @@ char* Time::LocalTimezone() {
 }
 
 
-void OS::SetUp() {
+void OS::Setup() {
   // Seed the random number generator.
   // Convert the current time to a 64-bit integer first, before converting it
   // to an unsigned. Going directly can cause an overflow and the seed to be
@@ -811,7 +776,7 @@ void OS::StrNCpy(Vector<char> dest, const char* src, size_t n) {
 
 // We keep the lowest and highest addresses mapped as a quick way of
 // determining that pointers are outside the heap (used mostly in assertions
-// and verification).  The estimate is conservative, i.e., not all addresses in
+// and verification).  The estimate is conservative, ie, not all addresses in
 // 'allocated' space are actually allocated to our heap.  The range is
 // [lowest, highest), inclusive on the low and and exclusive on the high end.
 static void* lowest_ever_allocated = reinterpret_cast<void*>(-1);
@@ -866,62 +831,43 @@ size_t OS::AllocateAlignment() {
 }
 
 
-static void* GetRandomAddr() {
-  Isolate* isolate = Isolate::UncheckedCurrent();
-  // Note that the current isolate isn't set up in a call path via
-  // CpuFeatures::Probe. We don't care about randomization in this case because
-  // the code page is immediately freed.
-  if (isolate != NULL) {
-    // The address range used to randomize RWX allocations in OS::Allocate
-    // Try not to map pages into the default range that windows loads DLLs
-    // Use a multiple of 64k to prevent committing unused memory.
-    // Note: This does not guarantee RWX regions will be within the
-    // range kAllocationRandomAddressMin to kAllocationRandomAddressMax
-#ifdef V8_HOST_ARCH_64_BIT
-    static const intptr_t kAllocationRandomAddressMin = 0x0000000080000000;
-    static const intptr_t kAllocationRandomAddressMax = 0x000003FFFFFF0000;
-#else
-    static const intptr_t kAllocationRandomAddressMin = 0x04000000;
-    static const intptr_t kAllocationRandomAddressMax = 0x3FFF0000;
-#endif
-    uintptr_t address = (V8::RandomPrivate(isolate) << kPageSizeBits)
-        | kAllocationRandomAddressMin;
-    address &= kAllocationRandomAddressMax;
-    return reinterpret_cast<void *>(address);
-  }
-  return NULL;
-}
-
-
-static void* RandomizedVirtualAlloc(size_t size, int action, int protection) {
-  LPVOID base = NULL;
-
-  if (protection == PAGE_EXECUTE_READWRITE || protection == PAGE_NOACCESS) {
-    // For exectutable pages try and randomize the allocation address
-    for (size_t attempts = 0; base == NULL && attempts < 3; ++attempts) {
-      base = VirtualAlloc(GetRandomAddr(), size, action, protection);
-    }
-  }
-
-  // After three attempts give up and let the OS find an address to use.
-  if (base == NULL) base = VirtualAlloc(NULL, size, action, protection);
-
-  return base;
-}
-
-
 void* OS::Allocate(const size_t requested,
                    size_t* allocated,
                    bool is_executable) {
+  // The address range used to randomize RWX allocations in OS::Allocate
+  // Try not to map pages into the default range that windows loads DLLs
+  // Use a multiple of 64k to prevent committing unused memory.
+  // Note: This does not guarantee RWX regions will be within the
+  // range kAllocationRandomAddressMin to kAllocationRandomAddressMax
+#ifdef V8_HOST_ARCH_64_BIT
+  static const intptr_t kAllocationRandomAddressMin = 0x0000000080000000;
+  static const intptr_t kAllocationRandomAddressMax = 0x000003FFFFFF0000;
+#else
+  static const intptr_t kAllocationRandomAddressMin = 0x04000000;
+  static const intptr_t kAllocationRandomAddressMax = 0x3FFF0000;
+#endif
+
   // VirtualAlloc rounds allocated size to page size automatically.
   size_t msize = RoundUp(requested, static_cast<int>(GetPageSize()));
+  intptr_t address = 0;
 
   // Windows XP SP2 allows Data Excution Prevention (DEP).
   int prot = is_executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
 
-  LPVOID mbase = RandomizedVirtualAlloc(msize,
-                                        MEM_COMMIT | MEM_RESERVE,
-                                        prot);
+  // For exectutable pages try and randomize the allocation address
+  if (prot == PAGE_EXECUTE_READWRITE &&
+      msize >= static_cast<size_t>(Page::kPageSize)) {
+    address = (V8::RandomPrivate(Isolate::Current()) << kPageSizeBits)
+      | kAllocationRandomAddressMin;
+    address &= kAllocationRandomAddressMax;
+  }
+
+  LPVOID mbase = VirtualAlloc(reinterpret_cast<void *>(address),
+                              msize,
+                              MEM_COMMIT | MEM_RESERVE,
+                              prot);
+  if (mbase == NULL && address != 0)
+    mbase = VirtualAlloc(NULL, msize, MEM_COMMIT | MEM_RESERVE, prot);
 
   if (mbase == NULL) {
     LOG(ISOLATE, StringEvent("OS::Allocate", "VirtualAlloc failed"));
@@ -940,11 +886,6 @@ void OS::Free(void* address, const size_t size) {
   // TODO(1240712): VirtualFree has a return value which is ignored here.
   VirtualFree(address, 0, MEM_RELEASE);
   USE(size);
-}
-
-
-intptr_t OS::CommitPageSize() {
-  return 4096;
 }
 
 
@@ -967,8 +908,12 @@ void OS::Sleep(int milliseconds) {
 
 void OS::Abort() {
   if (!IsDebuggerPresent()) {
+#ifdef _MSC_VER
     // Make the MSVCRT do a silent abort.
-    raise(SIGABRT);
+    _set_abort_behavior(0, _WRITE_ABORT_MSG);
+    _set_abort_behavior(0, _CALL_REPORTFAULT);
+#endif  // _MSC_VER
+    abort();
   } else {
     DebugBreak();
   }
@@ -1452,108 +1397,38 @@ void OS::ReleaseStore(volatile AtomicWord* ptr, AtomicWord value) {
 }
 
 
-VirtualMemory::VirtualMemory() : address_(NULL), size_(0) { }
-
-
-VirtualMemory::VirtualMemory(size_t size)
-    : address_(ReserveRegion(size)), size_(size) { }
-
-
-VirtualMemory::VirtualMemory(size_t size, size_t alignment)
-    : address_(NULL), size_(0) {
-  ASSERT(IsAligned(alignment, static_cast<intptr_t>(OS::AllocateAlignment())));
-  size_t request_size = RoundUp(size + alignment,
-                                static_cast<intptr_t>(OS::AllocateAlignment()));
-  void* address = ReserveRegion(request_size);
-  if (address == NULL) return;
-  Address base = RoundUp(static_cast<Address>(address), alignment);
-  // Try reducing the size by freeing and then reallocating a specific area.
-  bool result = ReleaseRegion(address, request_size);
-  USE(result);
-  ASSERT(result);
-  address = VirtualAlloc(base, size, MEM_RESERVE, PAGE_NOACCESS);
-  if (address != NULL) {
-    request_size = size;
-    ASSERT(base == static_cast<Address>(address));
-  } else {
-    // Resizing failed, just go with a bigger area.
-    address = ReserveRegion(request_size);
-    if (address == NULL) return;
-  }
-  address_ = address;
-  size_ = request_size;
-}
-
-
-VirtualMemory::~VirtualMemory() {
-  if (IsReserved()) {
-    bool result = ReleaseRegion(address_, size_);
-    ASSERT(result);
-    USE(result);
-  }
-}
-
-
 bool VirtualMemory::IsReserved() {
   return address_ != NULL;
 }
 
 
-void VirtualMemory::Reset() {
-  address_ = NULL;
-  size_ = 0;
+VirtualMemory::VirtualMemory(size_t size) {
+  address_ = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
+  size_ = size;
+}
+
+
+VirtualMemory::~VirtualMemory() {
+  if (IsReserved()) {
+    if (0 == VirtualFree(address(), 0, MEM_RELEASE)) address_ = NULL;
+  }
 }
 
 
 bool VirtualMemory::Commit(void* address, size_t size, bool is_executable) {
-  if (CommitRegion(address, size, is_executable)) {
-    UpdateAllocatedSpaceLimits(address, static_cast<int>(size));
-    return true;
+  int prot = is_executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
+  if (NULL == VirtualAlloc(address, size, MEM_COMMIT, prot)) {
+    return false;
   }
-  return false;
+
+  UpdateAllocatedSpaceLimits(address, static_cast<int>(size));
+  return true;
 }
 
 
 bool VirtualMemory::Uncommit(void* address, size_t size) {
   ASSERT(IsReserved());
-  return UncommitRegion(address, size);
-}
-
-
-void* VirtualMemory::ReserveRegion(size_t size) {
-  return RandomizedVirtualAlloc(size, MEM_RESERVE, PAGE_NOACCESS);
-}
-
-
-bool VirtualMemory::CommitRegion(void* base, size_t size, bool is_executable) {
-  int prot = is_executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
-  if (NULL == VirtualAlloc(base, size, MEM_COMMIT, prot)) {
-    return false;
-  }
-
-  UpdateAllocatedSpaceLimits(base, static_cast<int>(size));
-  return true;
-}
-
-
-bool VirtualMemory::Guard(void* address) {
-  if (NULL == VirtualAlloc(address,
-                           OS::CommitPageSize(),
-                           MEM_COMMIT,
-                           PAGE_READONLY | PAGE_GUARD)) {
-    return false;
-  }
-  return true;
-}
-
-
-bool VirtualMemory::UncommitRegion(void* base, size_t size) {
-  return VirtualFree(base, size, MEM_DECOMMIT) != 0;
-}
-
-
-bool VirtualMemory::ReleaseRegion(void* base, size_t size) {
-  return VirtualFree(base, 0, MEM_RELEASE) != 0;
+  return VirtualFree(address, size, MEM_DECOMMIT) != false;
 }
 
 
@@ -1578,7 +1453,6 @@ class Thread::PlatformData : public Malloced {
  public:
   explicit PlatformData(HANDLE thread) : thread_(thread) {}
   HANDLE thread_;
-  unsigned thread_id_;
 };
 
 
@@ -1586,9 +1460,16 @@ class Thread::PlatformData : public Malloced {
 // handle until it is started.
 
 Thread::Thread(const Options& options)
-    : stack_size_(options.stack_size()) {
+    : stack_size_(options.stack_size) {
   data_ = new PlatformData(kNoThread);
-  set_name(options.name());
+  set_name(options.name);
+}
+
+
+Thread::Thread(const char* name)
+    : stack_size_(0) {
+  data_ = new PlatformData(kNoThread);
+  set_name(name);
 }
 
 
@@ -1615,15 +1496,13 @@ void Thread::Start() {
                      ThreadEntry,
                      this,
                      0,
-                     &data_->thread_id_));
+                     NULL));
 }
 
 
 // Wait for thread to terminate.
 void Thread::Join() {
-  if (data_->thread_id_ != GetCurrentThreadId()) {
-    WaitForSingleObject(data_->thread_, INFINITE);
-  }
+  WaitForSingleObject(data_->thread_, INFINITE);
 }
 
 
@@ -1878,7 +1757,7 @@ bool Win32Socket::SetReuseAddress(bool reuse_address) {
 }
 
 
-bool Socket::SetUp() {
+bool Socket::Setup() {
   // Initialize Winsock32
   int err;
   WSADATA winsock_data;
@@ -1954,10 +1833,8 @@ class Sampler::PlatformData : public Malloced {
 
 class SamplerThread : public Thread {
  public:
-  static const int kSamplerThreadStackSize = 64 * KB;
-
   explicit SamplerThread(int interval)
-      : Thread(Thread::Options("SamplerThread", kSamplerThreadStackSize)),
+      : Thread("SamplerThread"),
         interval_(interval) {}
 
   static void AddActiveSampler(Sampler* sampler) {
@@ -2061,7 +1938,6 @@ class SamplerThread : public Thread {
   static Mutex* mutex_;
   static SamplerThread* instance_;
 
- private:
   DISALLOW_COPY_AND_ASSIGN(SamplerThread);
 };
 

@@ -21,7 +21,6 @@
 
 
 var isWindows = process.platform === 'win32';
-var _deprecationWarning = require('util')._deprecationWarning;
 
 
 // resolves . and .. elements in a path array with directory names there
@@ -62,8 +61,7 @@ if (isWindows) {
       /^([a-zA-Z]:|[\\\/]{2}[^\\\/]+[\\\/][^\\\/]+)?([\\\/])?([\s\S]*?)$/;
 
   // Regex to split the tail part of the above into [*, dir, basename, ext]
-  var splitTailRe =
-      /^([\s\S]+[\\\/](?!$)|[\\\/])?((?:\.{1,2}$|[\s\S]+?)?(\.[^.\/\\]*)?)$/;
+  var splitTailRe = /^([\s\S]+[\\\/](?!$)|[\\\/])?((?:\.{1,2}$|[\s\S]+?)?(\.[^.\/\\]*)?)$/;
 
   // Function to split a filename into [root, dir, basename, ext]
   // windows version
@@ -263,8 +261,7 @@ if (isWindows) {
 
   // Split a filename into [root, dir, basename, ext], unix version
   // 'root' is just a slash, or nothing.
-  var splitPathRe =
-      /^(\/?)([\s\S]+\/(?!$)|\/)?((?:\.{1,2}$|[\s\S]+?)?(\.[^.\/]*)?)$/;
+  var splitPathRe = /^(\/?)([\s\S]+\/(?!$)|\/)?((?:\.{1,2}$|[\s\S]+?)?(\.[^.\/]*)?)$/;
   var splitPath = function(filename) {
     var result = splitPathRe.exec(filename);
     return [result[1] || '', result[2] || '', result[3] || '', result[4] || ''];
@@ -411,22 +408,27 @@ exports.extname = function(path) {
 
 
 exports.exists = function(path, callback) {
-  require('fs').exists(path, callback);
+  process.binding('fs').stat(_makeLong(path), function(err, stats) {
+    if (callback) callback(err ? false : true);
+  });
 };
-module.deprecate('exists', 'It is now called `fs.exists`.');
 
 
 exports.existsSync = function(path) {
-  return require('fs').existsSync(path);
+  try {
+    process.binding('fs').stat(_makeLong(path));
+    return true;
+  } catch (e) {
+    return false;
+  }
 };
-module.deprecate('existsSync', 'It is now called `fs.existsSync`.');
 
 
-if (isWindows) {
-  exports._makeLong = function(path) {
-    path = '' + path;
+var _makeLong = exports._makeLong = isWindows ?
+  function(path) {
+    path = "" + path;
     if (!path) {
-      return '';
+      return "";
     }
 
     var resolvedPath = exports.resolve(path);
@@ -442,9 +444,7 @@ if (isWindows) {
     }
 
     return path;
-  };
-} else {
-  exports._makeLong = function(path) {
+  } :
+  function(path) {
     return path;
   };
-}

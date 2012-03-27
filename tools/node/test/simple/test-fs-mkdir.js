@@ -21,6 +21,7 @@
 
 var common = require('../common');
 var assert = require('assert');
+var path = require('path');
 var fs = require('fs');
 
 function unlink(pathname) {
@@ -38,7 +39,7 @@ function unlink(pathname) {
 
   fs.mkdir(pathname, function(err) {
     assert.equal(err, null);
-    assert.equal(fs.existsSync(pathname), true);
+    assert.equal(path.existsSync(pathname), true);
     ncalls++;
   });
 
@@ -56,7 +57,7 @@ function unlink(pathname) {
 
   fs.mkdir(pathname, 511 /*=0777*/, function(err) {
     assert.equal(err, null);
-    assert.equal(fs.existsSync(pathname), true);
+    assert.equal(path.existsSync(pathname), true);
     ncalls++;
   });
 
@@ -72,7 +73,7 @@ function unlink(pathname) {
   unlink(pathname);
   fs.mkdirSync(pathname);
 
-  var exists = fs.existsSync(pathname);
+  var exists = path.existsSync(pathname);
   unlink(pathname);
 
   assert.equal(exists, true);

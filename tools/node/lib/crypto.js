@@ -30,7 +30,6 @@ try {
   var Sign = binding.Sign;
   var Verify = binding.Verify;
   var DiffieHellman = binding.DiffieHellman;
-  var DiffieHellmanGroup = binding.DiffieHellmanGroup;
   var PBKDF2 = binding.PBKDF2;
   var randomBytes = binding.randomBytes;
   var pseudoRandomBytes = binding.pseudoRandomBytes;
@@ -173,9 +172,6 @@ exports.createDiffieHellman = function(size_or_key, enc) {
     return new DiffieHellman(size_or_key, enc);
   }
 
-};
-exports.getDiffieHellman = function(group_name) {
-  return new DiffieHellmanGroup(group_name);
 };
 
 exports.pbkdf2 = PBKDF2;

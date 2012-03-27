@@ -1,4 +1,6 @@
-# Copyright (c) 2011 Google Inc. All rights reserved.
+#!/usr/bin/python2.4
+
+# Copyright (c) 2009 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -60,7 +62,7 @@ def MakeGuid(name, seed='msvs_new'):
 #------------------------------------------------------------------------------
 
 
-class MSVSFolder(object):
+class MSVSFolder:
   """Folder in a Visual Studio project or solution."""
 
   def __init__(self, path, name = None, entries = None,
@@ -101,7 +103,7 @@ class MSVSFolder(object):
 #------------------------------------------------------------------------------
 
 
-class MSVSProject(object):
+class MSVSProject:
   """Visual Studio project."""
 
   def __init__(self, path, name = None, dependencies = None, guid = None,

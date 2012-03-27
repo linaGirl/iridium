@@ -35,8 +35,8 @@
 	/** Error messages */
 	errors = {
 		'overflow': 'Overflow: input needs wider integers to process.',
-		'ucs2decode': 'UCS-2(decode): illegal sequence',
-		'ucs2encode': 'UCS-2(encode): illegal value',
+		'utf16decode': 'UTF-16(decode): illegal UTF-16 sequence',
+		'utf16encode': 'UTF-16(encode): illegal UTF-16 value',
 		'not-basic': 'Illegal input >= 0x80 (not a basic code point)',
 		'invalid-input': 'Invalid input'
 	},
@@ -104,7 +104,7 @@
 	 * @param {String} string The Unicode input string (UCS-2).
 	 * @returns {Array} The new array of code points.
 	 */
-	function ucs2decode(string) {
+	function utf16decode(string) {
 		var output = [],
 		    counter = 0,
 		    length = string.length,
@@ -115,7 +115,7 @@
 			if ((value & 0xF800) == 0xD800) {
 				extra = string.charCodeAt(counter++);
 				if ((value & 0xFC00) != 0xD800 || (extra & 0xFC00) != 0xDC00) {
-					error('ucs2decode');
+					error('utf16decode');
 				}
 				value = ((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000;
 			}
@@ -126,17 +126,18 @@
 
 	/**
 	 * Creates a string based on an array of decimal code points.
-	 * @see `punycode.ucs2.decode`
-	 * @memberOf punycode.ucs2
+	 * @see `punycode.utf16.decode`
+	 * @see <http://tools.ietf.org/html/rfc2781>
+	 * @memberOf punycode.utf16
 	 * @name encode
 	 * @param {Array} codePoints The array of decimal code points.
 	 * @returns {String} The new Unicode string (UCS-2).
 	 */
-	function ucs2encode(array) {
+	function utf16encode(array) {
 		return map(array, function(value) {
 			var output = '';
 			if ((value & 0xF800) == 0xD800) {
-				error('ucs2encode');
+				error('utf16encode');
 			}
 			if (value > 0xFFFF) {
 				value -= 0x10000;
@@ -221,7 +222,7 @@
 	 * @returns {String} The resulting string of Unicode code points.
 	 */
 	function decode(input) {
-		// Don't use UCS-2
+		// Don't use UTF-16
 		var output = [],
 		    inputLength = input.length,
 		    out,
@@ -312,7 +313,7 @@
 
 		}
 
-		return ucs2encode(output);
+		return utf16encode(output);
 	}
 
 	/**
@@ -342,8 +343,8 @@
 		    baseMinusT,
 		    qMinusT;
 
-		// Convert the input in UCS-2 to Unicode
-		input = ucs2decode(input);
+		// Convert the input in UTF-16 to Unicode
+		input = utf16decode(input);
 
 		// Cache the length
 		inputLength = input.length;
@@ -480,9 +481,9 @@
 		 * @memberOf punycode
 		 * @type Object
 		 */
-		'ucs2': {
-			'decode': ucs2decode,
-			'encode': ucs2encode
+		'utf16': {
+			'decode': utf16decode,
+			'encode': utf16encode
 		},
 		'decode': decode,
 		'encode': encode,

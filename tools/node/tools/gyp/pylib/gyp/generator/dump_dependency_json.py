@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Copyright (c) 2011 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -6,29 +8,28 @@ import collections
 import gyp
 import gyp.common
 import json
-import sys
 
 generator_wants_static_library_dependencies_adjusted = False
 
 generator_default_variables = {
+  'OS': 'linux',
 }
 for dirname in ['INTERMEDIATE_DIR', 'SHARED_INTERMEDIATE_DIR', 'PRODUCT_DIR',
                 'LIB_DIR', 'SHARED_LIB_DIR']:
   # Some gyp steps fail if these are empty(!).
   generator_default_variables[dirname] = 'dir'
 for unused in ['RULE_INPUT_PATH', 'RULE_INPUT_ROOT', 'RULE_INPUT_NAME',
-               'RULE_INPUT_DIRNAME', 'RULE_INPUT_EXT',
+               'RULE_INPUT_EXT',
                'EXECUTABLE_PREFIX', 'EXECUTABLE_SUFFIX',
                'STATIC_LIB_PREFIX', 'STATIC_LIB_SUFFIX',
-               'SHARED_LIB_PREFIX', 'SHARED_LIB_SUFFIX']:
+               'SHARED_LIB_PREFIX', 'SHARED_LIB_SUFFIX',
+               'LINKER_SUPPORTS_ICF']:
   generator_default_variables[unused] = ''
 
 
 def CalculateVariables(default_variables, params):
   generator_flags = params.get('generator_flags', {})
-  for key, val in generator_flags.items():
-    default_variables.setdefault(key, val)
-  default_variables.setdefault('OS', gyp.common.GetFlavor(params))
+  default_variables['OS'] = generator_flags.get('os', 'linux')
 
 
 def CalculateGeneratorInputInfo(params):

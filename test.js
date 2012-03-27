@@ -2,6 +2,68 @@
 	require( "./" )( "iridium test", 1 );
 
 
+
+	var Socket = iridium.module( "net" ).Socket
+		, log = iridium( "log" )
+		, HostService = iridium.service( "host" )
+		, net = iridium.module( "net" );
+
+
+
+	// start the hostservice which provides the network with infrastructure info
+	new HostService();
+
+
+
+	new net.RepSocket();
+
+
+
+/*
+	var rep = new Socket( {
+		type: "rep"
+		, uri: "tcp://*:4567"
+		, on: {
+			message: function( message ){
+				log.dir( message );
+				rep.send( { koni: "istlustig" } );
+			}.bind( this ) 
+		}
+	} );
+
+	var rep = new Socket( {
+		type: "rep"
+		, uri: "tcp://*"
+		, on: {
+			message: function( message ){
+				log.dir( message );
+				rep.send( { koni: "istlustig" } );
+			}.bind( this ) 
+		}
+	} );
+
+
+	var req = new Socket( {
+		type: "req"
+		, uri: "tcp://localhost:4567"
+		, on: {
+			message: function( message ){
+				log.dir( message );
+			}.bind( this ) 
+		}
+	} );
+
+	req.send( require( "os" ).networkInterfaces()  );
+
+*/
+
+
+	//log.dir( );
+
+	//new ( iridium.service( "directory" ) )();
+
+
+	/*
 	// iridium net implementation
 	var net = iridium.module( "net" )
 		log = iridium( "log" );
@@ -38,3 +100,4 @@
 	connection2.on( "connect", function(){
 		log.info( "connected to [" + connection2.id() + "] ..." );
 	}.bind( this ) );
+	*/

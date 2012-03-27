@@ -1,4 +1,4 @@
-// Copyright (c) 1994-2006 Sun Microsystems Inc.
+// Copyright (c) 2011 Sun Microsystems Inc.
 // All Rights Reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,42 +30,23 @@
 
 // The original source code covered by the above license above has been
 // modified significantly by Google Inc.
-// Copyright 2012 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 
-#include "assembler.h"
+#include "v8.h"
 
-#include <math.h>  // For cos, log, pow, sin, tan, etc.
-#include "api.h"
-#include "builtins.h"
-#include "counters.h"
-#include "cpu.h"
-#include "debug.h"
+#include "arguments.h"
 #include "deoptimizer.h"
 #include "execution.h"
-#include "ic.h"
-#include "isolate.h"
-#include "jsregexp.h"
-#include "platform.h"
-#include "regexp-macro-assembler.h"
-#include "regexp-stack.h"
+#include "ic-inl.h"
+#include "factory.h"
 #include "runtime.h"
+#include "runtime-profiler.h"
 #include "serialize.h"
-#include "store-buffer-inl.h"
 #include "stub-cache.h"
-#include "token.h"
-
-#if V8_TARGET_ARCH_IA32
-#include "ia32/assembler-ia32-inl.h"
-#elif V8_TARGET_ARCH_X64
-#include "x64/assembler-x64-inl.h"
-#elif V8_TARGET_ARCH_ARM
-#include "arm/assembler-arm-inl.h"
-#elif V8_TARGET_ARCH_MIPS
-#include "mips/assembler-mips-inl.h"
-#else
-#error "Unknown architecture."
-#endif
-
+#include "regexp-stack.h"
+#include "ast.h"
+#include "regexp-macro-assembler.h"
+#include "platform.h"
 // Include native regexp-macro-assembler.
 #ifndef V8_INTERPRETED_REGEXP
 #if V8_TARGET_ARCH_IA32
@@ -535,7 +516,6 @@ void RelocIterator::next() {
 
 
 RelocIterator::RelocIterator(Code* code, int mode_mask) {
-  rinfo_.host_ = code;
   rinfo_.pc_ = code->instruction_start();
   rinfo_.data_ = 0;
   // Relocation info is read backwards.
@@ -756,38 +736,9 @@ ExternalReference::ExternalReference(const SCTableReference& table_ref)
   : address_(table_ref.address()) {}
 
 
-ExternalReference ExternalReference::
-    incremental_marking_record_write_function(Isolate* isolate) {
-  return ExternalReference(Redirect(
-      isolate,
-      FUNCTION_ADDR(IncrementalMarking::RecordWriteFromCode)));
-}
-
-
-ExternalReference ExternalReference::
-    incremental_evacuation_record_write_function(Isolate* isolate) {
-  return ExternalReference(Redirect(
-      isolate,
-      FUNCTION_ADDR(IncrementalMarking::RecordWriteForEvacuationFromCode)));
-}
-
-
-ExternalReference ExternalReference::
-    store_buffer_overflow_function(Isolate* isolate) {
-  return ExternalReference(Redirect(
-      isolate,
-      FUNCTION_ADDR(StoreBuffer::StoreBufferOverflow)));
-}
-
-
-ExternalReference ExternalReference::flush_icache_function(Isolate* isolate) {
-  return ExternalReference(Redirect(isolate, FUNCTION_ADDR(CPU::FlushICache)));
-}
-
-
 ExternalReference ExternalReference::perform_gc_function(Isolate* isolate) {
-  return
-      ExternalReference(Redirect(isolate, FUNCTION_ADDR(Runtime::PerformGC)));
+  return ExternalReference(Redirect(isolate,
+                                    FUNCTION_ADDR(Runtime::PerformGC)));
 }
 
 
@@ -813,17 +764,6 @@ ExternalReference ExternalReference::random_uint32_function(
 }
 
 
-ExternalReference ExternalReference::get_date_field_function(
-    Isolate* isolate) {
-  return ExternalReference(Redirect(isolate, FUNCTION_ADDR(JSDate::GetField)));
-}
-
-
-ExternalReference ExternalReference::date_cache_stamp(Isolate* isolate) {
-  return ExternalReference(isolate->date_cache()->stamp_address());
-}
-
-
 ExternalReference ExternalReference::transcendental_cache_array_address(
     Isolate* isolate) {
   return ExternalReference(
@@ -845,6 +785,11 @@ ExternalReference ExternalReference::compute_output_frames_function(
 }
 
 
+ExternalReference ExternalReference::global_contexts_list(Isolate* isolate) {
+  return ExternalReference(isolate->heap()->global_contexts_list_address());
+}
+
+
 ExternalReference ExternalReference::keyed_lookup_cache_keys(Isolate* isolate) {
   return ExternalReference(isolate->keyed_lookup_cache()->keys_address());
 }
@@ -857,8 +802,19 @@ ExternalReference ExternalReference::keyed_lookup_cache_field_offsets(
 }
 
 
-ExternalReference ExternalReference::roots_array_start(Isolate* isolate) {
-  return ExternalReference(isolate->heap()->roots_array_start());
+ExternalReference ExternalReference::the_hole_value_location(Isolate* isolate) {
+  return ExternalReference(isolate->factory()->the_hole_value().location());
+}
+
+
+ExternalReference ExternalReference::arguments_marker_location(
+    Isolate* isolate) {
+  return ExternalReference(isolate->factory()->arguments_marker().location());
+}
+
+
+ExternalReference ExternalReference::roots_address(Isolate* isolate) {
+  return ExternalReference(isolate->heap()->roots_address());
 }
 
 
@@ -884,14 +840,9 @@ ExternalReference ExternalReference::new_space_start(Isolate* isolate) {
 }
 
 
-ExternalReference ExternalReference::store_buffer_top(Isolate* isolate) {
-  return ExternalReference(isolate->heap()->store_buffer()->TopAddress());
-}
-
-
 ExternalReference ExternalReference::new_space_mask(Isolate* isolate) {
-  return ExternalReference(reinterpret_cast<Address>(
-      isolate->heap()->NewSpaceMask()));
+  Address mask = reinterpret_cast<Address>(isolate->heap()->NewSpaceMask());
+  return ExternalReference(mask);
 }
 
 
@@ -1074,11 +1025,6 @@ static double math_cos_double(double x) {
 }
 
 
-static double math_tan_double(double x) {
-  return tan(x);
-}
-
-
 static double math_log_double(double x) {
   return log(x);
 }
@@ -1096,14 +1042,6 @@ ExternalReference ExternalReference::math_cos_double_function(
     Isolate* isolate) {
   return ExternalReference(Redirect(isolate,
                                     FUNCTION_ADDR(math_cos_double),
-                                    BUILTIN_FP_CALL));
-}
-
-
-ExternalReference ExternalReference::math_tan_double_function(
-    Isolate* isolate) {
-  return ExternalReference(Redirect(isolate,
-                                    FUNCTION_ADDR(math_tan_double),
                                     BUILTIN_FP_CALL));
 }
 
@@ -1136,9 +1074,17 @@ double power_double_int(double x, int y) {
 
 
 double power_double_double(double x, double y) {
-  // The checks for special cases can be dropped in ia32 because it has already
-  // been done in generated code before bailing out here.
-  if (isnan(y) || ((x == 1 || x == -1) && isinf(y))) return OS::nan_value();
+  int y_int = static_cast<int>(y);
+  if (y == y_int) {
+    return power_double_int(x, y_int);  // Returns 1.0 for exponent 0.
+  }
+  if (!isinf(x)) {
+    if (y == 0.5) return sqrt(x + 0.0);  // -0 must be converted to +0.
+    if (y == -0.5) return 1.0 / sqrt(x + 0.0);
+  }
+  if (isnan(y) || ((x == 1 || x == -1) && isinf(y))) {
+    return OS::nan_value();
+  }
   return pow(x, y);
 }
 
@@ -1162,23 +1108,6 @@ ExternalReference ExternalReference::power_double_int_function(
 static int native_compare_doubles(double y, double x) {
   if (x == y) return EQUAL;
   return x < y ? LESS : GREATER;
-}
-
-
-bool EvalComparison(Token::Value op, double op1, double op2) {
-  ASSERT(Token::IsCompareOp(op));
-  switch (op) {
-    case Token::EQ:
-    case Token::EQ_STRICT: return (op1 == op2);
-    case Token::NE: return (op1 != op2);
-    case Token::LT: return (op1 < op2);
-    case Token::GT: return (op1 > op2);
-    case Token::LTE: return (op1 <= op2);
-    case Token::GTE: return (op1 >= op2);
-    default:
-      UNREACHABLE();
-      return false;
-  }
 }
 
 

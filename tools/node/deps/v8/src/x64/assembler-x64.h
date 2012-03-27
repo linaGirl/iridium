@@ -30,7 +30,7 @@
 
 // The original source code covered by the above license above has been
 // modified significantly by Google Inc.
-// Copyright 2012 the V8 project authors. All rights reserved.
+// Copyright 2011 the V8 project authors. All rights reserved.
 
 // A lightweight X64 Assembler.
 
@@ -45,22 +45,22 @@ namespace internal {
 // Utility functions
 
 // Test whether a 64-bit value is in a specific range.
-inline bool is_uint32(int64_t x) {
+static inline bool is_uint32(int64_t x) {
   static const uint64_t kMaxUInt32 = V8_UINT64_C(0xffffffff);
   return static_cast<uint64_t>(x) <= kMaxUInt32;
 }
 
-inline bool is_int32(int64_t x) {
+static inline bool is_int32(int64_t x) {
   static const int64_t kMinInt32 = -V8_INT64_C(0x80000000);
   return is_uint32(x - kMinInt32);
 }
 
-inline bool uint_is_int32(uint64_t x) {
+static inline bool uint_is_int32(uint64_t x) {
   static const uint64_t kMaxInt32 = V8_UINT64_C(0x7fffffff);
   return x <= kMaxInt32;
 }
 
-inline bool is_uint32(uint64_t x) {
+static inline bool is_uint32(uint64_t x) {
   static const uint64_t kMaxUInt32 = V8_UINT64_C(0xffffffff);
   return x <= kMaxUInt32;
 }
@@ -131,8 +131,6 @@ struct Register {
   }
   bool is_valid() const { return 0 <= code_ && code_ < kNumRegisters; }
   bool is(Register reg) const { return code_ == reg.code_; }
-  // rax, rbx, rcx and rdx are byte registers, the rest are not.
-  bool is_byte_register() const { return code_ <= 3; }
   int code() const {
     ASSERT(is_valid());
     return code_;
@@ -217,12 +215,6 @@ struct XMMRegister {
     return names[index];
   }
 
-  static XMMRegister from_code(int code) {
-    ASSERT(code >= 0);
-    ASSERT(code < kNumRegisters);
-    XMMRegister r = { code };
-    return r;
-  }
   bool is_valid() const { return 0 <= code_ && code_ < kNumRegisters; }
   bool is(XMMRegister reg) const { return code_ == reg.code_; }
   int code() const {
@@ -638,7 +630,6 @@ class Assembler : public AssemblerBase {
   // possible to align the pc offset to a multiple
   // of m, where m must be a power of 2.
   void Align(int m);
-  void Nop(int bytes = 1);
   // Aligns code to something that's optimal for a jump target for the platform.
   void CodeTargetAlign();
 
@@ -652,6 +643,7 @@ class Assembler : public AssemblerBase {
   void push_imm32(int32_t imm32);
   void push(Register src);
   void push(const Operand& src);
+  void push(Handle<Object> handle);
 
   void pop(Register dst);
   void pop(const Operand& dst);
@@ -741,10 +733,6 @@ class Assembler : public AssemblerBase {
 
   void addl(const Operand& dst, Immediate src) {
     immediate_arithmetic_op_32(0x0, dst, src);
-  }
-
-  void addl(const Operand& dst, Register src) {
-    arithmetic_op_32(0x01, src, dst);
   }
 
   void addq(Register dst, Register src) {
@@ -1157,6 +1145,7 @@ class Assembler : public AssemblerBase {
   void hlt();
   void int3();
   void nop();
+  void nop(int n);
   void rdtsc();
   void ret(int imm16);
   void setcc(Condition cc, Register reg);
@@ -1277,11 +1266,7 @@ class Assembler : public AssemblerBase {
 
   void fsin();
   void fcos();
-  void fptan();
   void fyl2x();
-  void f2xm1();
-  void fscale();
-  void fninit();
 
   void frndint();
 
@@ -1403,20 +1388,19 @@ class Assembler : public AssemblerBase {
     return static_cast<int>(reloc_info_writer.pos() - pc_);
   }
 
-  static bool IsNop(Address addr);
+  static bool IsNop(Address addr) { return *addr == 0x90; }
 
   // Avoid overflows for displacements etc.
   static const int kMaximalBufferSize = 512*MB;
   static const int kMinimalBufferSize = 4*KB;
-
-  byte byte_at(int pos)  { return buffer_[pos]; }
-  void set_byte_at(int pos, byte value) { buffer_[pos] = value; }
 
  protected:
   bool emit_debug_code() const { return emit_debug_code_; }
 
  private:
   byte* addr_at(int pos)  { return buffer_ + pos; }
+  byte byte_at(int pos)  { return buffer_[pos]; }
+  void set_byte_at(int pos, byte value) { buffer_[pos] = value; }
   uint32_t long_at(int pos)  {
     return *reinterpret_cast<uint32_t*>(addr_at(pos));
   }

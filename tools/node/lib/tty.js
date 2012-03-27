@@ -154,8 +154,6 @@ ReadStream.prototype._emitKey = function(s) {
     }
   }
 
-  key.sequence = s;
-
   if (s === '\r' || s === '\n') {
     // enter
     key.name = 'enter';
@@ -212,7 +210,6 @@ ReadStream.prototype._emitKey = function(s) {
     key.ctrl = !!(modifier & 4);
     key.meta = !!(modifier & 10);
     key.shift = !!(modifier & 1);
-    key.code = code;
 
     // Parse the key itself
     switch (code) {
@@ -308,7 +305,6 @@ ReadStream.prototype._emitKey = function(s) {
 
       /* misc. */
       case '[Z': key.name = 'tab'; key.shift = true; break;
-      default: key.name = 'undefined'; break;
 
     }
   } else if (s.length > 1 && s[0] !== '\x1b') {
@@ -390,11 +386,6 @@ WriteStream.prototype.clearLine = function(dir) {
     // entire line
     this.write('\x1b[2K');
   }
-};
-
-
-WriteStream.prototype.clearScreenDown = function() {
-  this.write('\x1b[0J');
 };
 
 

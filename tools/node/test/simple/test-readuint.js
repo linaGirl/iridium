@@ -24,7 +24,6 @@
  */
 
 var SlowBuffer = process.binding('buffer').SlowBuffer;
-var common = require('../common');
 var ASSERT = require('assert');
 
 /*

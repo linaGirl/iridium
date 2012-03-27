@@ -22,7 +22,6 @@
 #include "uv.h"
 #include "internal.h"
 
-__declspec( thread ) DWORD saved_errno = 0;
 
 uv_err_t uv_dlopen(const char* filename, uv_lib_t* library) {
   wchar_t filename_w[32768];
@@ -31,14 +30,12 @@ uv_err_t uv_dlopen(const char* filename, uv_lib_t* library) {
   if (!uv_utf8_to_utf16(filename,
                         filename_w,
                         sizeof(filename_w) / sizeof(wchar_t))) {
-    saved_errno = GetLastError();
-    return uv__new_sys_error(saved_errno);
+    return uv__new_sys_error(GetLastError());
   }
 
   handle = LoadLibraryW(filename_w);
   if (handle == NULL) {
-    saved_errno = GetLastError();
-    return uv__new_sys_error(saved_errno);
+    return uv__new_sys_error(GetLastError());
   }
 
   *library = handle;
@@ -48,8 +45,7 @@ uv_err_t uv_dlopen(const char* filename, uv_lib_t* library) {
 
 uv_err_t uv_dlclose(uv_lib_t library) {
   if (!FreeLibrary(library)) {
-    saved_errno = GetLastError();
-    return uv__new_sys_error(saved_errno);
+    return uv__new_sys_error(GetLastError());
   }
 
   return uv_ok_;
@@ -59,24 +55,9 @@ uv_err_t uv_dlclose(uv_lib_t library) {
 uv_err_t uv_dlsym(uv_lib_t library, const char* name, void** ptr) {
   FARPROC proc = GetProcAddress(library, name);
   if (proc == NULL) {
-    saved_errno = GetLastError();
-    return uv__new_sys_error(saved_errno);
+    return uv__new_sys_error(GetLastError());
   }
 
   *ptr = (void*) proc;
   return uv_ok_;
-}
-
-
-const char *uv_dlerror(uv_lib_t library) {
-  char* buf = NULL;
-  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                 FORMAT_MESSAGE_IGNORE_INSERTS, NULL, saved_errno,
-                 MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPSTR)&buf, 0, NULL);
-  return buf;
-}
-
-
-void uv_dlerror_free(uv_lib_t library, const char *msg) {
-  LocalFree((LPVOID)msg);
 }

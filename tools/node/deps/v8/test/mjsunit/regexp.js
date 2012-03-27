@@ -127,17 +127,6 @@ assertTrue(re.test("$"));
 
 assertTrue(/^[Z-\c-e]*$/.test("Z[\\cde"));
 
-// Test that we handle \s and \S correctly on special Unicode characters.
-re = /\s/;
-assertTrue(re.test("\u2028"));
-assertTrue(re.test("\u2029"));
-assertTrue(re.test("\uFEFF"));
-
-re = /\S/;
-assertFalse(re.test("\u2028"));
-assertFalse(re.test("\u2029"));
-assertFalse(re.test("\uFEFF"));
-
 // Test that we handle \s and \S correctly inside some bizarre
 // character classes.
 re = /[\s-:]/;

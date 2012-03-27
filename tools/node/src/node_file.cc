@@ -37,6 +37,7 @@
 
 #if defined(__MINGW32__) || defined(_MSC_VER)
 # include <io.h>
+# include <platform_win32.h>
 #endif
 
 
@@ -45,11 +46,8 @@ namespace node {
 using namespace v8;
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
-
-#define TYPE_ERROR(msg) \
-    ThrowException(Exception::TypeError(String::New(msg)));
-
-#define THROW_BAD_ARGS TYPE_ERROR("Bad argument")
+#define THROW_BAD_ARGS \
+  ThrowException(Exception::TypeError(String::New("Bad argument")))
 
 class FSReqWrap: public ReqWrap<uv_fs_t> {
  public:
@@ -224,15 +222,9 @@ struct fs_req_wrap {
   FSReqWrap* req_wrap = new FSReqWrap(#func);                     \
   int r = uv_fs_##func(uv_default_loop(), &req_wrap->req_,        \
       __VA_ARGS__, After);                                        \
+  assert(r == 0);                                                 \
   req_wrap->object_->Set(oncomplete_sym, callback);               \
   req_wrap->Dispatched();                                         \
-  if (r < 0) {                                                    \
-    uv_fs_t* req = &req_wrap->req_;                               \
-    req->result = r;                                              \
-    req->path = NULL;                                             \
-    req->errorno = uv_last_error(uv_default_loop()).code;         \
-    After(req);                                                   \
-  }                                                               \
   return scope.Close(req_wrap->object_);
 
 #define SYNC_CALL(func, path, ...)                                \
@@ -351,10 +343,11 @@ Local<Object> BuildStatsObject(NODE_STAT_STRUCT *s) {
 static Handle<Value> Stat(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(stat, args[1], *path)
@@ -367,10 +360,11 @@ static Handle<Value> Stat(const Arguments& args) {
 static Handle<Value> LStat(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(lstat, args[1], *path)
@@ -400,18 +394,16 @@ static Handle<Value> FStat(const Arguments& args) {
 static Handle<Value> Symlink(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("dest path required");
-  if (len < 2) return TYPE_ERROR("src path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("dest path must be a string");
-  if (!args[1]->IsString()) return TYPE_ERROR("src path must be a string");
+  if (args.Length() < 2 || !args[0]->IsString() || !args[1]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value dest(args[0]);
-  String::Utf8Value path(args[1]);
+  String::Utf8Value dest(args[0]->ToString());
+  String::Utf8Value path(args[1]->ToString());
   int flags = 0;
 
   if (args[2]->IsString()) {
-    String::Utf8Value mode(args[2]);
+    String::Utf8Value mode(args[2]->ToString());
     if (memcmp(*mode, "dir\0", 4) == 0) {
       flags |= UV_FS_SYMLINK_DIR;
     }
@@ -428,14 +420,12 @@ static Handle<Value> Symlink(const Arguments& args) {
 static Handle<Value> Link(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("dest path required");
-  if (len < 2) return TYPE_ERROR("src path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("dest path must be a string");
-  if (!args[1]->IsString()) return TYPE_ERROR("src path must be a string");
+  if (args.Length() < 2 || !args[0]->IsString() || !args[1]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value orig_path(args[0]);
-  String::Utf8Value new_path(args[1]);
+  String::Utf8Value orig_path(args[0]->ToString());
+  String::Utf8Value new_path(args[1]->ToString());
 
   if (args[2]->IsFunction()) {
     ASYNC_CALL(link, args[2], *orig_path, *new_path)
@@ -448,10 +438,11 @@ static Handle<Value> Link(const Arguments& args) {
 static Handle<Value> ReadLink(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(readlink, args[1], *path)
@@ -464,14 +455,12 @@ static Handle<Value> ReadLink(const Arguments& args) {
 static Handle<Value> Rename(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("old path required");
-  if (len < 2) return TYPE_ERROR("new path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("old path must be a string");
-  if (!args[1]->IsString()) return TYPE_ERROR("new path must be a string");
-  
-  String::Utf8Value old_path(args[0]);
-  String::Utf8Value new_path(args[1]);
+  if (args.Length() < 2 || !args[0]->IsString() || !args[1]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
+
+  String::Utf8Value old_path(args[0]->ToString());
+  String::Utf8Value new_path(args[1]->ToString());
 
   if (args[2]->IsFunction()) {
     ASYNC_CALL(rename, args[2], *old_path, *new_path)
@@ -552,10 +541,11 @@ static Handle<Value> Fsync(const Arguments& args) {
 static Handle<Value> Unlink(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(unlink, args[1], *path)
@@ -568,10 +558,11 @@ static Handle<Value> Unlink(const Arguments& args) {
 static Handle<Value> RMDir(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(rmdir, args[1], *path)
@@ -588,7 +579,7 @@ static Handle<Value> MKDir(const Arguments& args) {
     return THROW_BAD_ARGS;
   }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
   int mode = static_cast<int>(args[1]->Int32Value());
 
   if (args[2]->IsFunction()) {
@@ -626,10 +617,11 @@ static Handle<Value> SendFile(const Arguments& args) {
 static Handle<Value> ReadDir(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1) return TYPE_ERROR("path required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
+  if (args.Length() < 1 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
 
   if (args[1]->IsFunction()) {
     ASYNC_CALL(readdir, args[1], *path, 0 /*flags*/)
@@ -659,15 +651,14 @@ static Handle<Value> ReadDir(const Arguments& args) {
 static Handle<Value> Open(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("path required");
-  if (len < 2) return TYPE_ERROR("flags required");
-  if (len < 3) return TYPE_ERROR("mode required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
-  if (!args[1]->IsInt32()) return TYPE_ERROR("flags must be an int");
-  if (!args[2]->IsInt32()) return TYPE_ERROR("mode must be an int");
+  if (args.Length() < 3 ||
+      !args[0]->IsString() ||
+      !args[1]->IsInt32() ||
+      !args[2]->IsInt32()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
   int flags = args[1]->Int32Value();
   int mode = static_cast<int>(args[2]->Int32Value());
 
@@ -821,7 +812,7 @@ static Handle<Value> Chmod(const Arguments& args) {
   if(args.Length() < 2 || !args[0]->IsString() || !args[1]->IsInt32()) {
     return THROW_BAD_ARGS;
   }
-  String::Utf8Value path(args[0]);
+  String::Utf8Value path(args[0]->ToString());
   int mode = static_cast<int>(args[1]->Int32Value());
 
   if(args[2]->IsFunction()) {
@@ -860,15 +851,15 @@ static Handle<Value> FChmod(const Arguments& args) {
 static Handle<Value> Chown(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("path required");
-  if (len < 2) return TYPE_ERROR("uid required");
-  if (len < 3) return TYPE_ERROR("gid required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
-  if (!args[1]->IsInt32()) return TYPE_ERROR("uid must be an int");
-  if (!args[2]->IsInt32()) return TYPE_ERROR("gid must be an int");
+  if (args.Length() < 3 || !args[0]->IsString()) {
+    return THROW_BAD_ARGS;
+  }
 
-  String::Utf8Value path(args[0]);
+  if (!args[1]->IsInt32() || !args[2]->IsInt32()) {
+    return ThrowException(Exception::Error(String::New("User and Group IDs must be an integer.")));
+  }
+
+  String::Utf8Value path(args[0]->ToString());
   int uid = static_cast<int>(args[1]->Int32Value());
   int gid = static_cast<int>(args[2]->Int32Value());
 
@@ -887,13 +878,13 @@ static Handle<Value> Chown(const Arguments& args) {
 static Handle<Value> FChown(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("fd required");
-  if (len < 2) return TYPE_ERROR("uid required");
-  if (len < 3) return TYPE_ERROR("gid required");
-  if (!args[0]->IsInt32()) return TYPE_ERROR("fd must be an int");
-  if (!args[1]->IsInt32()) return TYPE_ERROR("uid must be an int");
-  if (!args[2]->IsInt32()) return TYPE_ERROR("gid must be an int");
+  if (args.Length() < 3 || !args[0]->IsInt32()) {
+    return THROW_BAD_ARGS;
+  }
+
+  if (!args[1]->IsInt32() || !args[2]->IsInt32()) {
+    return ThrowException(Exception::Error(String::New("User and Group IDs must be an integer.")));
+  }
 
   int fd = args[0]->Int32Value();
   int uid = static_cast<int>(args[1]->Int32Value());
@@ -911,15 +902,15 @@ static Handle<Value> FChown(const Arguments& args) {
 static Handle<Value> UTimes(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("path required");
-  if (len < 2) return TYPE_ERROR("atime required");
-  if (len < 3) return TYPE_ERROR("mtime required");
-  if (!args[0]->IsString()) return TYPE_ERROR("path must be a string");
-  if (!args[1]->IsNumber()) return TYPE_ERROR("atime must be a number");
-  if (!args[2]->IsNumber()) return TYPE_ERROR("mtime must be a number");
+  if (args.Length() < 3
+      || !args[0]->IsString()
+      || !args[1]->IsNumber()
+      || !args[2]->IsNumber())
+  {
+    return THROW_BAD_ARGS;
+  }
 
-  const String::Utf8Value path(args[0]);
+  const String::Utf8Value path(args[0]->ToString());
   const double atime = static_cast<double>(args[1]->NumberValue());
   const double mtime = static_cast<double>(args[2]->NumberValue());
 
@@ -934,13 +925,13 @@ static Handle<Value> UTimes(const Arguments& args) {
 static Handle<Value> FUTimes(const Arguments& args) {
   HandleScope scope;
 
-  int len = args.Length();
-  if (len < 1) return TYPE_ERROR("fd required");
-  if (len < 2) return TYPE_ERROR("atime required");
-  if (len < 3) return TYPE_ERROR("mtime required");
-  if (!args[0]->IsInt32()) return TYPE_ERROR("fd must be an int");
-  if (!args[1]->IsNumber()) return TYPE_ERROR("atime must be a number");
-  if (!args[2]->IsNumber()) return TYPE_ERROR("mtime must be a number");
+  if (args.Length() < 3
+      || !args[0]->IsInt32()
+      || !args[1]->IsNumber()
+      || !args[2]->IsNumber())
+  {
+    return THROW_BAD_ARGS;
+  }
 
   const int fd = args[0]->Int32Value();
   const double atime = static_cast<double>(args[1]->NumberValue());

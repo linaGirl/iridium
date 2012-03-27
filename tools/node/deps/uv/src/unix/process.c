@@ -31,10 +31,6 @@
 #include <stdio.h>
 
 #ifdef __APPLE__
-# include <TargetConditionals.h>
-#endif
-
-#if defined(__APPLE__) && !defined(TARGET_OS_IPHONE)
 # include <crt_externs.h>
 # define environ (*_NSGetEnviron())
 #else
@@ -67,7 +63,10 @@ static void uv__chld(EV_P_ ev_child* watcher, int revents) {
 }
 
 
-int uv__make_socketpair(int fds[2], int flags) {
+#define UV__F_IPC        (1 << 0)
+#define UV__F_NONBLOCK   (1 << 1)
+
+static int uv__make_socketpair(int fds[2], int flags) {
 #ifdef SOCK_NONBLOCK
   int fl;
 
@@ -104,7 +103,7 @@ int uv__make_socketpair(int fds[2], int flags) {
 }
 
 
-int uv__make_pipe(int fds[2], int flags) {
+static int uv__make_pipe(int fds[2], int flags) {
 #if HAVE_SYS_PIPE2
   int fl;
 

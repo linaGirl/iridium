@@ -23,7 +23,6 @@
 # define _WIN32_WINNT   0x0502
 #endif
 
-#include <process.h>
 #include <stdint.h>
 #include <winsock2.h>
 #include <mswsock.h>
@@ -103,9 +102,6 @@
                        LPOVERLAPPED lpOverlapped,
                        LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers,
                        DWORD dwFlags);
-
-  typedef PVOID RTL_SRWLOCK;
-  typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 #endif
 
 typedef int (WSAAPI* LPFN_WSARECV)
@@ -141,31 +137,6 @@ typedef struct uv_buf_t {
 
 typedef int uv_file;
 
-typedef HANDLE uv_thread_t;
-
-typedef CRITICAL_SECTION uv_mutex_t;
-
-typedef union {
-  /* srwlock_ has type SRWLOCK, but not all toolchains define this type in */
-  /* windows.h. */
-  SRWLOCK srwlock_;
-  struct {
-    uv_mutex_t read_mutex_;
-    uv_mutex_t write_mutex_;
-    unsigned int num_readers_;
-  } fallback_;
-} uv_rwlock_t;
-
-#define UV_ONCE_INIT { 0, NULL, NULL }
-
-typedef struct uv_once_s {
-  unsigned char ran;
-  /* The actual event handle must be aligned to sizeof(HANDLE), so in */
-  /* practice it might overlap padding a little. */
-  HANDLE event;
-  HANDLE padding;
-} uv_once_t;
-
 /* Platform-specific definitions for uv_dlopen support. */
 typedef HMODULE uv_lib_t;
 #define UV_DYNAMIC FAR WINAPI
@@ -200,11 +171,7 @@ RB_HEAD(uv_timer_tree_s, uv_timer_s);
   uv_idle_t* next_idle_handle;                                                \
   ares_channel ares_chan;                                                     \
   int ares_active_sockets;                                                    \
-  uv_timer_t ares_polling_timer;                                              \
-  /* Counter to keep track of active tcp streams */                           \
-  unsigned int active_tcp_streams;                                            \
-  /* Counter to keep track of active udp streams */                           \
-  unsigned int active_udp_streams;
+  uv_timer_t ares_polling_timer;
 
 #define UV_REQ_TYPE_PRIVATE               \
   /* TODO: remove the req suffix */       \

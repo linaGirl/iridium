@@ -221,10 +221,6 @@ class Simulator {
   // Pop an address from the JS stack.
   uintptr_t PopAddress();
 
-  // Debugger input.
-  void set_last_debugger_input(char* input);
-  char* last_debugger_input() { return last_debugger_input_; }
-
   // ICache checking.
   static void FlushICache(v8::internal::HashMap* i_cache, void* start,
                           size_t size);
@@ -361,9 +357,6 @@ class Simulator {
   bool pc_modified_;
   int icount_;
   int break_count_;
-
-  // Debugger input.
-  char* last_debugger_input_;
 
   // Icache simulation.
   v8::internal::HashMap* i_cache_;

@@ -19,7 +19,6 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-var common = require('../common');
 var assert = require('assert');
 
 var net = require('net');
@@ -39,7 +38,7 @@ function do_not_call() {
 }
 
 var socket = net.connect(42, host, do_not_call);
-socket.on('error', function(err) {
+socket.on('error', function (err) {
   assert.equal(err.code, 'ENOTFOUND');
   actual_bad_connections++;
 });

@@ -5,8 +5,6 @@
     # See http://codereview.chromium.org/8159015
     'werror': '',
     'node_use_dtrace': 'false',
-    'node_shared_v8%': 'false',
-    'node_shared_zlib%': 'false',
     'node_use_openssl%': 'true',
     'node_use_system_openssl%': 'false',
     'library_files': [
@@ -56,7 +54,9 @@
 
       'dependencies': [
         'deps/http_parser/http_parser.gyp:http_parser',
+        'deps/v8/tools/gyp/v8-node.gyp:v8',
         'deps/uv/uv.gyp:uv',
+        'deps/zlib/zlib.gyp:zlib',
         'node_js2c#host',
       ],
 
@@ -106,10 +106,13 @@
         'src/node_string.h',
         'src/node_version.h',
         'src/pipe_wrap.h',
+        'src/platform.h',
         'src/req_wrap.h',
         'src/stream_wrap.h',
         'src/v8_typed_array.h',
         'deps/http_parser/http_parser.h',
+        'deps/v8/include/v8.h',
+        'deps/v8/include/v8-debug.h',
         '<(SHARED_INTERMEDIATE_DIR)/node_natives.h',
         # javascript files to make for an even more pleasant IDE experience
         '<@(library_files)',
@@ -118,9 +121,10 @@
       ],
 
       'defines': [
-        'NODE_WANT_INTERNALS=1',
         'ARCH="<(target_arch)"',
         'PLATFORM="<(OS)"',
+        '_LARGEFILE_SOURCE',
+        '_FILE_OFFSET_BITS=64',
       ],
 
       'conditions': [
@@ -145,25 +149,11 @@
           ],
         }],
 
-        [ 'node_shared_v8=="true"', {
-          'sources': [
-            '<(node_shared_v8_includes)/v8.h',
-            '<(node_shared_v8_includes)/v8-debug.h',
-          ],
-        }, {
-          'sources': [
-            'deps/v8/include/v8.h',
-            'deps/v8/include/v8-debug.h',
-          ],
-          'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:v8' ],
-        }],
-
-        [ 'node_shared_zlib=="false"', {
-          'dependencies': [ 'deps/zlib/zlib.gyp:zlib' ],
-        }],
-
         [ 'OS=="win"', {
           'sources': [
+            'src/platform_win32.cc',
+            # headers to make for a more pleasant IDE experience
+            'src/platform_win32.h',
             'tools/msvs/res/node.rc',
           ],
           'defines': [
@@ -182,22 +172,25 @@
           ]
         }],
         [ 'OS=="mac"', {
+          'sources': [ 'src/platform_darwin.cc' ],
           'libraries': [ '-framework Carbon' ],
-          'defines!': [
-            'PLATFORM="mac"',
-          ],
-          'defines': [
-            # we need to use node's preferred "darwin" rather than gyp's preferred "mac"
-            'PLATFORM="darwin"',
+        }],
+        [ 'OS=="linux"', {
+          'sources': [ 'src/platform_linux.cc' ],
+          'libraries': [
+            '-ldl',
+            '-lutil' # needed for openpty
           ],
         }],
         [ 'OS=="freebsd"', {
+          'sources': [ 'src/platform_freebsd.cc' ],
           'libraries': [
             '-lutil',
             '-lkvm',
           ],
         }],
         [ 'OS=="solaris"', {
+          'sources': [ 'src/platform_sunos.cc' ],
           'libraries': [
             '-lkstat',
           ],
@@ -214,13 +207,16 @@
       'target_name': 'node_js2c',
       'type': 'none',
       'toolsets': ['host'],
+      'variables': {
+      },
+
       'actions': [
         {
           'action_name': 'node_js2c',
 
           'inputs': [
+            './tools/js2c.py',
             '<@(library_files)',
-            './config.gypi',
           ],
 
           'outputs': [
@@ -237,14 +233,14 @@
                 'python',
                 'tools/js2c.py',
                 '<@(_outputs)',
-                '<@(_inputs)',
+                '<@(library_files)'
               ],
             }, { # No Dtrace
               'action': [
                 'python',
                 'tools/js2c.py',
                 '<@(_outputs)',
-                '<@(_inputs)',
+                '<@(library_files)',
                 'src/macros.py'
               ],
             }]

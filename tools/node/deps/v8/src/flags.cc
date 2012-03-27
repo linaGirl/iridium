@@ -548,9 +548,4 @@ JSArguments& JSArguments::operator=(JSArguments args) {
 }
 
 
-void FlagList::EnforceFlagImplications() {
-#define FLAG_MODE_DEFINE_IMPLICATIONS
-#include "flag-definitions.h"
-}
-
 } }  // namespace v8::internal

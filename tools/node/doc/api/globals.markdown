@@ -32,11 +32,11 @@ The process object. See the [process object](process.html#process) section.
 
 Used to print to stdout and stderr. See the [stdio](stdio.html) section.
 
-## Class: Buffer
+## Buffer
 
 <!-- type=global -->
 
-* {Function}
+* {Object}
 
 Used to handle binary data. See the [buffer section](buffer.html).
 
@@ -48,6 +48,7 @@ Used to handle binary data. See the [buffer section](buffer.html).
 
 To require modules. See the [Modules](modules.html#modules) section.
 `require` isn't actually a global but rather local to each module.
+
 
 ### require.resolve()
 
@@ -102,11 +103,10 @@ Example: running `node example.js` from `/Users/mjr`
 * {Object}
 
 A reference to the current module. In particular
-`module.exports` is the same as the `exports` object.
+`module.exports` is the same as the `exports` object. See `src/node.js`
+for more information.
 `module` isn't actually a global but rather local to each module.
 
-See the [module system documentation](modules.html) for more
-information.
 
 ## exports
 
@@ -114,7 +114,8 @@ information.
 
 An object which is shared between all instances of the current module and
 made accessible through `require()`.
-`exports` is the same as the `module.exports` object.
+`exports` is the same as the `module.exports` object. See `src/node.js`
+for more information.
 `exports` isn't actually a global but rather local to each module.
 
 See the [module system documentation](modules.html) for more

@@ -32,11 +32,6 @@
       ],
       'direct_dependent_settings': {
         'include_dirs': [ 'include' ],
-        'conditions': [
-          ['OS=="linux"', {
-            'libraries': [ '-ldl' ],
-          }],
-        ],
       },
 
       'defines': [
@@ -120,7 +115,7 @@
             'src/ares/config_win32'
           ],
           'defines': [
-            '_WIN32_WINNT=0x0600',
+            '_WIN32_WINNT=0x0502',
             'EIO_STACKSIZE=262144',
             '_GNU_SOURCE',
           ],
@@ -144,13 +139,13 @@
             'src/win/internal.h',
             'src/win/loop-watcher.c',
             'src/win/pipe.c',
-            'src/win/thread.c',
             'src/win/process.c',
             'src/win/req.c',
             'src/win/stream.c',
             'src/win/tcp.c',
             'src/win/tty.c',
             'src/win/threadpool.c',
+            'src/win/threads.c',
             'src/win/timer.c',
             'src/win/udp.c',
             'src/win/util.c',
@@ -162,8 +157,6 @@
           'link_settings': {
             'libraries': [
               '-lws2_32.lib',
-              '-lpsapi.lib',
-              '-liphlpapi.lib'
             ],
           },
         }, { # Not Windows i.e. POSIX
@@ -192,7 +185,6 @@
             'src/unix/cares.c',
             'src/unix/dl.c',
             'src/unix/error.c',
-            'src/unix/thread.c',
             'src/unix/process.c',
             'src/unix/internal.h',
             'src/unix/eio/ecb.h',
@@ -222,10 +214,7 @@
         }],
         [ 'OS=="linux"', {
           'include_dirs': [ 'src/ares/config_linux' ],
-          'sources': [
-            'src/unix/linux/core.c',
-            'src/unix/linux/inotify.c',
-          ],
+          'sources': [ 'src/unix/linux.c' ],
           'defines': [
             'EV_CONFIG_H="config_linux.h"',
             'EIO_CONFIG_H="config_linux.h"',
@@ -258,11 +247,6 @@
             'EV_CONFIG_H="config_freebsd.h"',
             'EIO_CONFIG_H="config_freebsd.h"',
           ],
-          'direct_dependent_settings': {
-            'libraries': [
-              '-lkvm',
-            ],
-          },
         }],
         [ 'OS=="openbsd"', {
           'include_dirs': [ 'src/ares/config_openbsd' ],
@@ -290,14 +274,12 @@
         'test/runner.h',
         'test/test-get-loadavg.c',
         'test/task.h',
-        'test/test-util.c',
         'test/test-async.c',
         'test/test-error.c',
         'test/test-callback-stack.c',
         'test/test-connection-fail.c',
         'test/test-cwd-and-chdir.c',
         'test/test-delayed-accept.c',
-        'test/test-eio-overflow.c',
         'test/test-fail-always.c',
         'test/test-fs.c',
         'test/test-fs-event.c',
@@ -309,7 +291,6 @@
         'test/test-hrtime.c',
         'test/test-idle.c',
         'test/test-ipc.c',
-        'test/test-ipc-send-recv.c',
         'test/test-list.h',
         'test/test-loop-handles.c',
         'test/test-multiple-listen.c',
@@ -317,8 +298,6 @@
         'test/test-ping-pong.c',
         'test/test-pipe-bind-error.c',
         'test/test-pipe-connect-error.c',
-        'test/test-platform-output.c',
-        'test/test-process-title.c',
         'test/test-ref.c',
         'test/test-shutdown-close.c',
         'test/test-shutdown-eof.c',
@@ -334,8 +313,6 @@
         'test/test-tcp-write-to-half-open-connection.c',
         'test/test-tcp-writealot.c',
         'test/test-threadpool.c',
-        'test/test-mutexes.c',
-        'test/test-thread.c',
         'test/test-timer-again.c',
         'test/test-timer.c',
         'test/test-tty.c',
@@ -345,7 +322,6 @@
         'test/test-udp-send-and-recv.c',
         'test/test-udp-multicast-join.c',
         'test/test-counters-init.c',
-        'test/test-dlerror.c',
         'test/test-udp-multicast-ttl.c',
       ],
       'conditions': [
@@ -389,7 +365,6 @@
         'test/benchmark-pump.c',
         'test/benchmark-sizes.c',
         'test/benchmark-spawn.c',
-        'test/benchmark-thread.c',
         'test/benchmark-tcp-write-batch.c',
         'test/benchmark-udp-packet-storm.c',
         'test/dns-server.c',

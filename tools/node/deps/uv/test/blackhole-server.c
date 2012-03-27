@@ -23,7 +23,11 @@
 #include "task.h"
 
 #include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
+
+#define container_of(ptr, type, member) \
+  ((type *) ((char *) (ptr) - offsetof(type, member)))
 
 typedef struct {
   uv_tcp_t handle;

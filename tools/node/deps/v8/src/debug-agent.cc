@@ -229,6 +229,8 @@ void DebuggerAgentSession::Shutdown() {
 
 
 const char* const DebuggerAgentUtil::kContentLength = "Content-Length";
+const int DebuggerAgentUtil::kContentLengthSize =
+    StrLength(kContentLength);
 
 
 SmartArrayPointer<char> DebuggerAgentUtil::ReceiveMessage(const Socket* conn) {

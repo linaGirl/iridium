@@ -38,12 +38,10 @@ function Module(id, parent) {
   this.id = id;
   this.exports = {};
   this.parent = parent;
-  if (parent && parent.children) {
-    parent.children.push(this);
-  }
 
   this.filename = null;
   this.loaded = false;
+  this.exited = false;
   this.children = [];
 }
 module.exports = Module;
@@ -158,6 +156,7 @@ function tryExtensions(p, exts) {
 
 
 Module._findPath = function(request, paths) {
+  var fs = NativeModule.require('fs');
   var exts = Object.keys(Module._extensions);
 
   if (request.charAt(0) === '/') {
@@ -330,9 +329,7 @@ Module._resolveFilename = function(request, parent) {
 
   var filename = Module._findPath(request, paths);
   if (!filename) {
-    var err = new Error("Cannot find module '" + request + "'");
-    err.code = 'MODULE_NOT_FOUND';
-    throw err;
+    throw new Error("Cannot find module '" + request + "'");
   }
   return filename;
 };

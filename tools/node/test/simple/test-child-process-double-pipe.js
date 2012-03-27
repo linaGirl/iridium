@@ -21,7 +21,6 @@
 
 var is_windows = process.platform === 'win32';
 
-var common = require('../common');
 var assert = require('assert'),
     util = require('util'),
     spawn = require('child_process').spawn;
@@ -34,9 +33,8 @@ var grep = spawn('grep', ['o']),
     echo;
 
 if (is_windows) {
-  echo = spawn('cmd.exe',
-               ['/c', 'echo', 'hello&&', 'echo',
-                'node&&', 'echo', 'and&&', 'echo', 'world']);
+  echo = spawn('cmd.exe', ['/c', 'echo', 'hello&&', 'echo',
+               'node&&', 'echo', 'and&&', 'echo', 'world']);
 } else {
   echo = spawn('echo', ['hello\nnode\nand\nworld\n']);
 }

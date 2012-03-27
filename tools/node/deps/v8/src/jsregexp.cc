@@ -68,9 +68,9 @@ Handle<Object> RegExpImpl::CreateRegExpLiteral(Handle<JSFunction> constructor,
                                                Handle<String> flags,
                                                bool* has_pending_exception) {
   // Call the construct code with 2 arguments.
-  Handle<Object> argv[] = { pattern, flags };
-  return Execution::New(constructor, ARRAY_SIZE(argv), argv,
-                        has_pending_exception);
+  Object** argv[2] = { Handle<Object>::cast(pattern).location(),
+                       Handle<Object>::cast(flags).location() };
+  return Execution::New(constructor, 2, argv, has_pending_exception);
 }
 
 
@@ -175,8 +175,7 @@ Handle<Object> RegExpImpl::Exec(Handle<JSRegExp> regexp,
     case JSRegExp::IRREGEXP: {
       Handle<Object> result =
           IrregexpExec(regexp, subject, index, last_match_info);
-      ASSERT(!result.is_null() ||
-             regexp->GetIsolate()->has_pending_exception());
+      ASSERT(!result.is_null() || Isolate::Current()->has_pending_exception());
       return result;
     }
     default:
@@ -510,16 +509,14 @@ RegExpImpl::IrregexpResult RegExpImpl::IrregexpExecOnce(
   }
   Handle<ByteArray> byte_codes(IrregexpByteCode(*irregexp, is_ascii), isolate);
 
-  IrregexpResult result = IrregexpInterpreter::Match(isolate,
-                                                     byte_codes,
-                                                     subject,
-                                                     register_vector,
-                                                     index);
-  if (result == RE_EXCEPTION) {
-    ASSERT(!isolate->has_pending_exception());
-    isolate->StackOverflow();
+  if (IrregexpInterpreter::Match(isolate,
+                                 byte_codes,
+                                 subject,
+                                 register_vector,
+                                 index)) {
+    return RE_SUCCESS;
   }
-  return result;
+  return RE_FAILURE;
 #endif  // V8_INTERPRETED_REGEXP
 }
 
@@ -528,7 +525,6 @@ Handle<Object> RegExpImpl::IrregexpExec(Handle<JSRegExp> jsregexp,
                                         Handle<String> subject,
                                         int previous_index,
                                         Handle<JSArray> last_match_info) {
-  Isolate* isolate = jsregexp->GetIsolate();
   ASSERT_EQ(jsregexp->TypeTag(), JSRegExp::IRREGEXP);
 
   // Prepare space for the return values.
@@ -544,11 +540,11 @@ Handle<Object> RegExpImpl::IrregexpExec(Handle<JSRegExp> jsregexp,
   int required_registers = RegExpImpl::IrregexpPrepare(jsregexp, subject);
   if (required_registers < 0) {
     // Compiling failed with an exception.
-    ASSERT(isolate->has_pending_exception());
+    ASSERT(Isolate::Current()->has_pending_exception());
     return Handle<Object>::null();
   }
 
-  OffsetsVector registers(required_registers, isolate);
+  OffsetsVector registers(required_registers);
 
   IrregexpResult res = RegExpImpl::IrregexpExecOnce(
       jsregexp, subject, previous_index, Vector<int>(registers.vector(),
@@ -570,11 +566,11 @@ Handle<Object> RegExpImpl::IrregexpExec(Handle<JSRegExp> jsregexp,
     return last_match_info;
   }
   if (res == RE_EXCEPTION) {
-    ASSERT(isolate->has_pending_exception());
+    ASSERT(Isolate::Current()->has_pending_exception());
     return Handle<Object>::null();
   }
   ASSERT(res == RE_FAILURE);
-  return isolate->factory()->null_value();
+  return Isolate::Current()->factory()->null_value();
 }
 
 
@@ -706,7 +702,7 @@ Handle<Object> RegExpImpl::IrregexpExec(Handle<JSRegExp> jsregexp,
 //   the virtualized backtrack stack and some register changes.  When a node is
 //   to be emitted it can flush the Trace or update it.  Flushing the Trace
 //   will emit code to bring the actual state into line with the virtual state.
-//   Avoiding flushing the state can postpone some work (e.g. updates of capture
+//   Avoiding flushing the state can postpone some work (eg updates of capture
 //   registers).  Postponing work can save time when executing the regular
 //   expression since it may be found that the work never has to be done as a
 //   failure to match can occur.  In addition it is much faster to jump to a
@@ -2638,7 +2634,7 @@ void TextNode::MakeCaseIndependent(bool is_ascii) {
     TextElement elm = elms_->at(i);
     if (elm.type == TextElement::CHAR_CLASS) {
       RegExpCharacterClass* cc = elm.data.u_char_class;
-      // None of the standard character classes is different in the case
+      // None of the standard character classses is different in the case
       // independent case and it slows us down if we don't know that.
       if (cc->is_standard()) continue;
       ZoneList<CharacterRange>* ranges = cc->ranges();
@@ -3599,20 +3595,22 @@ void RegExpEngine::DotPrint(const char* label,
 // -------------------------------------------------------------------
 // Tree to graph conversion
 
-static const uc16 kSpaceRanges[] = { 0x0009, 0x000D, 0x0020, 0x0020, 0x00A0,
-    0x00A0, 0x1680, 0x1680, 0x180E, 0x180E, 0x2000, 0x200A, 0x2028, 0x2029,
-    0x202F, 0x202F, 0x205F, 0x205F, 0x3000, 0x3000, 0xFEFF, 0xFEFF };
-static const int kSpaceRangeCount = ARRAY_SIZE(kSpaceRanges);
+static const int kSpaceRangeCount = 20;
+static const int kSpaceRangeAsciiCount = 4;
+static const uc16 kSpaceRanges[kSpaceRangeCount] = { 0x0009, 0x000D, 0x0020,
+    0x0020, 0x00A0, 0x00A0, 0x1680, 0x1680, 0x180E, 0x180E, 0x2000, 0x200A,
+    0x2028, 0x2029, 0x202F, 0x202F, 0x205F, 0x205F, 0x3000, 0x3000 };
 
-static const uc16 kWordRanges[] = { '0', '9', 'A', 'Z', '_', '_', 'a', 'z' };
-static const int kWordRangeCount = ARRAY_SIZE(kWordRanges);
+static const int kWordRangeCount = 8;
+static const uc16 kWordRanges[kWordRangeCount] = { '0', '9', 'A', 'Z', '_',
+    '_', 'a', 'z' };
 
-static const uc16 kDigitRanges[] = { '0', '9' };
-static const int kDigitRangeCount = ARRAY_SIZE(kDigitRanges);
+static const int kDigitRangeCount = 2;
+static const uc16 kDigitRanges[kDigitRangeCount] = { '0', '9' };
 
-static const uc16 kLineTerminatorRanges[] = { 0x000A, 0x000A, 0x000D, 0x000D,
-    0x2028, 0x2029 };
-static const int kLineTerminatorRangeCount = ARRAY_SIZE(kLineTerminatorRanges);
+static const int kLineTerminatorRangeCount = 6;
+static const uc16 kLineTerminatorRanges[kLineTerminatorRangeCount] = { 0x000A,
+    0x000A, 0x000D, 0x000D, 0x2028, 0x2029 };
 
 RegExpNode* RegExpAtom::ToNode(RegExpCompiler* compiler,
                                RegExpNode* on_success) {
@@ -4725,6 +4723,7 @@ bool OutSet::Get(unsigned value) {
 
 
 const uc16 DispatchTable::Config::kNoKey = unibrow::Utf8::kBadChar;
+const DispatchTable::Entry DispatchTable::Config::kNoValue;
 
 
 void DispatchTable::AddRange(CharacterRange full_range, int value) {

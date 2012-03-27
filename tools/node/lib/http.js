@@ -26,7 +26,6 @@ var EventEmitter = require('events').EventEmitter;
 var FreeList = require('freelist').FreeList;
 var HTTPParser = process.binding('http_parser').HTTPParser;
 var assert = require('assert').ok;
-var END_OF_FILE = {};
 
 
 var debug;
@@ -49,11 +48,7 @@ var parsers = new FreeList('parsers', 1000, function() {
   // processed in a single run. This method is also
   // called to process trailing HTTP headers.
   parser.onHeaders = function(headers, url) {
-    // Once we exceeded headers limit - stop collecting them
-    if (parser.maxHeaderPairs <= 0 ||
-        parser._headers.length < parser.maxHeaderPairs) {
-      parser._headers = parser._headers.concat(headers);
-    }
+    parser._headers = parser._headers.concat(headers);
     parser._url += url;
   };
 
@@ -82,14 +77,7 @@ var parsers = new FreeList('parsers', 1000, function() {
     parser.incoming.httpVersion = info.versionMajor + '.' + info.versionMinor;
     parser.incoming.url = url;
 
-    var n = headers.length;
-
-    // If parser.maxHeaderPairs <= 0 - assume that there're no limit
-    if (parser.maxHeaderPairs > 0) {
-      n = Math.min(n, parser.maxHeaderPairs);
-    }
-
-    for (var i = 0; i < n; i += 2) {
+    for (var i = 0, n = headers.length; i < n; i += 2) {
       var k = headers[i];
       var v = headers[i + 1];
       parser.incoming._addHeaderLine(k.toLowerCase(), v);
@@ -106,25 +94,25 @@ var parsers = new FreeList('parsers', 1000, function() {
 
     parser.incoming.upgrade = info.upgrade;
 
-    var skipBody = false; // response to HEAD or CONNECT
+    var isHeadResponse = false;
 
     if (!info.upgrade) {
-      // For upgraded connections and CONNECT method request,
-      // we'll emit this after parser.execute
+      // For upgraded connections, we'll emit this after parser.execute
       // so that we can capture the first part of the new protocol
-      skipBody = parser.onIncoming(parser.incoming, info.shouldKeepAlive);
+      isHeadResponse = parser.onIncoming(parser.incoming, info.shouldKeepAlive);
     }
 
-    return skipBody;
+    return isHeadResponse;
   };
 
   parser.onBody = function(b, start, len) {
     // TODO body encoding?
     var slice = b.slice(start, start + len);
-    if (parser.incoming._paused || parser.incoming._pendings.length) {
-      parser.incoming._pendings.push(slice);
+    if (parser.incoming._decoder) {
+      var string = parser.incoming._decoder.write(slice);
+      if (string.length) parser.incoming.emit('data', string);
     } else {
-      parser.incoming._emitData(slice);
+      parser.incoming.emit('data', slice);
     }
   };
 
@@ -145,12 +133,8 @@ var parsers = new FreeList('parsers', 1000, function() {
 
     if (!parser.incoming.upgrade) {
       // For upgraded connections, also emit this after parser.execute
-      if (parser.incoming._paused || parser.incoming._pendings.length) {
-        parser.incoming._pendings.push(END_OF_FILE);
-      } else {
-        parser.incoming.readable = false;
-        parser.incoming._emitEnd();
-      }
+      parser.incoming.readable = false;
+      parser.incoming.emit('end');
     }
 
     if (parser.socket.readable) {
@@ -226,21 +210,8 @@ var transferEncodingExpression = /Transfer-Encoding/i;
 var closeExpression = /close/i;
 var chunkExpression = /chunk/i;
 var contentLengthExpression = /Content-Length/i;
-var dateExpression = /Date/i;
 var expectExpression = /Expect/i;
 var continueExpression = /100-continue/i;
-
-var dateCache;
-function utcDate() {
-  if (!dateCache) {
-    var d = new Date();
-    dateCache = d.toUTCString();
-    setTimeout(function() {
-      dateCache = undefined;
-    }, 1000 - d.getMilliseconds());
-  }
-  return dateCache;
-}
 
 
 /* Abstract base class for ServerRequest and ClientResponse. */
@@ -257,11 +228,6 @@ function IncomingMessage(socket) {
   this.trailers = {};
 
   this.readable = true;
-
-  this._paused = false;
-  this._pendings = [];
-
-  this._endEmitted = false;
 
   // request (server) only
   this.url = '';
@@ -290,65 +256,12 @@ IncomingMessage.prototype.setEncoding = function(encoding) {
 
 
 IncomingMessage.prototype.pause = function() {
-  this._paused = true;
   this.socket.pause();
 };
 
 
 IncomingMessage.prototype.resume = function() {
-  this._paused = false;
-  if (this.socket) {
-    this.socket.resume();
-  }
-
-  this._emitPending();
-};
-
-
-IncomingMessage.prototype._emitPending = function(callback) {
-  if (this._pendings.length) {
-    var self = this;
-    process.nextTick(function() {
-      while (!self._paused && self._pendings.length) {
-        var chunk = self._pendings.shift();
-        if (chunk !== END_OF_FILE) {
-          assert(Buffer.isBuffer(chunk));
-          self._emitData(chunk);
-        } else {
-          assert(self._pendings.length === 0);
-          self.readable = false;
-          self._emitEnd();
-        }
-      }
-
-      if (callback) {
-        callback();
-      }
-    });
-  } else if (callback) {
-    callback();
-  }
-};
-
-
-IncomingMessage.prototype._emitData = function(d) {
-  if (this._decoder) {
-    var string = this._decoder.write(d);
-    if (string.length) {
-      this.emit('data', string);
-    }
-  } else {
-    this.emit('data', d);
-  }
-};
-
-
-IncomingMessage.prototype._emitEnd = function() {
-  if (!this._endEmitted) {
-    this.emit('end');
-  }
-
-  this._endEmitted = true;
+  this.socket.resume();
 };
 
 
@@ -421,7 +334,6 @@ function OutgoingMessage() {
   this.chunkedEncoding = false;
   this.shouldKeepAlive = true;
   this.useChunkedEncodingByDefault = true;
-  this.sendDate = false;
 
   this._hasBody = true;
   this._trailer = '';
@@ -512,7 +424,6 @@ OutgoingMessage.prototype._storeHeader = function(firstLine, headers) {
   var sentConnectionHeader = false;
   var sentContentLengthHeader = false;
   var sentTransferEncodingHeader = false;
-  var sentDateHeader = false;
   var sentExpect = false;
 
   // firstLine in the case of request is: 'GET /index.html HTTP/1.1\r\n'
@@ -538,8 +449,7 @@ OutgoingMessage.prototype._storeHeader = function(firstLine, headers) {
 
     } else if (contentLengthExpression.test(field)) {
       sentContentLengthHeader = true;
-    } else if (dateExpression.test(field)) {
-      sentDateHeader = true;
+
     } else if (expectExpression.test(field)) {
       sentExpect = true;
     }
@@ -570,18 +480,10 @@ OutgoingMessage.prototype._storeHeader = function(firstLine, headers) {
     }
   }
 
-  // Date header
-  if (this.sendDate == true && sentDateHeader == false) {
-    messageHeader += 'Date: ' + utcDate() + CRLF;
-  }
-
   // keep-alive logic
   if (sentConnectionHeader === false) {
-    var shouldSendKeepAlive = this.shouldKeepAlive &&
-        (sentContentLengthHeader ||
-         this.useChunkedEncodingByDefault ||
-         this.agent);
-    if (shouldSendKeepAlive) {
+    if (this.shouldKeepAlive &&
+        (sentContentLengthHeader || this.useChunkedEncodingByDefault || this.agent)) {
       messageHeader += 'Connection: keep-alive\r\n';
     } else {
       this._last = true;
@@ -614,11 +516,11 @@ OutgoingMessage.prototype._storeHeader = function(firstLine, headers) {
 
 OutgoingMessage.prototype.setHeader = function(name, value) {
   if (arguments.length < 2) {
-    throw new Error('`name` and `value` are required for setHeader().');
+    throw new Error("`name` and `value` are required for setHeader().");
   }
 
   if (this._header) {
-    throw new Error('Can\'t set headers after they are sent.');
+    throw new Error("Can't set headers after they are sent.");
   }
 
   var key = name.toLowerCase();
@@ -631,7 +533,7 @@ OutgoingMessage.prototype.setHeader = function(name, value) {
 
 OutgoingMessage.prototype.getHeader = function(name) {
   if (arguments.length < 1) {
-    throw new Error('`name` is required for getHeader().');
+    throw new Error("`name` is required for getHeader().");
   }
 
   if (!this._headers) return;
@@ -643,11 +545,11 @@ OutgoingMessage.prototype.getHeader = function(name) {
 
 OutgoingMessage.prototype.removeHeader = function(name) {
   if (arguments.length < 1) {
-    throw new Error('`name` is required for removeHeader().');
+    throw new Error("`name` is required for removeHeader().");
   }
 
   if (this._header) {
-    throw new Error('Can\'t remove headers after they are sent.');
+    throw new Error("Can't remove headers after they are sent.");
   }
 
   if (!this._headers) return;
@@ -660,7 +562,7 @@ OutgoingMessage.prototype.removeHeader = function(name) {
 
 OutgoingMessage.prototype._renderHeaders = function() {
   if (this._header) {
-    throw new Error('Can\'t render headers after they are sent to the client.');
+    throw new Error("Can't render headers after they are sent to the client.");
   }
 
   if (!this._headers) return {};
@@ -865,8 +767,6 @@ function ServerResponse(req) {
 
   if (req.method === 'HEAD') this._hasBody = false;
 
-  this.sendDate = true;
-
   if (req.httpVersionMajor < 1 || req.httpVersionMinor < 1) {
     this.useChunkedEncodingByDefault = false;
     this.shouldKeepAlive = false;
@@ -1004,12 +904,8 @@ function Agent(options) {
   self.requests = {};
   self.sockets = {};
   self.maxSockets = self.options.maxSockets || Agent.defaultMaxSockets;
-  self.on('free', function(socket, host, port, localAddress) {
+  self.on('free', function(socket, host, port) {
     var name = host + ':' + port;
-    if (localAddress) {
-      name += ':' + localAddress;
-    }
-
     if (self.requests[name] && self.requests[name].length) {
       self.requests[name].shift().onSocket(socket);
       if (self.requests[name].length === 0) {
@@ -1032,17 +928,14 @@ exports.Agent = Agent;
 Agent.defaultMaxSockets = 5;
 
 Agent.prototype.defaultPort = 80;
-Agent.prototype.addRequest = function(req, host, port, localAddress) {
+Agent.prototype.addRequest = function(req, host, port) {
   var name = host + ':' + port;
-  if (localAddress) {
-    name += ':' + localAddress;
-  }
   if (!this.sockets[name]) {
     this.sockets[name] = [];
   }
   if (this.sockets[name].length < this.maxSockets) {
     // If we are under maxSockets create a new one.
-    req.onSocket(this.createSocket(name, host, port, localAddress));
+    req.onSocket(this.createSocket(name, host, port));
   } else {
     // We are over limit so we'll add it to the queue.
     if (!this.requests[name]) {
@@ -1051,33 +944,29 @@ Agent.prototype.addRequest = function(req, host, port, localAddress) {
     this.requests[name].push(req);
   }
 };
-Agent.prototype.createSocket = function(name, host, port, localAddress) {
+Agent.prototype.createSocket = function(name, host, port) {
   var self = this;
-  var options = util._extend({}, self.options);
-  options.port = port;
-  options.host = host;
-  options.localAddress = localAddress;
-  var s = self.createConnection(options);
+  var s = self.createConnection(port, host, self.options);
   if (!self.sockets[name]) {
     self.sockets[name] = [];
   }
   this.sockets[name].push(s);
   var onFree = function() {
-    self.emit('free', s, host, port, localAddress);
+    self.emit('free', s, host, port);
   }
   s.on('free', onFree);
   var onClose = function(err) {
     // This is the only place where sockets get removed from the Agent.
     // If you want to remove a socket from the pool, just close it.
     // All socket errors end in a close event anyway.
-    self.removeSocket(s, name, host, port, localAddress);
+    self.removeSocket(s, name, host, port);
   }
   s.on('close', onClose);
   var onRemove = function() {
-    // We need this function for cases like HTTP 'upgrade'
+    // We need this function for cases like HTTP "upgrade"
     // (defined by WebSockets) where we need to remove a socket from the pool
     //  because it'll be locked up indefinitely
-    self.removeSocket(s, name, host, port, localAddress);
+    self.removeSocket(s, name, host, port);
     s.removeListener('close', onClose);
     s.removeListener('free', onFree);
     s.removeListener('agentRemove', onRemove);
@@ -1085,7 +974,7 @@ Agent.prototype.createSocket = function(name, host, port, localAddress) {
   s.on('agentRemove', onRemove);
   return s;
 };
-Agent.prototype.removeSocket = function(s, name, host, port, localAddress) {
+Agent.prototype.removeSocket = function(s, name, host, port) {
   if (this.sockets[name]) {
     var index = this.sockets[name].indexOf(s);
     if (index !== -1) {
@@ -1098,7 +987,8 @@ Agent.prototype.removeSocket = function(s, name, host, port, localAddress) {
   }
   if (this.requests[name] && this.requests[name].length) {
     // If we have pending requests and a socket gets closed a new one
-    this.createSocket(name, host, port, localAddress).emit('free');
+    // needs to be created to take over in the pool for the one that closed.
+    this.createSocket(name, host, port).emit('free');
   }
 };
 
@@ -1109,16 +999,14 @@ exports.globalAgent = globalAgent;
 function ClientRequest(options, cb) {
   var self = this;
   OutgoingMessage.call(self);
+  self.agent = options.agent;
+  options.defaultPort = options.defaultPort || 80;
 
-  self.agent = options.agent === undefined ? globalAgent : options.agent;
-
-  var defaultPort = options.defaultPort || 80;
-
-  var port = options.port || defaultPort;
-  var host = options.hostname || options.host || 'localhost';
+  options.port = options.port || options.defaultPort;
+  options.host = options.hostname || options.host || 'localhost';
 
   if (options.setHost === undefined) {
-    var setHost = true;
+    options.setHost = true;
   }
 
   self.socketPath = options.socketPath;
@@ -1137,10 +1025,10 @@ function ClientRequest(options, cb) {
         self.setHeader(key, options.headers[key]);
       }
     }
-    if (host && !this.getHeader('host') && setHost) {
-      var hostHeader = host;
-      if (port && +port !== defaultPort) {
-        hostHeader += ':' + port;
+    if (options.host && !this.getHeader('host') && options.setHost) {
+      var hostHeader = options.host;
+      if (options.port && +options.port !== options.defaultPort) {
+        hostHeader += ':' + options.port;
       }
       this.setHeader('Host', hostHeader);
     }
@@ -1152,7 +1040,7 @@ function ClientRequest(options, cb) {
                    new Buffer(options.auth).toString('base64'));
   }
 
-  if (method === 'GET' || method === 'HEAD' || method === 'CONNECT') {
+  if (method === 'GET' || method === 'HEAD') {
     self.useChunkedEncodingByDefault = false;
   } else {
     self.useChunkedEncodingByDefault = true;
@@ -1177,23 +1065,16 @@ function ClientRequest(options, cb) {
     // If there is an agent we should default to Connection:keep-alive.
     self._last = false;
     self.shouldKeepAlive = true;
-    self.agent.addRequest(self, host, port, options.localAddress);
+    self.agent.addRequest(self, options.host, options.port);
   } else {
     // No agent, default to Connection:close.
     self._last = true;
     self.shouldKeepAlive = false;
     if (options.createConnection) {
-      options.port = port;
-      options.host = host;
-      var conn = options.createConnection(options);
+      self.onSocket(options.createConnection(options.port, options.host, options));
     } else {
-      var conn = net.createConnection({
-        port: port,
-        host: host,
-        localAddress: options.localAddress
-      });
+      self.onSocket(net.createConnection(options.port, options.host));
     }
-    self.onSocket(conn);
   }
 
   self._deferToConnect(null, null, function() {
@@ -1206,8 +1087,7 @@ util.inherits(ClientRequest, OutgoingMessage);
 exports.ClientRequest = ClientRequest;
 
 ClientRequest.prototype._implicitHeader = function() {
-  this._storeHeader(this.method + ' ' + this.path + ' HTTP/1.1\r\n',
-                    this._renderHeaders());
+  this._storeHeader(this.method + ' ' + this.path + ' HTTP/1.1\r\n', this._renderHeaders());
 };
 
 ClientRequest.prototype.abort = function() {
@@ -1241,16 +1121,8 @@ ClientRequest.prototype.onSocket = function(socket) {
     parser.incoming = null;
     req.parser = parser;
 
-    // Propagate headers limit from request object to parser
-    if (typeof req.maxHeadersCount === 'number') {
-      parser.maxHeaderPairs = req.maxHeadersCount << 1;
-    } else {
-      // Set default value because parser may be reused from FreeList
-      parser.maxHeaderPairs = 2000;
-    }
-
     socket._httpMessage = req;
-    // Setup 'drain' propogation.
+    // Setup "drain" propogation.
     httpSocketSetup(socket);
 
     var freeParser = function() {
@@ -1281,34 +1153,25 @@ ClientRequest.prototype.onSocket = function(socket) {
         freeParser();
         socket.destroy(ret);
       } else if (parser.incoming && parser.incoming.upgrade) {
-        // Upgrade or CONNECT
         var bytesParsed = ret;
+        socket.ondata = null;
+        socket.onend = null;
+
         var res = parser.incoming;
         req.res = res;
 
-        socket.ondata = null;
-        socket.onend = null;
-        parser.finish();
-        freeParser();
-
         // This is start + byteParsed
-        var bodyHead = d.slice(start + bytesParsed, end);
-
-        var eventName = req.method === 'CONNECT' ? 'connect' : 'upgrade';
-        if (req.listeners(eventName).length) {
-          req.upgradeOrConnect = true;
-
-          // detach the socket
+        var upgradeHead = d.slice(start + bytesParsed, end);
+        if (req.listeners('upgrade').length) {
+          // Emit 'upgrade' on the Agent.
+          req.upgraded = true;
+          req.emit('upgrade', res, socket, upgradeHead);
           socket.emit('agentRemove');
-          socket.removeListener('close', closeListener);
-          socket.removeListener('error', errorListener);
-
-          req.emit(eventName, res, socket, bodyHead);
-          req.emit('close');
         } else {
-          // Got Upgrade header or CONNECT method, but have no handler.
+          // Got upgrade header, but have no handler.
           socket.destroy();
         }
+        freeParser();
       } else if (parser.incoming && parser.incoming.complete &&
                  // When the status code is 100 (Continue), the server will
                  // send a final response after this client sends a request
@@ -1336,12 +1199,10 @@ ClientRequest.prototype.onSocket = function(socket) {
       debug('HTTP socket close');
       req.emit('close');
       if (req.res && req.res.readable) {
-        // Socket closed before we emitted 'end' below.
+        // Socket closed before we emitted "end" below.
         req.res.emit('aborted');
-        req.res._emitPending(function() {
-          req.res._emitEnd();
-          req.res.emit('close');
-        });
+        req.res.emit('end');
+        req.res.emit('close');
       } else if (!req.res && !req._hadError) {
         // This socket error fired before we started to
         // receive a response. The error needs to
@@ -1362,12 +1223,6 @@ ClientRequest.prototype.onSocket = function(socket) {
       }
       req.res = res;
 
-      // Responses to CONNECT request is handled as Upgrade.
-      if (req.method === 'CONNECT') {
-        res.upgrade = true;
-        return true; // skip body
-      }
-
       // Responses to HEAD requests are crazy.
       // HEAD responses aren't allowed to have an entity-body
       // but *can* have a content-length which actually corresponds
@@ -1383,7 +1238,7 @@ ClientRequest.prototype.onSocket = function(socket) {
         return true;
       }
 
-      if (req.shouldKeepAlive && !shouldKeepAlive && !req.upgradeOrConnect) {
+      if (req.shouldKeepAlive && !shouldKeepAlive && !req.upgraded) {
         // Server MUST respond with Connection:keep-alive for us to enable it.
         // If we've been upgraded (via WebSockets) we also shouldn't try to
         // keep the connection open.
@@ -1433,7 +1288,7 @@ ClientRequest.prototype._deferToConnect = function(method, arguments_, cb) {
       }
       if (cb) { cb(); }
     } else {
-      self.socket.once('connect', function() {
+      self.socket.on('connect', function() {
         if (method) {
           self.socket[method].apply(self.socket, arguments_);
         }
@@ -1456,6 +1311,12 @@ ClientRequest.prototype.setNoDelay = function() {
 ClientRequest.prototype.setSocketKeepAlive = function() {
   this._deferToConnect('setKeepAlive', arguments);
 };
+ClientRequest.prototype.pause = function() {
+  var self = this;
+  self._deferToConnect(null, null, function() {
+    OutgoingMessage.prototype.pause.apply(self, []);
+  });
+};
 
 
 exports.request = function(options, cb) {
@@ -1463,24 +1324,27 @@ exports.request = function(options, cb) {
     throw new Error('Protocol:' + options.protocol + ' not supported.');
   }
 
+  if (options.agent === undefined) {
+    options.agent = globalAgent;
+  }
+
   return new ClientRequest(options, cb);
 };
 
 exports.get = function(options, cb) {
+  options.method = 'GET';
   var req = exports.request(options, cb);
   req.end();
   return req;
 };
 
-
-function ondrain() {
-  if (this._httpMessage) this._httpMessage.emit('drain');
-}
-
-
 function httpSocketSetup(socket) {
-  socket.removeListener('drain', ondrain);
-  socket.on('drain', ondrain);
+  // NOTE: be sure not to use ondrain elsewhere in this file!
+  socket.ondrain = function() {
+    if (socket._httpMessage) {
+      socket._httpMessage.emit('drain');
+    }
+  };
 }
 
 
@@ -1524,14 +1388,6 @@ function connectionListener(socket) {
     // abort socket._httpMessage ?
   }
 
-  function serverSocketCloseListener() {
-    debug('server socket close');
-    // unref the parser for easy gc
-    parsers.free(parser);
-
-    abortIncoming();
-  }
-
   debug('SERVER new http connection');
 
   httpSocketSetup(socket);
@@ -1546,14 +1402,6 @@ function connectionListener(socket) {
   parser.socket = socket;
   parser.incoming = null;
 
-  // Propagate headers limit from server instance to parser
-  if (typeof this.maxHeadersCount === 'number') {
-    parser.maxHeaderPairs = this.maxHeadersCount << 1;
-  } else {
-    // Set default value because parser may be reused from FreeList
-    parser.maxHeaderPairs = 2000;
-  }
-
   socket.addListener('error', function(e) {
     self.emit('clientError', e);
   });
@@ -1564,24 +1412,19 @@ function connectionListener(socket) {
       debug('parse error');
       socket.destroy(ret);
     } else if (parser.incoming && parser.incoming.upgrade) {
-      // Upgrade or CONNECT
       var bytesParsed = ret;
-      var req = parser.incoming;
-
       socket.ondata = null;
       socket.onend = null;
-      socket.removeListener('close', serverSocketCloseListener);
-      parser.finish();
-      parsers.free(parser);
+
+      var req = parser.incoming;
 
       // This is start + byteParsed
-      var bodyHead = d.slice(start + bytesParsed, end);
+      var upgradeHead = d.slice(start + bytesParsed, end);
 
-      var eventName = req.method === 'CONNECT' ? 'connect' : 'upgrade';
-      if (self.listeners(eventName).length) {
-        self.emit(eventName, req, req.socket, bodyHead);
+      if (self.listeners('upgrade').length) {
+        self.emit('upgrade', req, req.socket, upgradeHead);
       } else {
-        // Got upgrade header or CONNECT method, but have no handler.
+        // Got upgrade header, but have no handler.
         socket.destroy();
       }
     }
@@ -1608,7 +1451,13 @@ function connectionListener(socket) {
     }
   };
 
-  socket.addListener('close', serverSocketCloseListener);
+  socket.addListener('close', function() {
+    debug('server socket close');
+    // unref the parser for easy gc
+    parsers.free(parser);
+
+    abortIncoming();
+  });
 
   // The following callback is issued after the headers have been read on a
   // new message. In this callback we setup the response object and pass it
@@ -1672,7 +1521,6 @@ exports._connectionListener = connectionListener;
 // Legacy Interface
 
 function Client(port, host) {
-  if (!(this instanceof Client)) return new Client(port, host);
   host = host || 'localhost';
   port = port || 80;
   this.host = host;
@@ -1698,7 +1546,7 @@ Client.prototype.request = function(method, path, headers) {
   c.on('error', function(e) {
     self.emit('error', e);
   });
-  // The old Client interface emitted 'end' on socket end.
+  // The old Client interface emitted "end" on socket end.
   // This doesn't map to how we want things to operate in the future
   // but it will get removed when we remove this legacy interface.
   c.on('socket', function(s) {
@@ -1710,11 +1558,6 @@ Client.prototype.request = function(method, path, headers) {
 };
 
 exports.Client = Client;
-
-// TODO http.Client can be removed in v0.9. Until then leave this message.
-module.deprecate('Client', 'It will be removed soon. Do not use it.');
-
 exports.createClient = function(port, host) {
   return new Client(port, host);
 };
-module.deprecate('createClient', 'Use `http.request` instead.');

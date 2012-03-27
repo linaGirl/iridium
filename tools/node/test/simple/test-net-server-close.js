@@ -27,9 +27,7 @@ var assert = require('assert');
 var net = require('net');
 
 var server = net.createServer(function(socket) {
-  server.close(function() {
-    assert.equal(server.connections, 0);
-  });
+  server.close();
   process.nextTick(function() {
     socket.destroy();
   });
@@ -37,4 +35,8 @@ var server = net.createServer(function(socket) {
 
 server.listen(common.PORT, function() {
   net.createConnection(common.PORT);
+});
+
+server.on('close', function() {
+  assert.equal(server.connections, 0);
 });

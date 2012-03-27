@@ -37,7 +37,6 @@ cat.stdin.end();
 
 var response = '';
 var exitStatus = -1;
-var closed = false;
 
 var gotStdoutEOF = false;
 
@@ -67,10 +66,6 @@ cat.stderr.on('end', function(chunk) {
 cat.on('exit', function(status) {
   console.log('exit event');
   exitStatus = status;
-});
-
-cat.on('close', function () {
-  closed = true;
   if (is_windows) {
     assert.equal('hello world\r\n', response);
   } else {
@@ -80,7 +75,6 @@ cat.on('close', function () {
 
 process.on('exit', function() {
   assert.equal(0, exitStatus);
-  assert(closed);
   if (is_windows) {
     assert.equal('hello world\r\n', response);
   } else {

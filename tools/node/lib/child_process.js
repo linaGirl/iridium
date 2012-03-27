@@ -22,7 +22,7 @@
 var EventEmitter = require('events').EventEmitter;
 var net = require('net');
 var Process = process.binding('process_wrap').Process;
-var util = require('util');
+var inherits = require('util').inherits;
 var constants; // if (!constants) constants = process.binding('constants');
 
 var Pipe;
@@ -53,47 +53,60 @@ function createSocket(pipe, readable) {
   return s;
 }
 
+function mergeOptions(target, overrides) {
+  if (overrides) {
+    var keys = Object.keys(overrides);
+    for (var i = 0, len = keys.length; i < len; i++) {
+      var k = keys[i];
+      if (overrides[k] !== undefined) {
+        target[k] = overrides[k];
+      }
+    }
+  }
+  return target;
+}
+
 
 function setupChannel(target, channel) {
+  var isWindows = process.platform === 'win32';
   target._channel = channel;
 
   var jsonBuffer = '';
-  channel.buffering = false;
+
+  if (isWindows) {
+    var setSimultaneousAccepts = function(handle) {
+      var simultaneousAccepts = (process.env.NODE_MANY_ACCEPTS &&
+              process.env.NODE_MANY_ACCEPTS != '0') ? true : false;
+
+      if (handle._simultaneousAccepts != simultaneousAccepts) {
+        handle.setSimultaneousAccepts(simultaneousAccepts);
+        handle._simultaneousAccepts = simultaneousAccepts;
+      }
+    }
+  }
+
   channel.onread = function(pool, offset, length, recvHandle) {
-    // Update simultaneous accepts on Windows
-    net._setSimultaneousAccepts(recvHandle);
+    if (recvHandle && setSimultaneousAccepts) {
+      // Update simultaneous accepts on Windows
+      setSimultaneousAccepts(recvHandle);
+    }
 
     if (pool) {
       jsonBuffer += pool.toString('ascii', offset, offset + length);
 
       var i, start = 0;
-
-      //Linebreak is used as a message end sign
       while ((i = jsonBuffer.indexOf('\n', start)) >= 0) {
         var json = jsonBuffer.slice(start, i);
         var message = JSON.parse(json);
 
-        //Filter out internal messages
-        //if cmd property begin with "_NODE"
-        if (message !== null &&
-            typeof message === 'object' &&
-            typeof message.cmd === 'string' &&
-            message.cmd.indexOf('NODE_') === 0) {
-          target.emit('internalMessage', message, recvHandle);
-        }
-        //Non-internal message
-        else {
-          target.emit('message', message, recvHandle);
-        }
-
+        target.emit('message', message, recvHandle);
         start = i + 1;
       }
       jsonBuffer = jsonBuffer.slice(start);
-      this.buffering = jsonBuffer.length !== 0;
 
     } else {
-      this.buffering = false;
-      target.disconnect();
+      channel.close();
+      target._channel = null;
     }
   };
 
@@ -102,10 +115,7 @@ function setupChannel(target, channel) {
       throw new TypeError('message cannot be undefined');
     }
 
-    if (!this.connected) {
-      this.emit('error', new Error('channel closed'));
-      return;
-    }
+    if (!target._channel) throw new Error("channel closed");
 
     // For overflow protection don't write if channel queue is too deep.
     if (channel.writeQueueSize > 1024 * 1024) {
@@ -114,8 +124,10 @@ function setupChannel(target, channel) {
 
     var buffer = Buffer(JSON.stringify(message) + '\n');
 
-    // Update simultaneous accepts on Windows
-    net._setSimultaneousAccepts(sendHandle);
+    if (sendHandle && setSimultaneousAccepts) {
+      // Update simultaneous accepts on Windows
+      setSimultaneousAccepts(sendHandle);
+    }
 
     var writeReq = channel.write(buffer, 0, buffer.length, sendHandle);
 
@@ -128,60 +140,19 @@ function setupChannel(target, channel) {
     return true;
   };
 
-  target.connected = true;
-  target.disconnect = function() {
-    if (!this.connected) {
-      this.emit('error', new Error('IPC channel is already disconnected'));
-      return;
-    }
-
-    // do not allow messages to be written
-    this.connected = false;
-    this._channel = null;
-
-    var fired = false;
-    function finish() {
-      if (fired) return;
-      fired = true;
-
-      channel.close();
-      target.emit('disconnect');
-    }
-
-    // If a message is being read, then wait for it to complete.
-    if (channel.buffering) {
-      this.once('message', finish);
-      this.once('internalMessage', finish);
-
-      return;
-    }
-
-    finish();
-  };
-
   channel.readStart();
 }
 
 
 function nop() { }
 
-exports.fork = function(modulePath /*, args, options*/) {
 
-  // Get options and args arguments.
-  var options, args, execArgv;
-  if (Array.isArray(arguments[1])) {
-    args = arguments[1];
-    options = arguments[2] || {};
-  } else {
-    args = [];
-    options = arguments[1] || {};
-  }
+exports.fork = function(modulePath, args, options) {
+  if (!options) options = {};
 
-  // Prepare arguments for fork:
-  execArgv = options.execArgv || process.execArgv;
-  args = execArgv.concat([modulePath], args);
+  args = args ? args.slice(0) : [];
+  args.unshift(modulePath);
 
-  // Don't allow stdinStream and customFds since a stdin channel will be used
   if (options.stdinStream) {
     throw new Error('stdinStream not allowed for fork()');
   }
@@ -191,12 +162,12 @@ exports.fork = function(modulePath /*, args, options*/) {
   }
 
   // Leave stdin open for the IPC channel. stdout and stderr should be the
-  // same as the parent's if silent isn't set.
-  options.customFds = (options.silent ? [-1, -1, -1] : [-1, 1, 2]);
+  // same as the parent's.
+  options.customFds = [-1, 1, 2];
 
   // Just need to set this - child process won't actually use the fd.
   // For backwards compat - this can be changed to 'NODE_CHANNEL' before v0.6.
-  options.env = util._extend({}, options.env || process.env);
+  if (!options.env) options.env = { };
   options.env.NODE_CHANNEL_FD = 42;
 
   // stdin is the IPC channel.
@@ -205,6 +176,12 @@ exports.fork = function(modulePath /*, args, options*/) {
   var child = spawn(process.execPath, args, options);
 
   setupChannel(child, options.stdinStream);
+
+  child.on('exit', function() {
+    if (child._channel) {
+      child._channel.close();
+    }
+  });
 
   return child;
 };
@@ -234,7 +211,7 @@ exports.exec = function(command /*, options, callback */) {
     args = ['/s', '/c', '"' + command + '"'];
     // Make a shallow copy before patching so we don't clobber the user's
     // options object.
-    options = util._extend({}, options);
+    options = mergeOptions({}, options);
     options.windowsVerbatimArguments = true;
   } else {
     file = '/bin/sh';
@@ -270,7 +247,7 @@ exports.execFile = function(file /* args, options, callback */) {
   }
 
   // Merge optionArg into options
-  util._extend(options, optionArg);
+  mergeOptions(options, optionArg);
 
   var child = spawn(file, args, {
     cwd: options.cwd,
@@ -344,7 +321,7 @@ exports.execFile = function(file /* args, options, callback */) {
     }
   });
 
-  child.addListener('close', exithandler);
+  child.addListener('exit', exithandler);
 
   return child;
 };
@@ -376,11 +353,11 @@ var spawn = exports.spawn = function(file, args, options) {
 };
 
 
-function maybeClose(subprocess) {
+function maybeExit(subprocess) {
   subprocess._closesGot++;
 
   if (subprocess._closesGot == subprocess._closesNeeded) {
-    subprocess.emit('close', subprocess.exitCode, subprocess.signalCode);
+    subprocess.emit('exit', subprocess.exitCode, subprocess.signalCode);
   }
 }
 
@@ -416,12 +393,10 @@ function ChildProcess() {
     self._internal.close();
     self._internal = null;
 
-    self.emit('exit', self.exitCode, self.signalCode);
-
-    maybeClose(self);
+    maybeExit(self);
   };
 }
-util.inherits(ChildProcess, EventEmitter);
+inherits(ChildProcess, EventEmitter);
 
 
 function setStreamOption(name, index, options) {
@@ -479,7 +454,7 @@ ChildProcess.prototype.spawn = function(options) {
     this.stdout = createSocket(options.stdoutStream, true);
     this._closesNeeded++;
     this.stdout.on('close', function() {
-      maybeClose(self);
+      maybeExit(self);
     });
   }
 
@@ -487,7 +462,7 @@ ChildProcess.prototype.spawn = function(options) {
     this.stderr = createSocket(options.stderrStream, true);
     this._closesNeeded++;
     this.stderr.on('close', function() {
-      maybeClose(self);
+      maybeExit(self);
     });
   }
 

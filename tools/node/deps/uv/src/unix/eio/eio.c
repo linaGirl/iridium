@@ -362,8 +362,12 @@ static int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 #define EIO_TICKS ((1000000 + 1023) >> 10)
 
+#define ETP_PRI_MIN EIO_PRI_MIN
+#define ETP_PRI_MAX EIO_PRI_MAX
+
 struct etp_worker;
 
+#define ETP_REQ eio_req
 #define ETP_DESTROY(req) eio_destroy (req)
 static int eio_finish (eio_req *req);
 #define ETP_FINISH(req)  eio_finish (req)
@@ -371,6 +375,8 @@ static void eio_execute (struct etp_worker *self, eio_req *req);
 #define ETP_EXECUTE(wrk,req) eio_execute (wrk,req)
 
 /*****************************************************************************/
+
+#define ETP_NUM_PRI (ETP_PRI_MAX - ETP_PRI_MIN + 1)
 
 /* calculate time difference in ~1/EIO_TICKS of a second */
 ecb_inline int
@@ -382,8 +388,8 @@ tvdiff (struct timeval *tv1, struct timeval *tv2)
 
 static unsigned int started, idle, wanted = 4;
 
-static void (*want_poll_cb) (eio_channel *);
-static void (*done_poll_cb) (eio_channel *);
+static void (*want_poll_cb) (void);
+static void (*done_poll_cb) (void);
  
 static unsigned int max_poll_time;     /* reslock */
 static unsigned int max_poll_reqs;     /* reslock */
@@ -500,8 +506,18 @@ etp_nthreads (void)
   return retval;
 }
 
+/*
+ * a somewhat faster data structure might be nice, but
+ * with 8 priorities this actually needs <20 insns
+ * per shift, the most expensive operation.
+ */
+typedef struct {
+  ETP_REQ *qs[ETP_NUM_PRI], *qe[ETP_NUM_PRI]; /* qstart, qend */
+  int size;
+} etp_reqq;
+
 static etp_reqq req_queue;
-static eio_channel default_channel;
+static etp_reqq res_queue;
 
 static void ecb_noinline ecb_cold
 reqq_init (etp_reqq *q)
@@ -558,7 +574,7 @@ reqq_shift (etp_reqq *q)
 }
 
 static int ecb_cold
-etp_init (void (*want_poll)(eio_channel *), void (*done_poll)(eio_channel *))
+etp_init (void (*want_poll)(void), void (*done_poll)(void))
 {
   X_MUTEX_CREATE (wrklock);
   X_MUTEX_CREATE (reslock);
@@ -566,7 +582,7 @@ etp_init (void (*want_poll)(eio_channel *), void (*done_poll)(eio_channel *))
   X_COND_CREATE  (reqwait);
 
   reqq_init (&req_queue);
-  eio_channel_init (&default_channel, 0);
+  reqq_init (&res_queue);
 
   wrk_first.next =
   wrk_first.prev = &wrk_first;
@@ -640,19 +656,12 @@ etp_end_thread (void)
   X_UNLOCK (wrklock);
 }
 
-void
-eio_channel_init(eio_channel *channel, void *data) {
-  reqq_init(&channel->res_queue);
-  channel->data = data;
-}
-
 static int
-etp_poll (eio_channel *channel)
+etp_poll (void)
 {
   unsigned int maxreqs;
   unsigned int maxtime;
   struct timeval tv_start, tv_now;
-  if(!channel) channel = &default_channel;
 
   X_LOCK (reslock);
   maxreqs = max_poll_reqs;
@@ -669,14 +678,14 @@ etp_poll (eio_channel *channel)
       etp_maybe_start_thread ();
 
       X_LOCK (reslock);
-      req = reqq_shift (&channel->res_queue);
+      req = reqq_shift (&res_queue);
 
       if (req)
         {
           --npending;
 
-          if (!channel->res_queue.size && done_poll_cb)
-            done_poll_cb (channel);
+          if (!res_queue.size && done_poll_cb)
+            done_poll_cb ();
         }
 
       X_UNLOCK (reslock);
@@ -743,8 +752,8 @@ etp_submit (ETP_REQ *req)
 
       ++npending;
 
-      if (!reqq_push (&req->channel->res_queue, req) && want_poll_cb)
-        want_poll_cb (req->channel);
+      if (!reqq_push (&res_queue, req) && want_poll_cb)
+        want_poll_cb ();
 
       X_UNLOCK (reslock);
     }
@@ -961,9 +970,9 @@ eio_set_max_parallel (unsigned int nthreads)
   etp_set_max_parallel (nthreads);
 }
 
-int eio_poll (eio_channel *channel)
+int eio_poll (void)
 {
-  return etp_poll (channel);
+  return etp_poll ();
 }
 
 /*****************************************************************************/
@@ -1039,15 +1048,8 @@ eio__utimes (const char *filename, const struct timeval times[2])
 static int
 eio__futimes (int fd, const struct timeval tv[2])
 {
-#if defined(__linux) && defined(__NR_utimensat)
-  struct timespec ts[2];
-  ts[0].tv_sec = tv[0].tv_sec, ts[0].tv_nsec = tv[0].tv_usec * 1000;
-  ts[1].tv_sec = tv[1].tv_sec, ts[1].tv_nsec = tv[1].tv_usec * 1000;
-  return syscall(__NR_utimensat, fd, NULL, ts, 0);
-#else
   errno = ENOSYS;
   return -1;
-#endif
 }
 
 #endif
@@ -2090,8 +2092,8 @@ X_THREAD_PROC (etp_proc)
 
       ++npending;
 
-      if (!reqq_push (&req->channel->res_queue, req) && want_poll_cb)
-        want_poll_cb (req->channel);
+      if (!reqq_push (&res_queue, req) && want_poll_cb)
+        want_poll_cb ();
 
       self->req = 0;
       etp_worker_clear (self);
@@ -2110,7 +2112,7 @@ quit:
 /*****************************************************************************/
 
 int ecb_cold
-eio_init (void (*want_poll)(eio_channel *), void (*done_poll)(eio_channel *))
+eio_init (void (*want_poll)(void), void (*done_poll)(void))
 {
 #if !HAVE_PREADWRITE
   X_MUTEX_CREATE (preadwritelock);
@@ -2136,8 +2138,7 @@ eio_api_destroy (eio_req *req)
   req->pri     = pri;						\
   req->finish  = cb;						\
   req->data    = data;						\
-  req->destroy = eio_api_destroy; \
-  req->channel = channel
+  req->destroy = eio_api_destroy;
 
 #define SEND eio_submit (req); return req
 
@@ -2293,209 +2294,209 @@ eio_execute (etp_worker *self, eio_req *req)
 
 #ifndef EIO_NO_WRAPPERS
 
-eio_req *eio_nop (int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_nop (int pri, eio_cb cb, void *data)
 {
   REQ (EIO_NOP); SEND;
 }
 
-eio_req *eio_busy (double delay, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_busy (double delay, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_BUSY); req->nv1 = delay; SEND;
 }
 
-eio_req *eio_sync (int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_sync (int pri, eio_cb cb, void *data)
 {
   REQ (EIO_SYNC); SEND;
 }
 
-eio_req *eio_fsync (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fsync (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FSYNC); req->int1 = fd; SEND;
 }
 
-eio_req *eio_msync (void *addr, size_t length, int flags, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_msync (void *addr, size_t length, int flags, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MSYNC); req->ptr2 = addr; req->size = length; req->int1 = flags; SEND;
 }
 
-eio_req *eio_fdatasync (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fdatasync (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FDATASYNC); req->int1 = fd; SEND;
 }
 
-eio_req *eio_syncfs (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_syncfs (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_SYNCFS); req->int1 = fd; SEND;
 }
 
-eio_req *eio_sync_file_range (int fd, off_t offset, size_t nbytes, unsigned int flags, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_sync_file_range (int fd, off_t offset, size_t nbytes, unsigned int flags, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_SYNC_FILE_RANGE); req->int1 = fd; req->offs = offset; req->size = nbytes; req->int2 = flags; SEND;
 }
 
-eio_req *eio_mtouch (void *addr, size_t length, int flags, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_mtouch (void *addr, size_t length, int flags, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MTOUCH); req->ptr2 = addr; req->size = length; req->int1 = flags; SEND;
 }
 
-eio_req *eio_mlock (void *addr, size_t length, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_mlock (void *addr, size_t length, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MLOCK); req->ptr2 = addr; req->size = length; SEND;
 }
 
-eio_req *eio_mlockall (int flags, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_mlockall (int flags, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MLOCKALL); req->int1 = flags; SEND;
 }
 
-eio_req *eio_fallocate (int fd, int mode, off_t offset, size_t len, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fallocate (int fd, int mode, off_t offset, size_t len, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FALLOCATE); req->int1 = fd; req->int2 = mode; req->offs = offset; req->size = len; SEND;
 }
 
-eio_req *eio_close (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_close (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_CLOSE); req->int1 = fd; SEND;
 }
 
-eio_req *eio_readahead (int fd, off_t offset, size_t length, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_readahead (int fd, off_t offset, size_t length, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_READAHEAD); req->int1 = fd; req->offs = offset; req->size = length; SEND;
 }
 
-eio_req *eio_read (int fd, void *buf, size_t length, off_t offset, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_read (int fd, void *buf, size_t length, off_t offset, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_READ); req->int1 = fd; req->offs = offset; req->size = length; req->ptr2 = buf; SEND;
 }
 
-eio_req *eio_write (int fd, void *buf, size_t length, off_t offset, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_write (int fd, void *buf, size_t length, off_t offset, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_WRITE); req->int1 = fd; req->offs = offset; req->size = length; req->ptr2 = buf; SEND;
 }
 
-eio_req *eio_fstat (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fstat (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FSTAT); req->int1 = fd; SEND;
 }
 
-eio_req *eio_fstatvfs (int fd, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fstatvfs (int fd, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FSTATVFS); req->int1 = fd; SEND;
 }
 
-eio_req *eio_futime (int fd, double atime, double mtime, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_futime (int fd, double atime, double mtime, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FUTIME); req->int1 = fd; req->nv1 = atime; req->nv2 = mtime; SEND;
 }
 
-eio_req *eio_ftruncate (int fd, off_t offset, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_ftruncate (int fd, off_t offset, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FTRUNCATE); req->int1 = fd; req->offs = offset; SEND;
 }
 
-eio_req *eio_fchmod (int fd, eio_mode_t mode, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fchmod (int fd, eio_mode_t mode, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FCHMOD); req->int1 = fd; req->int2 = (long)mode; SEND;
 }
 
-eio_req *eio_fchown (int fd, eio_uid_t uid, eio_gid_t gid, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_fchown (int fd, eio_uid_t uid, eio_gid_t gid, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_FCHOWN); req->int1 = fd; req->int2 = (long)uid; req->int3 = (long)gid; SEND;
 }
 
-eio_req *eio_dup2 (int fd, int fd2, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_dup2 (int fd, int fd2, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_DUP2); req->int1 = fd; req->int2 = fd2; SEND;
 }
 
-eio_req *eio_sendfile (int out_fd, int in_fd, off_t in_offset, size_t length, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_sendfile (int out_fd, int in_fd, off_t in_offset, size_t length, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_SENDFILE); req->int1 = out_fd; req->int2 = in_fd; req->offs = in_offset; req->size = length; SEND;
 }
 
-eio_req *eio_open (const char *path, int flags, eio_mode_t mode, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_open (const char *path, int flags, eio_mode_t mode, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_OPEN); PATH; req->int1 = flags; req->int2 = (long)mode; SEND;
 }
 
-eio_req *eio_utime (const char *path, double atime, double mtime, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_utime (const char *path, double atime, double mtime, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_UTIME); PATH; req->nv1 = atime; req->nv2 = mtime; SEND;
 }
 
-eio_req *eio_truncate (const char *path, off_t offset, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_truncate (const char *path, off_t offset, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_TRUNCATE); PATH; req->offs = offset; SEND;
 }
 
-eio_req *eio_chown (const char *path, eio_uid_t uid, eio_gid_t gid, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_chown (const char *path, eio_uid_t uid, eio_gid_t gid, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_CHOWN); PATH; req->int2 = (long)uid; req->int3 = (long)gid; SEND;
 }
 
-eio_req *eio_chmod (const char *path, eio_mode_t mode, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_chmod (const char *path, eio_mode_t mode, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_CHMOD); PATH; req->int2 = (long)mode; SEND;
 }
 
-eio_req *eio_mkdir (const char *path, eio_mode_t mode, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_mkdir (const char *path, eio_mode_t mode, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MKDIR); PATH; req->int2 = (long)mode; SEND;
 }
 
 static eio_req *
-eio__1path (int type, const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio__1path (int type, const char *path, int pri, eio_cb cb, void *data)
 {
   REQ (type); PATH; SEND;
 }
 
-eio_req *eio_readlink (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_readlink (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_READLINK, path, pri, cb, data, channel);
+  return eio__1path (EIO_READLINK, path, pri, cb, data);
 }
 
-eio_req *eio_realpath (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_realpath (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_REALPATH, path, pri, cb, data, channel);
+  return eio__1path (EIO_REALPATH, path, pri, cb, data);
 }
 
-eio_req *eio_stat (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_stat (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_STAT, path, pri, cb, data, channel);
+  return eio__1path (EIO_STAT, path, pri, cb, data);
 }
 
-eio_req *eio_lstat (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_lstat (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_LSTAT, path, pri, cb, data, channel);
+  return eio__1path (EIO_LSTAT, path, pri, cb, data);
 }
 
-eio_req *eio_statvfs (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_statvfs (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_STATVFS, path, pri, cb, data, channel);
+  return eio__1path (EIO_STATVFS, path, pri, cb, data);
 }
 
-eio_req *eio_unlink (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_unlink (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_UNLINK, path, pri, cb, data, channel);
+  return eio__1path (EIO_UNLINK, path, pri, cb, data);
 }
 
-eio_req *eio_rmdir (const char *path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_rmdir (const char *path, int pri, eio_cb cb, void *data)
 {
-  return eio__1path (EIO_RMDIR, path, pri, cb, data, channel);
+  return eio__1path (EIO_RMDIR, path, pri, cb, data);
 }
 
-eio_req *eio_readdir (const char *path, int flags, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_readdir (const char *path, int flags, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_READDIR); PATH; req->int1 = flags; SEND;
 }
 
-eio_req *eio_mknod (const char *path, eio_mode_t mode, dev_t dev, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_mknod (const char *path, eio_mode_t mode, dev_t dev, int pri, eio_cb cb, void *data)
 {
   REQ (EIO_MKNOD); PATH; req->int2 = (long)mode; req->offs = (off_t)dev; SEND;
 }
 
 static eio_req *
-eio__2path (int type, const char *path, const char *new_path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio__2path (int type, const char *path, const char *new_path, int pri, eio_cb cb, void *data)
 {
   REQ (type); PATH;
 
@@ -2510,29 +2511,29 @@ eio__2path (int type, const char *path, const char *new_path, int pri, eio_cb cb
   SEND;
 }
 
-eio_req *eio_link (const char *path, const char *new_path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_link (const char *path, const char *new_path, int pri, eio_cb cb, void *data)
 {
-  return eio__2path (EIO_LINK, path, new_path, pri, cb, data, channel);
+  return eio__2path (EIO_LINK, path, new_path, pri, cb, data);
 }
 
-eio_req *eio_symlink (const char *path, const char *new_path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_symlink (const char *path, const char *new_path, int pri, eio_cb cb, void *data)
 {
-  return eio__2path (EIO_SYMLINK, path, new_path, pri, cb, data, channel);
+  return eio__2path (EIO_SYMLINK, path, new_path, pri, cb, data);
 }
 
-eio_req *eio_rename (const char *path, const char *new_path, int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_rename (const char *path, const char *new_path, int pri, eio_cb cb, void *data)
 {
-  return eio__2path (EIO_RENAME, path, new_path, pri, cb, data, channel);
+  return eio__2path (EIO_RENAME, path, new_path, pri, cb, data);
 }
 
-eio_req *eio_custom (void (*execute)(eio_req *), int pri, eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_custom (void (*execute)(eio_req *), int pri, eio_cb cb, void *data)
 {
   REQ (EIO_CUSTOM); req->feed = execute; SEND;
 }
 
 #endif
 
-eio_req *eio_grp (eio_cb cb, void *data, eio_channel *channel)
+eio_req *eio_grp (eio_cb cb, void *data)
 {
   const int pri = EIO_PRI_MAX;
 

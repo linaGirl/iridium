@@ -1356,12 +1356,12 @@ class EnumerateOptimizedFunctionsVisitor: public OptimizedFunctionVisitor {
 
 static int EnumerateCompiledFunctions(Handle<SharedFunctionInfo>* sfis,
                                       Handle<Code>* code_objects) {
-  HeapIterator iterator;
   AssertNoAllocation no_alloc;
   int compiled_funcs_count = 0;
 
   // Iterate the heap to find shared function info objects and record
   // the unoptimized code for them.
+  HeapIterator iterator;
   for (HeapObject* obj = iterator.next(); obj != NULL; obj = iterator.next()) {
     if (!obj->IsSharedFunctionInfo()) continue;
     SharedFunctionInfo* sfi = SharedFunctionInfo::cast(obj);
@@ -1450,8 +1450,6 @@ void Logger::LogCodeInfo() {
   const char arch[] = "x64";
 #elif V8_TARGET_ARCH_ARM
   const char arch[] = "arm";
-#elif V8_TARGET_ARCH_MIPS
-  const char arch[] = "mips";
 #else
   const char arch[] = "unknown";
 #endif
@@ -1521,10 +1519,8 @@ void Logger::LowLevelLogWriteBytes(const char* bytes, int size) {
 
 
 void Logger::LogCodeObjects() {
-  HEAP->CollectAllGarbage(Heap::kMakeHeapIterableMask,
-                          "Logger::LogCodeObjects");
-  HeapIterator iterator;
   AssertNoAllocation no_alloc;
+  HeapIterator iterator;
   for (HeapObject* obj = iterator.next(); obj != NULL; obj = iterator.next()) {
     if (obj->IsCode()) LogCodeObject(obj);
   }
@@ -1577,8 +1573,6 @@ void Logger::LogExistingFunction(Handle<SharedFunctionInfo> shared,
 
 
 void Logger::LogCompiledFunctions() {
-  HEAP->CollectAllGarbage(Heap::kMakeHeapIterableMask,
-                          "Logger::LogCompiledFunctions");
   HandleScope scope;
   const int compiled_funcs_count = EnumerateCompiledFunctions(NULL, NULL);
   ScopedVector< Handle<SharedFunctionInfo> > sfis(compiled_funcs_count);
@@ -1597,10 +1591,9 @@ void Logger::LogCompiledFunctions() {
 
 
 void Logger::LogAccessorCallbacks() {
-  HEAP->CollectAllGarbage(Heap::kMakeHeapIterableMask,
-                          "Logger::LogAccessorCallbacks");
-  HeapIterator iterator;
   AssertNoAllocation no_alloc;
+  HeapIterator iterator;
+  i::Isolate* isolate = ISOLATE;
   for (HeapObject* obj = iterator.next(); obj != NULL; obj = iterator.next()) {
     if (!obj->IsAccessorInfo()) continue;
     AccessorInfo* ai = AccessorInfo::cast(obj);
@@ -1608,17 +1601,17 @@ void Logger::LogAccessorCallbacks() {
     String* name = String::cast(ai->name());
     Address getter_entry = v8::ToCData<Address>(ai->getter());
     if (getter_entry != 0) {
-      PROFILE(ISOLATE, GetterCallbackEvent(name, getter_entry));
+      PROFILE(isolate, GetterCallbackEvent(name, getter_entry));
     }
     Address setter_entry = v8::ToCData<Address>(ai->setter());
     if (setter_entry != 0) {
-      PROFILE(ISOLATE, SetterCallbackEvent(name, setter_entry));
+      PROFILE(isolate, SetterCallbackEvent(name, setter_entry));
     }
   }
 }
 
 
-bool Logger::SetUp() {
+bool Logger::Setup() {
   // Tests and EnsureInitialize() can call this twice in a row. It's harmless.
   if (is_initialized_) return true;
   is_initialized_ = true;
@@ -1711,9 +1704,9 @@ FILE* Logger::TearDown() {
 
 
 void Logger::EnableSlidingStateWindow() {
-  // If the ticker is NULL, Logger::SetUp has not been called yet.  In
+  // If the ticker is NULL, Logger::Setup has not been called yet.  In
   // that case, we set the sliding_state_window flag so that the
-  // sliding window computation will be started when Logger::SetUp is
+  // sliding window computation will be started when Logger::Setup is
   // called.
   if (ticker_ == NULL) {
     FLAG_sliding_state_window = true;

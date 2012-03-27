@@ -27,12 +27,12 @@
  *   repl.start("prompt> ");
  *
  *   // listen for unix socket connections and start repl on them
- *   net.createServer(function(socket) {
+ *   net.createServer(function (socket) {
  *     repl.start("node via Unix socket> ", socket);
  *   }).listen("/tmp/node-repl-sock");
  *
  *   // listen for TCP socket connections and start repl on them
- *   net.createServer(function(socket) {
+ *   net.createServer(function (socket) {
  *     repl.start("node via TCP socket> ", socket);
  *   }).listen(5001);
  *
@@ -41,12 +41,10 @@
  */
 
 var util = require('util');
-var inherits = require('util').inherits;
 var vm = require('vm');
 var path = require('path');
 var fs = require('fs');
 var rl = require('readline');
-var EventEmitter = require('events').EventEmitter;
 
 // If obj.hasOwnProperty has been overridden, then calling
 // obj.hasOwnProperty(prop) will break.
@@ -61,7 +59,7 @@ var context;
 exports.disableColors = process.env.NODE_DISABLE_COLORS ? true : false;
 
 // hack for require.resolve("./relative") to work properly.
-module.filename = path.resolve('repl');
+module.filename = process.cwd() + '/repl';
 
 // hack for repl require to work properly with node_modules folders
 module.paths = require('module')._nodeModulePaths(module.filename);
@@ -69,15 +67,8 @@ module.paths = require('module')._nodeModulePaths(module.filename);
 // Can overridden with custom print functions, such as `probe` or `eyes.js`
 exports.writer = util.inspect;
 
-exports._builtinLibs = ['assert', 'buffer', 'child_process', 'cluster',
-  'crypto', 'dgram', 'dns', 'events', 'fs', 'http', 'https', 'net',
-  'os', 'path', 'punycode', 'querystring', 'readline', 'repl',
-  'string_decoder', 'tls', 'tty', 'url', 'util', 'vm', 'zlib'];
-
 
 function REPLServer(prompt, stream, eval, useGlobal, ignoreUndefined) {
-  EventEmitter.call(this);
-
   var self = this;
 
   self.useGlobal = useGlobal;
@@ -138,27 +129,26 @@ function REPLServer(prompt, stream, eval, useGlobal, ignoreUndefined) {
 
   var sawSIGINT = false;
   rli.on('SIGINT', function() {
-    var empty = rli.line.length === 0;
-    rli.clearLine();
+    if (sawSIGINT) {
+      rli.close();
+      process.exit();
+    }
 
-    if (!(self.bufferedCommand && self.bufferedCommand.length > 0) && empty) {
-      if (sawSIGINT) {
-        rli.pause();
-        self.emit('exit');
-        sawSIGINT = false;
-        return;
-      }
-      rli.output.write('(^C again to quit)\n');
+    rli.line = '';
+
+    if (!(self.bufferedCommand && self.bufferedCommand.length > 0) &&
+        rli.line.length === 0) {
+      rli.output.write('\n(^C again to quit)\n');
       sawSIGINT = true;
     } else {
-      sawSIGINT = false;
+      rli.output.write('\n');
     }
 
     self.bufferedCommand = '';
     self.displayPrompt();
   });
 
-  rli.on('line', function(cmd) {
+  rli.addListener('line', function(cmd) {
     sawSIGINT = false;
     var skipCatchall = false;
     cmd = trimWhitespace(cmd);
@@ -175,21 +165,6 @@ function REPLServer(prompt, stream, eval, useGlobal, ignoreUndefined) {
         self.outputStream.write('Invalid REPL keyword\n');
         skipCatchall = true;
       }
-    }
-
-    // Check if a builtin module name was used and then include it
-    // if there's no conflict.
-    if (exports._builtinLibs.indexOf(cmd) !== -1) {
-      var lib = require(cmd);
-      if (cmd in self.context && lib !== self.context[cmd]) {
-        self.outputStream.write('A different "' + cmd +
-                                '" already exists globally\n');
-      } else {
-        self.context._ = self.context[cmd] = lib;
-        self.outputStream.write(exports.writer(lib) + '\n');
-      }
-      self.displayPrompt();
-      return;
     }
 
     if (!skipCatchall) {
@@ -210,9 +185,7 @@ function REPLServer(prompt, stream, eval, useGlobal, ignoreUndefined) {
                 function(e, ret) {
             if (e && !isSyntaxError(e)) return finish(e);
 
-            if (typeof ret === 'function' &&
-                /^[\r\n\s]*function/.test(evalCmd) ||
-                e) {
+            if (typeof ret === 'function' || e) {
               // Now as statement without parens.
               self.eval(evalCmd, self.context, 'repl', finish);
             } else {
@@ -263,13 +236,12 @@ function REPLServer(prompt, stream, eval, useGlobal, ignoreUndefined) {
     };
   });
 
-  rli.on('SIGCONT', function() {
-    self.displayPrompt();
+  rli.addListener('close', function() {
+    self.inputStream.destroy();
   });
 
   self.displayPrompt();
 }
-inherits(REPLServer, EventEmitter);
 exports.REPLServer = REPLServer;
 
 
@@ -310,15 +282,11 @@ REPLServer.prototype.resetContext = function(force) {
   this.context = context;
 };
 
-REPLServer.prototype.displayPrompt = function(preserveCursor) {
-  var prompt = this.prompt;
-  if (this.bufferedCommand.length) {
-    prompt = '...';
-    var levelInd = new Array(this.lines.level.length).join('..');
-    prompt += levelInd + ' ';
-  }
-  this.rli.setPrompt(prompt);
-  this.rli.prompt(preserveCursor);
+REPLServer.prototype.displayPrompt = function() {
+  this.rli.setPrompt(this.bufferedCommand.length ?
+                 '...' + new Array(this.lines.level.length).join('..') + ' ' :
+                 this.prompt);
+  this.rli.prompt();
 };
 
 
@@ -329,9 +297,9 @@ REPLServer.prototype.readline = function(cmd) {
 // A stream to push an array into a REPL
 // used in REPLServer.complete
 function ArrayStream() {
-  this.run = function(data) {
+  this.run = function (data) {
     var self = this;
-    data.forEach(function(line) {
+    data.forEach(function (line) {
       self.emit('data', line);
     });
   }
@@ -339,8 +307,8 @@ function ArrayStream() {
 util.inherits(ArrayStream, require('stream').Stream);
 ArrayStream.prototype.readable = true;
 ArrayStream.prototype.writable = true;
-ArrayStream.prototype.resume = function() {};
-ArrayStream.prototype.write = function() {};
+ArrayStream.prototype.resume = function () {};
+ArrayStream.prototype.write = function () {};
 
 var requireRE = /\brequire\s*\(['"](([\w\.\/-]+\/)?([\w\.\/-]*))/;
 var simpleExpressionRE =
@@ -364,7 +332,7 @@ REPLServer.prototype.complete = function(line, callback) {
     var tmp = this.lines.slice();
     // Kill off all function declarations to push all local variables into
     // global scope
-    this.lines.level.forEach(function(kill) {
+    this.lines.level.forEach(function (kill) {
       if (kill.isFunction) {
         tmp[kill.line] = '';
       }
@@ -454,7 +422,13 @@ REPLServer.prototype.complete = function(line, callback) {
     }
 
     if (!subdir) {
-      completionGroups.push(exports._builtinLibs);
+      // Kind of lame that this needs to be updated manually.
+      // Intentionally excluding moved modules: posix, utils.
+      var builtinLibs = ['assert', 'buffer', 'child_process', 'crypto', 'dgram',
+        'dns', 'events', 'file', 'freelist', 'fs', 'http', 'net', 'os', 'path',
+        'querystring', 'readline', 'repl', 'string_decoder', 'util', 'tcp',
+        'url'];
+      completionGroups.push(builtinLibs);
     }
 
     completionGroupsLoaded();
@@ -587,8 +561,6 @@ REPLServer.prototype.complete = function(line, callback) {
     } else {
       completionGroupsLoaded();
     }
-  } else {
-    completionGroupsLoaded();
   }
 
   // Will be called when all completionGroups are in place
@@ -663,7 +635,7 @@ REPLServer.prototype.defineCommand = function(keyword, cmd) {
   this.commands['.' + keyword] = cmd;
 };
 
-REPLServer.prototype.memory = function memory(cmd) {
+REPLServer.prototype.memory = function memory (cmd) {
   var self = this;
 
   self.lines = self.lines || [];
@@ -682,7 +654,7 @@ REPLServer.prototype.memory = function memory(cmd) {
   // Because I can not tell the difference between a } that
   // closes an object literal and a } that closes a function
   if (cmd) {
-    // going down is { and (   e.g. function() {
+    // going down is { and (   e.g. function () {
     // going up is } and )
     var dw = cmd.match(/{|\(/g);
     var up = cmd.match(/}|\)/g);
@@ -691,20 +663,18 @@ REPLServer.prototype.memory = function memory(cmd) {
     var depth = dw - up;
 
     if (depth) {
-      (function workIt() {
+      (function workIt(){
         if (depth > 0) {
           // going... down.
           // push the line#, depth count, and if the line is a function.
           // Since JS only has functional scope I only need to remove
-          // "function() {" lines, clearly this will not work for
-          // "function()
+          // "function () {" lines, clearly this will not work for
+          // "function ()
           // {" but nothing should break, only tab completion for local
           // scope will not work for this function.
-          self.lines.level.push({
-            line: self.lines.length - 1,
-            depth: depth,
-            isFunction: /\s*function\s*/.test(cmd)
-          });
+          self.lines.level.push({ line: self.lines.length - 1,
+                                depth: depth,
+                                isFunction: /\s*function\s*/.test(cmd)});
         } else if (depth < 0) {
           // going... up.
           var curr = self.lines.level.pop();
@@ -768,8 +738,7 @@ function defineDefaultCommands(repl) {
   repl.defineCommand('exit', {
     help: 'Exit the repl',
     action: function() {
-      this.rli.pause();
-      this.emit('exit');
+      this.rli.close();
     }
   });
 
@@ -792,7 +761,7 @@ function defineDefaultCommands(repl) {
         fs.writeFileSync(file, this.lines.join('\n') + '\n');
         this.outputStream.write('Session saved to:' + file + '\n');
       } catch (e) {
-        this.outputStream.write('Failed to save:' + file + '\n');
+        this.outputStream.write('Failed to save:' + file+ '\n')
       }
       this.displayPrompt();
     }
@@ -808,7 +777,7 @@ function defineDefaultCommands(repl) {
           var data = fs.readFileSync(file, 'utf8');
           var lines = data.split('\n');
           this.displayPrompt();
-          lines.forEach(function(line) {
+          lines.forEach(function (line) {
             if (line) {
               self.rli.write(line + '\n');
             }

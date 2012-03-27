@@ -27,7 +27,6 @@ if ('linux freebsd'.indexOf(process.platform) === -1) {
   process.exit();
 }
 
-var common = require('../common');
 var assert = require('assert');
 var exec = require('child_process').exec;
 

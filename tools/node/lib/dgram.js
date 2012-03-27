@@ -124,8 +124,8 @@ Socket.prototype.bind = function(port, address) {
       }
       else {
         self._bound = true;
-        self._startReceiving();
         self.emit('listening');
+        self._startReceiving();
       }
     }
 
@@ -165,12 +165,6 @@ Socket.prototype.send = function(buffer,
                                  callback) {
   var self = this;
 
-  if (offset >= buffer.length)
-    throw new Error('Offset into buffer too large');
-
-  if (offset + length > buffer.length)
-    throw new Error('Offset + length beyond buffer length');
-
   callback = callback || noop;
 
   self._healthCheck();
@@ -189,10 +183,7 @@ Socket.prototype.send = function(buffer,
       }
       else {
         // don't emit as error, dgram_legacy.js compatibility
-        var err = errnoException(errno, 'send');
-        process.nextTick(function() {
-          callback(err);
-        });
+        callback(errnoException(errno, 'send'));
       }
     }
   });

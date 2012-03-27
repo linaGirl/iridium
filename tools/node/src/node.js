@@ -27,8 +27,10 @@
 (function(process) {
   global = this;
 
+  var EventEmitter;
+
   function startup() {
-    var EventEmitter = NativeModule.require('events').EventEmitter;
+    EventEmitter = NativeModule.require('events').EventEmitter;
     process.__proto__ = EventEmitter.prototype;
     process.EventEmitter = EventEmitter; // process.EventEmitter is deprecated
 
@@ -37,13 +39,14 @@
     startup.globalConsole();
 
     startup.processAssert();
-    startup.processConfig();
     startup.processNextTick();
     startup.processStdio();
     startup.processKillAndExit();
     startup.processSignalHandlers();
 
     startup.processChannel();
+
+    startup.removedMethods();
 
     startup.resolveArgv0();
 
@@ -83,48 +86,24 @@
 
       // If this is a worker in cluster mode, start up the communiction
       // channel.
-      if (process.env.NODE_UNIQUE_ID) {
+      if (process.env.NODE_WORKER_ID) {
         var cluster = NativeModule.require('cluster');
-        cluster._setupWorker();
+        cluster._startWorker();
       }
 
       var Module = NativeModule.require('module');
-
-      if (global.v8debug &&
-          process.execArgv.some(function(arg) {
-            return arg.match(/^--debug-brk(=[0-9]*)?$/);
-          })) {
-
-        // XXX Fix this terrible hack!
-        //
-        // Give the client program a few ticks to connect.
-        // Otherwise, there's a race condition where `node debug foo.js`
-        // will not be able to connect in time to catch the first
-        // breakpoint message on line 1.
-        //
-        // A better fix would be to somehow get a message from the
-        // global.v8debug object about a connection, and runMain when
-        // that occurs.  --isaacs
-
-        setTimeout(Module.runMain, 50);
-
-      } else {
-        // REMOVEME: nextTick should not be necessary. This hack to get
-        // test/simple/test-exception-handler2.js working.
-        // Main entry point into most programs:
-        process.nextTick(Module.runMain);
-      }
+      // REMOVEME: nextTick should not be necessary. This hack to get
+      // test/simple/test-exception-handler2.js working.
+      // Main entry point into most programs:
+      process.nextTick(Module.runMain);
 
     } else {
       var Module = NativeModule.require('module');
 
-      // If -i or --interactive were passed, or stdin is a TTY.
-      if (process._forceRepl || NativeModule.require('tty').isatty(0)) {
+      // If stdin is a TTY.
+      if (NativeModule.require('tty').isatty(0)) {
         // REPL
         var repl = Module.requireRepl().start('> ', null, null, true);
-        repl.on('exit', function() {
-          process.exit();
-        });
 
       } else {
         // Read all of stdin - execute it.
@@ -198,21 +177,6 @@
       if (!x) throw new Error(msg || 'assertion error');
     };
   };
-
-  startup.processConfig = function() {
-    // used for `process.config`, but not a real module
-    var config = NativeModule._source.config;
-    delete NativeModule._source.config;
-
-    // strip the gyp comment line at the beginning
-    config = config.split('\n').slice(1).join('\n').replace(/'/g, '"');
-
-    process.config = JSON.parse(config, function(key, value) {
-      if (value === 'true') return true;
-      if (value === 'false') return false;
-      return value;
-    });
-  }
 
   startup.processNextTick = function() {
     var nextTickQueue = [];
@@ -464,12 +428,37 @@
       // Load tcp_wrap to avoid situation where we might immediately receive
       // a message.
       // FIXME is this really necessary?
-      process.binding('tcp_wrap');
+      process.binding('tcp_wrap')
 
       cp._forkChild();
       assert(process.send);
     }
   }
+
+  startup._removedProcessMethods = {
+    'assert': 'process.assert() use require("assert").ok() instead',
+    'debug': 'process.debug() use console.error() instead',
+    'error': 'process.error() use console.error() instead',
+    'watchFile': 'process.watchFile() has moved to fs.watchFile()',
+    'unwatchFile': 'process.unwatchFile() has moved to fs.unwatchFile()',
+    'mixin': 'process.mixin() has been removed.',
+    'createChildProcess': 'childProcess API has changed. See doc/api.txt.',
+    'inherits': 'process.inherits() has moved to util.inherits()',
+    '_byteLength': 'process._byteLength() has moved to Buffer.byteLength'
+  };
+
+  startup.removedMethods = function() {
+    for (var method in startup._removedProcessMethods) {
+      var reason = startup._removedProcessMethods[method];
+      process[method] = startup._removedMethod(reason);
+    }
+  };
+
+  startup._removedMethod = function(reason) {
+    return function() {
+      throw new Error(reason);
+    };
+  };
 
   startup.resolveArgv0 = function() {
     var cwd = process.cwd();
@@ -533,7 +522,7 @@
   }
 
   NativeModule.exists = function(id) {
-    return NativeModule._source.hasOwnProperty(id);
+    return (id in NativeModule._source);
   }
 
   NativeModule.getSource = function(id) {
@@ -561,35 +550,6 @@
 
   NativeModule.prototype.cache = function() {
     NativeModule._cache[this.id] = this;
-  };
-
-  // Wrap a core module's method in a wrapper that will warn on first use
-  // and then return the result of invoking the original function. After
-  // first being called the original method is restored.
-  NativeModule.prototype.deprecate = function(method, message) {
-    var original = this.exports[method];
-    var self = this;
-    var warned = false;
-    message = message || '';
-
-    Object.defineProperty(this.exports, method, {
-      enumerable: false,
-      value: function() {
-        if (!warned) {
-          warned = true;
-          message = self.id + '.' + method + ' is deprecated. ' + message;
-
-          var moduleIdCheck = new RegExp('\\b' + self.id + '\\b');
-          if (moduleIdCheck.test(process.env.NODE_DEBUG))
-            console.trace(message);
-          else
-            console.error(message);
-
-          self.exports[method] = original;
-        }
-        return original.apply(this, arguments);
-      }
-    });
   };
 
   startup();

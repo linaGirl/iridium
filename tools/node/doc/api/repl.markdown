@@ -29,8 +29,8 @@ For example, you could add this to your bashrc file:
 
 ## repl.start([prompt], [stream], [eval], [useGlobal], [ignoreUndefined])
 
-Returns and starts a REPL with `prompt` as the prompt and `stream` for all I/O.
-`prompt` is optional and defaults to `> `.  `stream` is optional and defaults to
+Starts a REPL with `prompt` as the prompt and `stream` for all I/O.  `prompt`
+is optional and defaults to `> `.  `stream` is optional and defaults to
 `process.stdin`. `eval` is optional too and defaults to async wrapper for
 `eval()`.
 
@@ -42,7 +42,7 @@ of command if it's `undefined`. Defaults to `false`.
 
 You can use your own `eval` function if it has following signature:
 
-    function eval(cmd, context, filename, callback) {
+    function eval(cmd, callback) {
       callback(null, result);
     }
 
@@ -75,20 +75,6 @@ TCP sockets.
 
 By starting a REPL from a Unix socket-based server instead of stdin, you can
 connect to a long-running node process without restarting it.
-
-### Event: 'exit'
-
-`function () {}`
-
-Emitted when the user exits the REPL in any of the defined ways. Namely, typing
-`.exit` at the repl, or pressing Ctrl+C twice to signal SIGINT.
-
-Example of listening for `exit`:
-
-    r.on('exit', function () {
-      console.log('Got "exit" event from repl!');
-      process.exit();
-    });
 
 
 ## REPL Features

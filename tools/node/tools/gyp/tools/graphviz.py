@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Copyright (c) 2011 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -83,18 +83,13 @@ def WriteGraph(edges):
   print '}'
 
 
-def main():
+if __name__ == '__main__':
   if len(sys.argv) < 2:
     print >>sys.stderr, __doc__
     print >>sys.stderr
     print >>sys.stderr, 'usage: %s target1 target2...' % (sys.argv[0])
-    return 1
+    sys.exit(1)
 
   edges = LoadEdges('dump.json', sys.argv[1:])
 
   WriteGraph(edges)
-  return 0
-
-
-if __name__ == '__main__':
-  sys.exit(main())

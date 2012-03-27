@@ -1,45 +1,72 @@
-
+	"use strict"
 	
-	var Server = require( "./lib/server" )
-		, Connection = require( "./lib/connection" );
+	var Socket = require( "./lib/socket" )
+		, DirectoryClient = require( "./lib/directoryClient" )
+		, HostInfoClient = require( "./lib/hostInfoClient")
+		, PubSocket = require( "./lib/pub" )
+		, SubSocket = require( "./lib/sub" )
+		, RepSocket = require( "./lib/rep" )
+		, ReqSocket = require( "./lib/req" );
 
 
 
-	module.exports = {
-		
-
-		// server
-		createServer:  function( port, bind, credentials ){
-			return Server( {
-				port: port
-				, bind: bind
-				, credentials: credentials
-			} );
-		}
+	var hostInfoClient = global.hostInfoClient = new HostInfoClient().getInfo();
+	var directoryClient = new DirectoryClient();
 
 
 
-		// connection pool
-		, createConnection: function( host, port, credentials ){
-			if ( typeof host === "string" ){
-				if ( typeof port === "number" || typeof port === "string" ){
-					if ( parseInt( port, 10 ) > 0 && parseInt( port, 10 ) <= 0xFFFF ){
-						return new Connection( {
-							host: host
-							, port: port
-							, credentials: credentials 
-						} );
-					}
-					else {
-						throw new RangeError( "port must be a number between 1 and 65535!" );
-					}
-				}
-				else {
-					throw new TypeError( "parameter port must be typeof number or string!" );
-				}
-			}
-			else {
-				throw new TypeError( "parameter host must be typeof string!" );
-			}
+	var net = module.exports = {
+
+		// low level socket implementation on top of zmq sockets
+		// do not use until you understand the mechanics!
+		Socket: Socket
+
+
+		// you may instantiate either this classes or use the createSocket function...
+		, RepSocket: function( options ) { return options = options || {}, options.directoryClient = directoryClient, options.hostInfoClient = hostInfoClient, new RepSocket( options ); }
+		, ReqSocket: function( options ) { return options = options || {}, options.directoryClient = directoryClient, options.hostInfoClient = hostInfoClient, new ReqSocket( options ); }
+		, PubSocket: function( options ) { return options = options || {}, options.directoryClient = directoryClient, options.hostInfoClient = hostInfoClient, new PubSocket( options ); }
+		, SubSocket: function( options ) { return options = options || {}, options.directoryClient = directoryClient, options.hostInfoClient = hostInfoClient, new SubSocket( options ); }
+
+
+		// client for directory services
+		, DirectoryClient: DirectoryClient
+
+		// client for retreiving hostinfo from host service
+		, HostInfoClient: HostInfoClient
+
+
+		, directoryClient: directoryClient
+		, hostInfoClient: hostInfoClient
+
+
+		// create socket of any type
+		, createSocket: function( type, options ){
+			options.directoryClient = directoryClient;
+			options.hostInfoClient = hostInfoClient;
+
+			 switch ( type ){
+
+
+			 	case "rep":
+			 		return new RepSocket( options );
+
+			 	case "req":
+			 		return new ReqSocket( options );
+
+			 	case "pub":
+			 		return new PubSocket( options );
+
+			 	case "sub":
+			 		return new SubSocket( options );
+
+
+
+			 	default:
+			 		throw new Error( "unknown socket type!" );
+			 }
 		}
 	};
+
+
+	

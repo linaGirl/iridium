@@ -48,7 +48,7 @@ function Interface(input, output, completer) {
   completer = completer || function() { return []; };
 
   if (typeof completer !== 'function') {
-    throw new TypeError('Argument \'completer\' must be a function');
+    throw new TypeError("Argument 'completer' must be a function");
   }
 
   var self = this;
@@ -102,10 +102,6 @@ function Interface(input, output, completer) {
       process.on('SIGWINCH', function() {
         var winSize = output.getWindowSize();
         exports.columns = winSize[0];
-
-        // FIXME: when #2922 will be approved, change this to
-        // output.on('resize', ...
-        self._refreshLine();
       });
     }
   }
@@ -129,10 +125,9 @@ Interface.prototype.setPrompt = function(prompt, length) {
 };
 
 
-Interface.prototype.prompt = function(preserveCursor) {
-  if (this.paused) this.resume();
+Interface.prototype.prompt = function() {
   if (this.enabled) {
-    if (!preserveCursor) this.cursor = 0;
+    this.cursor = 0;
     this._refreshLine();
   } else {
     this.output.write(this._prompt);
@@ -141,13 +136,16 @@ Interface.prototype.prompt = function(preserveCursor) {
 
 
 Interface.prototype.question = function(query, cb) {
-  if (typeof cb === 'function') {
+  if (cb) {
+    this.resume();
     if (this._questionCallback) {
+      this.output.write('\n');
       this.prompt();
     } else {
       this._oldPrompt = this._prompt;
       this.setPrompt(query);
       this._questionCallback = cb;
+      this.output.write('\n');
       this.prompt();
     }
   }
@@ -170,7 +168,10 @@ Interface.prototype._addHistory = function() {
   if (this.line.length === 0) return '';
 
   this.history.unshift(this.line);
+  this.line = '';
   this.historyIndex = -1;
+
+  this.cursor = 0;
 
   // Only store so many
   if (this.history.length > kHistorySize) this.history.pop();
@@ -180,71 +181,50 @@ Interface.prototype._addHistory = function() {
 
 
 Interface.prototype._refreshLine = function() {
-  var columns = this.columns;
-
-  // line length
-  var line = this._prompt + this.line;
-  var lineLength = line.length;
-  var lineCols = lineLength % columns;
-  var lineRows = (lineLength - lineCols) / columns;
-
-  // cursor position
-  var cursorPos = this._getCursorPos();
-
-  // first move to the bottom of the current line, based on cursor pos
-  var prevRows = this.prevRows || 0;
-  if (prevRows > 0) {
-    this.output.moveCursor(0, -prevRows);
-  }
+  if (this._closed) return;
 
   // Cursor to left edge.
   this.output.cursorTo(0);
-  // erase data
-  this.output.clearScreenDown();
 
   // Write the prompt and the current buffer content.
-  this.output.write(line);
+  this.output.write(this._prompt);
+  this.output.write(this.line);
 
-  // Force terminal to allocate a new line
-  if (lineCols === 0) {
-    this.output.write(' ');
-  }
+  // Erase to right.
+  this.output.clearLine(1);
 
   // Move cursor to original position.
-  this.output.cursorTo(cursorPos.cols);
+  this.output.cursorTo(this._promptLength + this.cursor);
+};
 
-  var diff = lineRows - cursorPos.rows;
-  if (diff > 0) {
-    this.output.moveCursor(0, -diff);
+
+Interface.prototype.close = function(d) {
+  if (this._closing) return;
+  this._closing = true;
+  if (this.enabled) {
+    tty.setRawMode(false);
   }
-
-  this.prevRows = cursorPos.rows;
+  this.emit('close');
+  this._closed = true;
 };
 
 
 Interface.prototype.pause = function() {
-  if (this.paused) return;
   if (this.enabled) {
     tty.setRawMode(false);
   }
-  this.input.pause();
-  this.paused = true;
-  this.emit('pause');
 };
 
 
 Interface.prototype.resume = function() {
-  this.input.resume();
   if (this.enabled) {
     tty.setRawMode(true);
   }
-  this.paused = false;
-  this.emit('resume');
 };
 
 
 Interface.prototype.write = function(d, key) {
-  if (this.paused) this.resume();
+  if (this._closed) return;
   this.enabled ? this._ttyWrite(d, key) : this._normalWrite(d, key);
 };
 
@@ -270,9 +250,6 @@ Interface.prototype._insertString = function(c) {
     this.line += c;
     this.cursor += c.length;
     this.output.write(c);
-
-    // a hack to get the line refreshed if it's needed
-    this._moveCursor(0);
   }
 };
 
@@ -373,7 +350,8 @@ Interface.prototype._wordLeft = function() {
   if (this.cursor > 0) {
     var leading = this.line.slice(0, this.cursor);
     var match = leading.match(/([^\w\s]+|\w+|)\s*$/);
-    this._moveCursor(-match[0].length);
+    this.cursor -= match[0].length;
+    this._refreshLine();
   }
 };
 
@@ -382,7 +360,8 @@ Interface.prototype._wordRight = function() {
   if (this.cursor < this.line.length) {
     var trailing = this.line.slice(this.cursor);
     var match = trailing.match(/^(\s+|\W+|\w+)\s*/);
-    this._moveCursor(match[0].length);
+    this.cursor += match[0].length;
+    this._refreshLine();
   }
 };
 
@@ -441,18 +420,9 @@ Interface.prototype._deleteLineRight = function() {
 };
 
 
-Interface.prototype.clearLine = function() {
-  this._moveCursor(+Infinity);
-  this.output.write('\r\n');
-  this.line = '';
-  this.cursor = 0;
-  this.prevRows = 0;
-};
-
-
 Interface.prototype._line = function() {
   var line = this._addHistory();
-  this.clearLine();
+  this.output.write('\r\n');
   this._onLine(line);
 };
 
@@ -484,35 +454,12 @@ Interface.prototype._historyPrev = function() {
 };
 
 
-// Returns current cursor's position and line
-Interface.prototype._getCursorPos = function() {
-  var columns = this.columns;
-  var cursorPos = this.cursor + this._promptLength;
-  var cols = cursorPos % columns;
-  var rows = (cursorPos - cols) / columns;
-  return {cols: cols, rows: rows};
-};
-
-
-// This function moves cursor dx places to the right
-// (-dx for left) and refreshes the line if it is needed
-Interface.prototype._moveCursor = function(dx) {
-  var oldcursor = this.cursor;
-  var oldPos = this._getCursorPos();
-  this.cursor += dx;
-
-  // bounds check
-  if (this.cursor < 0) this.cursor = 0;
-  if (this.cursor > this.line.length) this.cursor = this.line.length;
-
-  var newPos = this._getCursorPos();
-
-  // check if cursors are in the same line
-  if (oldPos.rows == newPos.rows && newPos.cols != 0) {
-    this.output.moveCursor(this.cursor - oldcursor, 0);
-    this.prevRows = newPos.rows;
+Interface.prototype._attemptClose = function() {
+  if (this.listeners('attemptClose').length) {
+    // User is to call interface.close() manually.
+    this.emit('attemptClose');
   } else {
-    this._refreshLine();
+    this.close();
   }
 };
 
@@ -521,9 +468,6 @@ Interface.prototype._moveCursor = function(dx) {
 Interface.prototype._ttyWrite = function(s, key) {
   var next_word, next_non_word, previous_word, previous_non_word;
   key = key || {};
-
-  // Ignore escape key - Fixes #2876
-  if (key.name == 'escape') return;
 
   if (key.ctrl && key.shift) {
     /* Control and shift pressed */
@@ -545,8 +489,8 @@ Interface.prototype._ttyWrite = function(s, key) {
         if (this.listeners('SIGINT').length) {
           this.emit('SIGINT');
         } else {
-          // Pause the stream
-          this.pause();
+          // default behavior, end the readline
+          this._attemptClose();
         }
         break;
 
@@ -556,7 +500,7 @@ Interface.prototype._ttyWrite = function(s, key) {
 
       case 'd': // delete right or EOF
         if (this.cursor === 0 && this.line.length === 0) {
-          this.pause();
+          this._attemptClose();
         } else if (this.cursor < this.line.length) {
           this._deleteRight();
         }
@@ -573,19 +517,27 @@ Interface.prototype._ttyWrite = function(s, key) {
         break;
 
       case 'a': // go to the start of the line
-        this._moveCursor(-Infinity);
+        this.cursor = 0;
+        this._refreshLine();
         break;
 
       case 'e': // go to the end of the line
-        this._moveCursor(+Infinity);
+        this.cursor = this.line.length;
+        this._refreshLine();
         break;
 
       case 'b': // back one character
-        this._moveCursor(-1);
+        if (this.cursor > 0) {
+          this.cursor--;
+          this._refreshLine();
+        }
         break;
 
       case 'f': // forward one character
-        this._moveCursor(+1);
+        if (this.cursor != this.line.length) {
+          this.cursor++;
+          this._refreshLine();
+        }
         break;
 
       case 'n': // next history item
@@ -597,24 +549,8 @@ Interface.prototype._ttyWrite = function(s, key) {
         break;
 
       case 'z':
-        if (process.platform == 'win32') break;
-        if (this.listeners('SIGTSTP').length) {
-          this.emit('SIGTSTP');
-        } else {
-          process.once('SIGCONT', (function(self) {
-            return function() {
-              // Don't raise events if stream has already been abandoned.
-              if (!self.paused) {
-                // Stream must be paused and resumed after SIGCONT to catch
-                // SIGINT, SIGTSTP, and EOF.
-                self.pause();
-                self.emit('SIGCONT');
-              }
-            };
-          })(this));
-          process.kill(process.pid, 'SIGTSTP');
-        }
-        break;
+        process.kill(process.pid, 'SIGTSTP');
+        return;
 
       case 'w': // delete backwards to a word boundary
       case 'backspace':
@@ -635,7 +571,6 @@ Interface.prototype._ttyWrite = function(s, key) {
 
       case 'right':
         this._wordRight();
-        break;
     }
 
   } else if (key.meta) {
@@ -681,19 +616,27 @@ Interface.prototype._ttyWrite = function(s, key) {
         break;
 
       case 'left':
-        this._moveCursor(-1);
+        if (this.cursor > 0) {
+          this.cursor--;
+          this.output.moveCursor(-1, 0);
+        }
         break;
 
       case 'right':
-        this._moveCursor(+1);
+        if (this.cursor != this.line.length) {
+          this.cursor++;
+          this.output.moveCursor(1, 0);
+        }
         break;
 
       case 'home':
-        this._moveCursor(-Infinity);
+        this.cursor = 0;
+        this._refreshLine();
         break;
 
       case 'end':
-        this._moveCursor(+Infinity);
+        this.cursor = this.line.length;
+        this._refreshLine();
         break;
 
       case 'up':

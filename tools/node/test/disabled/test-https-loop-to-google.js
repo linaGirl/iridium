@@ -28,7 +28,6 @@
 // Tested on node 0.5.0-pre commit 9851574
 
 
-var common = require('../common');
 var https = require('https');
 
 for (var i = 0; i < 10; ++i)

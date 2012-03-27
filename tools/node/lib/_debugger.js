@@ -112,8 +112,8 @@ Protocol.prototype.execute = function(d) {
 
       this.state = 'body';
 
-      var len = Buffer.byteLength(res.raw, 'utf8');
-      if (len - this.bodyStartByteIndex < this.contentLength) {
+      if (Buffer.byteLength(res.raw, 'utf8') - this.bodyStartByteIndex
+          < this.contentLength) {
         break;
       }
       // pass thru
@@ -125,16 +125,16 @@ Protocol.prototype.execute = function(d) {
         buf.write(res.raw, 0, resRawByteLength, 'utf8');
         res.body =
             buf.slice(this.bodyStartByteIndex,
-                      this.bodyStartByteIndex +
-                      this.contentLength).toString('utf8');
+                      this.bodyStartByteIndex
+                      + this.contentLength).toString('utf8');
         // JSON parse body?
         res.body = res.body.length ? JSON.parse(res.body) : {};
 
         // Done!
         this.onResponse(res);
 
-        this._newRes(buf.slice(this.bodyStartByteIndex +
-                               this.contentLength).toString('utf8'));
+        this._newRes(buf.slice(this.bodyStartByteIndex
+                               + this.contentLength).toString('utf8'));
       }
       break;
 
@@ -149,8 +149,8 @@ Protocol.prototype.serialize = function(req) {
   req.type = 'request';
   req.seq = this.reqSeq++;
   var json = JSON.stringify(req);
-  return 'Content-Length: ' + Buffer.byteLength(json, 'utf8') +
-         '\r\n\r\n' + json;
+  return 'Content-Length: ' + Buffer.byteLength(json,'utf8') + '\r\n\r\n'
+      + json;
 };
 
 
@@ -234,10 +234,6 @@ Client.prototype._onResponse = function(res) {
 
   } else if (res.body && res.body.event == 'break') {
     this.emit('break', res.body);
-    handled = true;
-
-  } else if (res.body && res.body.event == 'exception') {
-    this.emit('exception', res.body);
     handled = true;
 
   } else if (res.body && res.body.event == 'afterCompile') {
@@ -413,16 +409,6 @@ Client.prototype.reqBacktrace = function(cb) {
 };
 
 
-// reqSetExceptionBreak(type, cb)
-// TODO: from, to, bottom
-Client.prototype.reqSetExceptionBreak = function(type, cb) {
-  this.req({
-    command: 'setexceptionbreak',
-    arguments: { type: type, enabled: true }
-  }, cb);
-};
-
-
 // Returns an array of objects like this:
 //
 //   { handle: 11,
@@ -509,7 +495,7 @@ Client.prototype.mirrorObject = function(handle, depth, cb) {
 
   var val;
 
-  if (handle.type === 'object') {
+  if (handle.type == 'object') {
     // The handle looks something like this:
     // { handle: 8,
     //   type: 'object',
@@ -678,7 +664,6 @@ var commands = [
     'kill',
     'list',
     'scripts',
-    'breakOnException',
     'breakpoints',
     'version'
   ]
@@ -710,7 +695,7 @@ function SourceUnderline(sourceText, position, tty) {
 
 
 function SourceInfo(body) {
-  var result = body.exception ? 'exception in ' : 'break in ';
+  var result = 'break in ';
 
   if (body.script) {
     if (body.script.name) {
@@ -729,8 +714,6 @@ function SourceInfo(body) {
   }
   result += ':';
   result += body.sourceLine + 1;
-
-  if (body.exception) result += '\n' + body.exception.text;
 
   return result;
 }
@@ -755,12 +738,10 @@ function Interface(stdin, stdout, args) {
   this.repl = new repl.REPLServer('debug> ', streams,
                                   this.controlEval.bind(this), false, true);
 
-  // Do not print useless warning
-  repl._builtinLibs.splice(repl._builtinLibs.indexOf('repl'), 1);
-
-  // Kill child process when main process dies
-  this.repl.on('exit', function() {
-    process.exit(0);
+  // Kill child process when repl closed or main process is dead
+  this.repl.rli.addListener('close', function() {
+    self.killed = true;
+    self.killChild();
   });
 
   process.on('exit', function() {
@@ -781,8 +762,7 @@ function Interface(stdin, stdout, args) {
         'out': 'o',
         'backtrace': 'bt',
         'setBreakpoint': 'sb',
-        'clearBreakpoint': 'cb',
-        'pause_': 'pause'
+        'clearBreakpoint': 'cb'
       };
 
   function defineProperty(key, protoKey) {
@@ -887,7 +867,7 @@ Interface.prototype.childPrint = function(text) {
   }).map(function(chunk) {
     return '< ' + chunk;
   }).join('\n'));
-  this.repl.displayPrompt(true);
+  this.repl.displayPrompt();
 };
 
 // Errors formatting
@@ -1309,19 +1289,6 @@ Interface.prototype.watchers = function() {
   }
 };
 
-// Break on exception
-Interface.prototype.breakOnException = function breakOnException() {
-  if (!this.requireConnection()) return;
-
-  var self = this;
-
-  // Break on exceptions
-  this.pause();
-  this.client.reqSetExceptionBreak('all', function(err, res) {
-    self.resume();
-  });
-};
-
 // Add breakpoint
 Interface.prototype.setBreakpoint = function(script, line,
                                              condition, silent) {
@@ -1335,12 +1302,6 @@ Interface.prototype.setBreakpoint = function(script, line,
   if (script === undefined) {
     script = this.client.currentScript;
     line = this.client.currentSourceLine + 1;
-  }
-
-  // setBreakpoint(line-number) should insert breakpoint in current script
-  if (line === undefined && typeof script === 'number') {
-    line = script;
-    script = this.client.currentScript;
   }
 
   if (/\(\)$/.test(script)) {
@@ -1473,24 +1434,6 @@ Interface.prototype.breakpoints = function() {
 };
 
 
-// Pause child process
-Interface.prototype.pause_ = function() {
-  if (!this.requireConnection()) return;
-
-  var self = this,
-      cmd = 'process._debugPause();';
-
-  this.pause();
-  this.client.reqFrameEval(cmd, NO_FRAME, function(err, res) {
-    if (err) {
-      self.error(err);
-    } else {
-      self.resume();
-    }
-  });
-};
-
-
 // Kill child process
 Interface.prototype.kill = function() {
   if (!this.child) return;
@@ -1507,7 +1450,7 @@ Interface.prototype.repl = function() {
   self.print('Press Ctrl + C to leave debug repl');
 
   // Don't display any default messages
-  var listeners = this.repl.rli.listeners('SIGINT').slice(0);
+  var listeners = this.repl.rli.listeners('SIGINT');
   this.repl.rli.removeAllListeners('SIGINT');
 
   // Exit debug repl on Ctrl + C
@@ -1586,12 +1529,11 @@ Interface.prototype.trySpawn = function(cb) {
 
   this.killChild();
 
+  // Connecting to remote debugger
+  // `node debug localhost:5858`
   if (this.args.length === 2) {
     var match = this.args[1].match(/^([^:]+):(\d+)$/);
-
     if (match) {
-      // Connecting to remote debugger
-      // `node debug localhost:5858`
       host = match[1];
       port = parseInt(match[2], 10);
       this.child = {
@@ -1609,14 +1551,6 @@ Interface.prototype.trySpawn = function(cb) {
         }
       };
       process._debugProcess(parseInt(this.args[2], 10));
-    } else {
-      var match = this.args[1].match(/^--port=(\d+)$/);
-      if (match) {
-        // Start debugger on custom port
-        // `node debug --port=5858 app.js`
-        port = parseInt(match[1], 10);
-        this.args.splice(0, 2, '--debug-brk=' + port);
-      }
     }
   }
 
@@ -1640,6 +1574,10 @@ Interface.prototype.trySpawn = function(cb) {
       self.setBreakpoint(bp.scriptId, bp.line, bp.condition, true);
     });
 
+    if (cb) cb();
+
+    self.resume();
+
     client.on('close', function() {
       self.pause();
       self.print('program terminated');
@@ -1647,9 +1585,6 @@ Interface.prototype.trySpawn = function(cb) {
       self.client = null;
       self.killChild();
     });
-
-    if (cb) cb();
-    self.resume();
   });
 
   client.on('unhandledResponse', function(res) {
@@ -1659,10 +1594,6 @@ Interface.prototype.trySpawn = function(cb) {
   });
 
   client.on('break', function(res) {
-    self.handleBreak(res.body);
-  });
-
-  client.on('exception', function(res) {
     self.handleBreak(res.body);
   });
 

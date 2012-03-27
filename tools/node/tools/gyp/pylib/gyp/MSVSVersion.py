@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # Copyright (c) 2011 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,7 +12,7 @@ import subprocess
 import sys
 
 
-class VisualStudioVersion(object):
+class VisualStudioVersion:
   """Information regarding a version of Visual Studio."""
 
   def __init__(self, short_name, description,
@@ -79,7 +80,6 @@ def _RegistryQueryBase(sysdir, key, value):
     return None
   return text
 
-
 def _RegistryQuery(key, value=None):
   """Use reg.exe to read a particular key through _RegistryQueryBase.
 
@@ -107,7 +107,6 @@ def _RegistryQuery(key, value=None):
       raise
   return text
 
-
 def _RegistryGetValue(key, value):
   """Use reg.exe to obtain the value of a registry key.
 
@@ -125,7 +124,6 @@ def _RegistryGetValue(key, value):
   if not match:
     return None
   return match.group(1)
-
 
 def _RegistryKeyExists(key):
   """Use reg.exe to see if a key exists.

@@ -1,4 +1,6 @@
-# Copyright (c) 2012 Google Inc. All rights reserved.
+#!/usr/bin/python
+
+# Copyright (c) 2011 Google Inc. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -162,8 +164,7 @@ def _FixPaths(paths):
   return [_FixPath(i) for i in paths]
 
 
-def _ConvertSourcesToFilterHierarchy(sources, prefix=None, excluded=None,
-                                     list_excluded=True):
+def _ConvertSourcesToFilterHierarchy(sources, prefix=None, excluded=None):
   """Converts a list split source file paths into a vcproj folder hierarchy.
 
   Arguments:
@@ -198,15 +199,14 @@ def _ConvertSourcesToFilterHierarchy(sources, prefix=None, excluded=None,
         folders[s[0]] = []
       folders[s[0]].append(s[1:])
   # Add a folder for excluded files.
-  if excluded_result and list_excluded:
+  if excluded_result:
     excluded_folder = MSVSProject.Filter('_excluded_files',
                                          contents=excluded_result)
     result.append(excluded_folder)
   # Populate all the folders.
   for f in folders:
     contents = _ConvertSourcesToFilterHierarchy(folders[f], prefix=prefix + [f],
-                                                excluded=excluded,
-                                                list_excluded=list_excluded)
+                                                excluded=excluded)
     contents = MSVSProject.Filter(f, contents=contents)
     result.append(contents)
 
@@ -833,14 +833,13 @@ def _GetGuidOfProject(proj_path, spec):
   return guid
 
 
-def _GenerateProject(project, options, version, generator_flags):
+def _GenerateProject(project, options, version):
   """Generates a vcproj file.
 
   Arguments:
     project: the MSVSProject object.
     options: global generator options.
     version: the MSVSVersion object.
-    generator_flags: dict of generator-specific flags.
   """
   default_config = _GetDefaultConfiguration(project.spec)
 
@@ -849,19 +848,18 @@ def _GenerateProject(project, options, version, generator_flags):
     return
 
   if version.UsesVcxproj():
-    _GenerateMSBuildProject(project, options, version, generator_flags)
+    _GenerateMSBuildProject(project, options, version)
   else:
-    _GenerateMSVSProject(project, options, version, generator_flags)
+    _GenerateMSVSProject(project, options, version)
 
 
-def _GenerateMSVSProject(project, options, version, generator_flags):
+def _GenerateMSVSProject(project, options, version):
   """Generates a .vcproj file.  It may create .rules and .user files too.
 
   Arguments:
     project: The project object we will generate the file for.
     options: Global options passed to the generator.
     version: The VisualStudioVersion object.
-    generator_flags: dict of generator-specific flags.
   """
   spec = project.spec
   vcproj_dir = os.path.dirname(project.path)
@@ -890,10 +888,9 @@ def _GenerateMSVSProject(project, options, version, generator_flags):
   _GenerateRulesForMSVS(p, project_dir, options, spec,
                         sources, excluded_sources,
                         actions_to_add)
-  list_excluded = generator_flags.get('msvs_list_excluded_files', True)
   sources, excluded_sources, excluded_idl = (
       _AdjustSourcesAndConvertToFilterHierarchy(
-          spec, options, project_dir, sources, excluded_sources, list_excluded))
+          spec, options, project_dir, sources, excluded_sources))
 
   # Add in files.
   _VerifySourcesExist(sources, project_dir)
@@ -909,8 +906,7 @@ def _GenerateMSVSProject(project, options, version, generator_flags):
   # Don't excluded sources with actions attached, or they won't run.
   excluded_sources = _FilterActionsFromExcluded(
       excluded_sources, actions_to_add)
-  _ExcludeFilesFromBeingBuilt(p, spec, excluded_sources, excluded_idl,
-                              list_excluded)
+  _ExcludeFilesFromBeingBuilt(p, spec, excluded_sources, excluded_idl)
   _AddAccumulatedActionsToMSVS(p, spec, actions_to_add)
 
   # Write it out.
@@ -969,6 +965,7 @@ def _GetMSVSConfigurationType(spec, build_file):
         'loadable_module': '2',  # .dll
         'static_library': '4',  # .lib
         'none': '10',  # Utility type
+        'dummy_executable': '1',  # .exe
         }[spec['type']]
   except KeyError:
     if spec.get('type'):
@@ -1125,6 +1122,7 @@ def _GetOutputFilePathAndTool(spec):
       # VisualStudio 2010, we will have to change the value of $(OutDir)
       # to contain the \lib suffix, rather than doing it as below.
       'static_library': ('VCLibrarianTool', 'Lib', '$(OutDir)\\lib\\', '.lib'),
+      'dummy_executable': ('VCLinkerTool', 'Link', '$(IntDir)\\', '.junk'),
   }
   output_file_props = output_file_map.get(spec['type'])
   if output_file_props and int(spec.get('msvs_auto_output_file', 1)):
@@ -1291,7 +1289,7 @@ def _PrepareListOfSources(spec, gyp_file):
 
 
 def _AdjustSourcesAndConvertToFilterHierarchy(
-    spec, options, gyp_dir, sources, excluded_sources, list_excluded):
+    spec, options, gyp_dir, sources, excluded_sources):
   """Adjusts the list of sources and excluded sources.
 
   Also converts the sets to lists.
@@ -1325,8 +1323,13 @@ def _AdjustSourcesAndConvertToFilterHierarchy(
 
   # Convert to folders and the right slashes.
   sources = [i.split('\\') for i in sources]
-  sources = _ConvertSourcesToFilterHierarchy(sources, excluded=fully_excluded,
-                                             list_excluded=list_excluded)
+  sources = _ConvertSourcesToFilterHierarchy(sources, excluded=fully_excluded)
+  # Add in dummy file for type none.
+  if spec['type'] == 'dummy_executable':
+    # Pull in a dummy main so it can link successfully.
+    dummy_relpath = gyp.common.RelativePath(
+        options.depth + '\\tools\\gyp\\gyp_dummy.c', gyp_dir)
+    sources.append(dummy_relpath)
 
   return sources, excluded_sources, excluded_idl
 
@@ -1357,19 +1360,12 @@ def _GetPrecompileRelatedFiles(spec):
   return precompiled_related
 
 
-def _ExcludeFilesFromBeingBuilt(p, spec, excluded_sources, excluded_idl,
-                                list_excluded):
+def _ExcludeFilesFromBeingBuilt(p, spec, excluded_sources, excluded_idl):
   exclusions = _GetExcludedFilesFromBuild(spec, excluded_sources, excluded_idl)
   for file_name, excluded_configs in exclusions.iteritems():
-    if (not list_excluded and
-            len(excluded_configs) == len(spec['configurations'])):
-      # If we're not listing excluded files, then they won't appear in the
-      # project, so don't try to configure them to be excluded.
-      pass
-    else:
-      for config_name, config in excluded_configs:
-        p.AddFileConfig(file_name, _ConfigFullName(config_name, config),
-                        {'ExcludedFromBuild': 'true'})
+    for config_name, config in excluded_configs:
+      p.AddFileConfig(file_name, _ConfigFullName(config_name, config),
+                      {'ExcludedFromBuild': 'true'})
 
 
 def _GetExcludedFilesFromBuild(spec, excluded_sources, excluded_idl):
@@ -1757,8 +1753,6 @@ def GenerateOutput(target_list, target_dicts, data, params):
   # GeneratorCalculatedVariables.
   msvs_version = params['msvs_version']
 
-  generator_flags = params.get('generator_flags', {})
-
   # Optionally shard targets marked with 'msvs_shard': SHARD_COUNT.
   (target_list, target_dicts) = _ShardTargets(target_list, target_dicts)
 
@@ -1777,7 +1771,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
   # Generate each project.
   for project in project_objects.values():
     fixpath_prefix = project.fixpath_prefix
-    _GenerateProject(project, options, msvs_version, generator_flags)
+    _GenerateProject(project, options, msvs_version)
   fixpath_prefix = None
 
   for build_file in data:
@@ -1881,10 +1875,7 @@ def _MapFileToMsBuildSourceType(source, extension_to_rule_name):
       A pair of (group this file should be part of, the label of element)
   """
   _, ext = os.path.splitext(source)
-  if ext in extension_to_rule_name:
-    group = 'rule'
-    element = extension_to_rule_name[ext]
-  elif ext in ['.cc', '.cpp', '.c', '.cxx']:
+  if ext in ['.cc', '.cpp', '.c', '.cxx']:
     group = 'compile'
     element = 'ClCompile'
   elif ext in ['.h', '.hxx']:
@@ -1896,6 +1887,9 @@ def _MapFileToMsBuildSourceType(source, extension_to_rule_name):
   elif ext == '.idl':
     group = 'midl'
     element = 'Midl'
+  elif ext in extension_to_rule_name:
+    group = 'rule'
+    element = extension_to_rule_name[ext]
   else:
     group = 'none'
     element = 'None'
@@ -2671,14 +2665,14 @@ def _VerifySourcesExist(sources, root_dir):
 
 
 def _GetMSBuildSources(spec, sources, exclusions, extension_to_rule_name,
-                       actions_spec, sources_handled_by_action, list_excluded):
+                       actions_spec, sources_handled_by_action):
   groups = ['none', 'midl', 'include', 'compile', 'resource', 'rule']
   grouped_sources = {}
   for g in groups:
     grouped_sources[g] = []
 
   _AddSources2(spec, sources, exclusions, grouped_sources,
-               extension_to_rule_name, sources_handled_by_action, list_excluded)
+               extension_to_rule_name, sources_handled_by_action)
   sources = []
   for g in groups:
     if grouped_sources[g]:
@@ -2689,14 +2683,12 @@ def _GetMSBuildSources(spec, sources, exclusions, extension_to_rule_name,
 
 
 def _AddSources2(spec, sources, exclusions, grouped_sources,
-                 extension_to_rule_name, sources_handled_by_action,
-                 list_excluded):
+                 extension_to_rule_name, sources_handled_by_action):
   extensions_excluded_from_precompile = []
   for source in sources:
     if isinstance(source, MSVSProject.Filter):
       _AddSources2(spec, source.contents, exclusions, grouped_sources,
-                   extension_to_rule_name, sources_handled_by_action,
-                   list_excluded)
+                   extension_to_rule_name, sources_handled_by_action)
     else:
       if not source in sources_handled_by_action:
         detail = []
@@ -2751,22 +2743,17 @@ def _GetMSBuildProjectReferences(project):
       guid = dependency.guid
       project_dir = os.path.split(project.path)[0]
       relative_path = gyp.common.RelativePath(dependency.path, project_dir)
-      project_ref = ['ProjectReference',
-          {'Include': relative_path},
-          ['Project', guid],
-          ['ReferenceOutputAssembly', 'false']
-          ]
-      for config in dependency.spec.get('configurations', {}).itervalues():
-        # If it's disabled in any config, turn it off in the reference.
-        if config.get('msvs_2010_disable_uldi_when_referenced', 0):
-          project_ref.append(['UseLibraryDependencyInputs', 'false'])
-          break
-      group.append(project_ref)
+      group.append(
+          ['ProjectReference',
+           {'Include': relative_path},
+           ['Project', guid],
+           ['ReferenceOutputAssembly', 'false']
+          ])
     references.append(group)
   return references
 
 
-def _GenerateMSBuildProject(project, options, version, generator_flags):
+def _GenerateMSBuildProject(project, options, version):
   spec = project.spec
   configurations = spec['configurations']
   project_dir, project_file_name = os.path.split(project.path)
@@ -2784,7 +2771,6 @@ def _GenerateMSBuildProject(project, options, version, generator_flags):
   props_files_of_rules = set()
   targets_files_of_rules = set()
   extension_to_rule_name = {}
-  list_excluded = generator_flags.get('msvs_list_excluded_files', True)
   _GenerateRulesForMSBuild(project_dir, options, spec,
                            sources, excluded_sources,
                            props_files_of_rules, targets_files_of_rules,
@@ -2792,8 +2778,7 @@ def _GenerateMSBuildProject(project, options, version, generator_flags):
   sources, excluded_sources, excluded_idl = (
       _AdjustSourcesAndConvertToFilterHierarchy(spec, options,
                                                 project_dir, sources,
-                                                excluded_sources,
-                                                list_excluded))
+                                                excluded_sources))
   _AddActions(actions_to_add, spec, project.build_file)
   _AddCopies(actions_to_add, spec)
 
@@ -2843,7 +2828,7 @@ def _GenerateMSBuildProject(project, options, version, generator_flags):
   content += _GetMSBuildToolSettingsSections(spec, configurations)
   content += _GetMSBuildSources(
       spec, sources, exclusions, extension_to_rule_name, actions_spec,
-      sources_handled_by_action, list_excluded)
+      sources_handled_by_action)
   content += _GetMSBuildProjectReferences(project)
   content += import_cpp_targets_section
   content += _GetMSBuildExtensionTargets(targets_files_of_rules)

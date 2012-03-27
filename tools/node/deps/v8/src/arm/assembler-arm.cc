@@ -66,13 +66,11 @@ static uint64_t CpuFeaturesImpliedByCompiler() {
 
 #ifdef __arm__
   // If the compiler is allowed to use VFP then we can use VFP too in our code
-  // generation even when generating snapshots. ARMv7 and hardware floating
-  // point support implies VFPv3, see ARM DDI 0406B, page A1-6.
-#if defined(CAN_USE_ARMV7_INSTRUCTIONS) && defined(__VFP_FP__) \
-    && !defined(__SOFTFP__)
+  // generation even when generating snapshots.  This won't work for cross
+  // compilation. VFPv3 implies ARMv7, see ARM DDI 0406B, page A1-6.
+#if defined(__VFP_FP__) && !defined(__SOFTFP__)
   answer |= 1u << VFP3 | 1u << ARMv7;
-#endif  // defined(CAN_USE_ARMV7_INSTRUCTIONS) && defined(__VFP_FP__)
-        // && !defined(__SOFTFP__)
+#endif  // defined(__VFP_FP__) && !defined(__SOFTFP__)
 #endif  // def __arm__
 
   return answer;
@@ -80,9 +78,7 @@ static uint64_t CpuFeaturesImpliedByCompiler() {
 
 
 void CpuFeatures::Probe() {
-  unsigned standard_features = (OS::CpuFeaturesImpliedByPlatform() |
-                                CpuFeaturesImpliedByCompiler());
-  ASSERT(supported_ == 0 || supported_ == standard_features);
+  ASSERT(!initialized_);
 #ifdef DEBUG
   initialized_ = true;
 #endif
@@ -90,7 +86,8 @@ void CpuFeatures::Probe() {
   // Get the features implied by the OS and the compiler settings. This is the
   // minimal set of features which is also alowed for generated code in the
   // snapshot.
-  supported_ |= standard_features;
+  supported_ |= OS::CpuFeaturesImpliedByPlatform();
+  supported_ |= CpuFeaturesImpliedByCompiler();
 
   if (Serializer::enabled()) {
     // No probing for features if we might serialize (generate snapshot).
@@ -319,7 +316,7 @@ Assembler::Assembler(Isolate* arg_isolate, void* buffer, int buffer_size)
     own_buffer_ = false;
   }
 
-  // Set up buffer pointers.
+  // Setup buffer pointers.
   ASSERT(buffer_ != NULL);
   pc_ = buffer_;
   reloc_info_writer.Reposition(buffer_ + buffer_size, pc_);
@@ -351,7 +348,7 @@ void Assembler::GetCode(CodeDesc* desc) {
   CheckConstPool(true, false);
   ASSERT(num_pending_reloc_info_ == 0);
 
-  // Set up code descriptor.
+  // Setup code descriptor.
   desc->buffer = buffer_;
   desc->buffer_size = buffer_size_;
   desc->instr_size = pc_offset();
@@ -2448,7 +2445,7 @@ void Assembler::GrowBuffer() {
   }
   CHECK_GT(desc.buffer_size, 0);  // no overflow
 
-  // Set up new buffer.
+  // Setup new buffer.
   desc.buffer = NewArray<byte>(desc.buffer_size);
 
   desc.instr_size = pc_offset();
@@ -2508,8 +2505,7 @@ void Assembler::dd(uint32_t data) {
 
 
 void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
-  // We do not try to reuse pool constants.
-  RelocInfo rinfo(pc_, rmode, data, NULL);
+  RelocInfo rinfo(pc_, rmode, data);  // we do not try to reuse pool constants
   if (rmode >= RelocInfo::JS_RETURN && rmode <= RelocInfo::DEBUG_BREAK_SLOT) {
     // Adjust code for new modes.
     ASSERT(RelocInfo::IsDebugBreakSlot(rmode)
@@ -2541,7 +2537,7 @@ void Assembler::RecordRelocInfo(RelocInfo::Mode rmode, intptr_t data) {
     }
     ASSERT(buffer_space() >= kMaxRelocSize);  // too late to grow buffer here
     if (rmode == RelocInfo::CODE_TARGET_WITH_ID) {
-      RelocInfo reloc_info_with_ast_id(pc_, rmode, RecordedAstId(), NULL);
+      RelocInfo reloc_info_with_ast_id(pc_, rmode, RecordedAstId());
       ClearRecordedAstId();
       reloc_info_writer.Write(&reloc_info_with_ast_id);
     } else {

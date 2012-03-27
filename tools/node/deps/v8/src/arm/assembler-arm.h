@@ -300,13 +300,11 @@ const DwVfpRegister d13 = { 13 };
 const DwVfpRegister d14 = { 14 };
 const DwVfpRegister d15 = { 15 };
 
-// Aliases for double registers.  Defined using #define instead of
-// "static const DwVfpRegister&" because Clang complains otherwise when a
-// compilation unit that includes this header doesn't use the variables.
-#define kFirstCalleeSavedDoubleReg d8
-#define kLastCalleeSavedDoubleReg d15
-#define kDoubleRegZero d14
-#define kScratchDoubleReg d15
+// Aliases for double registers.
+const DwVfpRegister kFirstCalleeSavedDoubleReg = d8;
+const DwVfpRegister kLastCalleeSavedDoubleReg = d15;
+const DwVfpRegister kDoubleRegZero = d14;
+const DwVfpRegister kScratchDoubleReg = d15;
 
 
 // Coprocessor register
@@ -1209,10 +1207,6 @@ class Assembler : public AssemblerBase {
   PositionsRecorder* positions_recorder() { return &positions_recorder_; }
 
   // Read/patch instructions
-  Instr instr_at(int pos) { return *reinterpret_cast<Instr*>(buffer_ + pos); }
-  void instr_at_put(int pos, Instr instr) {
-    *reinterpret_cast<Instr*>(buffer_ + pos) = instr;
-  }
   static Instr instr_at(byte* pc) { return *reinterpret_cast<Instr*>(pc); }
   static void instr_at_put(byte* pc, Instr instr) {
     *reinterpret_cast<Instr*>(pc) = instr;
@@ -1266,6 +1260,12 @@ class Assembler : public AssemblerBase {
   bool emit_debug_code() const { return emit_debug_code_; }
 
   int buffer_space() const { return reloc_info_writer.pos() - pc_; }
+
+  // Read/patch instructions
+  Instr instr_at(int pos) { return *reinterpret_cast<Instr*>(buffer_ + pos); }
+  void instr_at_put(int pos, Instr instr) {
+    *reinterpret_cast<Instr*>(buffer_ + pos) = instr;
+  }
 
   // Decode branch instruction at pos and return branch target pos
   int target_at(int pos);

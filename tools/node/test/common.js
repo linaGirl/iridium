@@ -28,7 +28,7 @@ exports.libDir = path.join(exports.testDir, '../lib');
 exports.tmpDir = path.join(exports.testDir, 'tmp');
 exports.PORT = 12346;
 
-if (process.platform === 'win32') {
+if (process.platform == 'win32') {
   exports.PIPE = '\\\\.\\pipe\\libuv-test';
 } else {
   exports.PIPE = exports.tmpDir + '/test.sock';
@@ -53,10 +53,9 @@ exports.indirectInstanceOf = function(obj, cls) {
 
 
 exports.ddCommand = function(filename, kilobytes) {
-  if (process.platform === 'win32') {
-    var p = path.resolve(exports.fixturesDir, 'create-file.js');
-    return '"' + process.argv[0] + '" "' + p + '" "' +
-           filename + '" ' + (kilobytes * 1024);
+  if (process.platform == 'win32') {
+    return '"' + process.argv[0] + '" "' + path.resolve(exports.fixturesDir,
+           'create-file.js') + '" "' + filename + '" ' + (kilobytes * 1024);
   } else {
     return 'dd if=/dev/zero of="' + filename + '" bs=1024 count=' + kilobytes;
   }
@@ -66,7 +65,7 @@ exports.ddCommand = function(filename, kilobytes) {
 exports.spawnPwd = function(options) {
   var spawn = require('child_process').spawn;
 
-  if (process.platform === 'win32') {
+  if (process.platform == 'win32') {
     return spawn('cmd.exe', ['/c', 'cd'], options);
   } else {
     return spawn('pwd', [], options);

@@ -25,7 +25,7 @@ var timers = require('timers');
 var util = require('util');
 var assert = require('assert');
 
-function noop() {}
+function noop() {};
 
 // constructor for lazy loading
 function createPipe() {
@@ -65,47 +65,17 @@ exports.createServer = function() {
 };
 
 
-// Target API:
-//
-// var s = net.connect({port: 80, host: 'google.com'}, function() {
-//   ...
-// });
-//
-// There are various forms:
-//
-// connect(options, [cb])
-// connect(port, [host], [cb])
-// connect(path, [cb]);
-//
-exports.connect = exports.createConnection = function() {
-  var args = normalizeConnectArgs(arguments);
-  var s = new Socket(args[0]);
-  return Socket.prototype.connect.apply(s, args);
-};
+exports.connect = exports.createConnection = function(port /* [host], [cb] */) {
+  var s;
 
-// Returns an array [options] or [options, cb]
-// It is the same as the argument of Socket.prototype.connect().
-function normalizeConnectArgs(args) {
-  var options = {};
-
-  if (typeof args[0] === 'object') {
-    // connect(options, [cb])
-    options = args[0];
-  } else if (isPipeName(args[0])) {
-    // connect(path, [cb]);
-    options.path = args[0];
+  if (isPipeName(port)) {
+    s = new Socket({ handle: createPipe() });
   } else {
-    // connect(port, [host], [cb])
-    options.port = args[0];
-    if (typeof args[1] === 'string') {
-      options.host = args[1];
-    }
+    s = new Socket();
   }
 
-  var cb = args[args.length - 1];
-  return (typeof cb === 'function') ? [options, cb] : [options];
-}
-
+  return s.connect(port, arguments[1], arguments[2]);
+};
 
 /* called when creating new Socket, or when re-using a closed Socket */
 function initSocketHandle(self) {
@@ -114,6 +84,7 @@ function initSocketHandle(self) {
   self._flags = 0;
   self._connectQueueSize = 0;
   self.destroyed = false;
+  self.errorEmitted = false;
   self.bytesRead = 0;
   self.bytesWritten = 0;
 
@@ -178,7 +149,7 @@ Socket.prototype.setTimeout = function(msecs, callback) {
 
 
 Socket.prototype._onTimeout = function() {
-  debug('_onTimeout');
+  debug("_onTimeout");
   this.emit('timeout');
 };
 
@@ -274,7 +245,7 @@ Socket.prototype.end = function(data, encoding) {
     var shutdownReq = this._handle.shutdown();
 
     if (!shutdownReq) {
-      this.destroy(errnoException(errno, 'shutdown'));
+      this._destroy(errnoException(errno, 'shutdown'));
       return false;
     }
 
@@ -297,7 +268,7 @@ function afterShutdown(status, handle, req) {
   }
 
   if (self._flags & FLAG_GOT_EOF || !self.readable) {
-    self.destroy();
+    self._destroy();
   } else {
   }
 }
@@ -308,7 +279,7 @@ Socket.prototype.destroySoon = function() {
   this._flags |= FLAG_DESTROY_SOON;
 
   if (this._pendingWriteReqs == 0) {
-    this.destroy();
+    this._destroy();
   }
 };
 
@@ -320,10 +291,23 @@ Socket.prototype._connectQueueCleanUp = function(exception) {
 };
 
 
-Socket.prototype.destroy = function(exception) {
-  if (this.destroyed) return;
-
+Socket.prototype._destroy = function(exception, cb) {
   var self = this;
+
+  function fireErrorCallbacks() {
+    if (cb) cb(exception);
+    if (exception && !self.errorEmitted) {
+      process.nextTick(function() {
+        self.emit('error', exception);
+      });
+      self.errorEmitted = true;
+    }
+  };
+
+  if (this.destroyed) {
+    fireErrorCallbacks();
+    return;
+  }
 
   self._connectQueueCleanUp();
 
@@ -345,13 +329,19 @@ Socket.prototype.destroy = function(exception) {
     this._handle = null;
   }
 
+  fireErrorCallbacks();
+
   process.nextTick(function() {
-    if (exception) self.emit('error', exception);
     self.emit('close', exception ? true : false);
   });
 
   this.destroyed = true;
 };
+
+
+Socket.prototype.destroy = function(exception) {
+  this._destroy(exception);
+}
 
 
 function onread(buffer, offset, length) {
@@ -392,7 +382,7 @@ function onread(buffer, offset, length) {
 
     // We call destroy() before end(). 'close' not emitted until nextTick so
     // the 'end' event will come first as required.
-    if (!self.writable) self.destroy();
+    if (!self.writable) self._destroy();
 
     if (!self.allowHalfOpen) self.end();
     if (self._events && self._events['end']) self.emit('end');
@@ -400,9 +390,9 @@ function onread(buffer, offset, length) {
   } else {
     // Error
     if (errno == 'ECONNRESET') {
-      self.destroy();
+      self._destroy();
     } else {
-      self.destroy(errnoException(errno, 'read'));
+      self._destroy(errnoException(errno, 'read'));
     }
   }
 }
@@ -449,7 +439,7 @@ Socket.prototype.write = function(data, arg1, arg2) {
     } else if (typeof arg1 === 'function') {
       cb = arg1;
     } else {
-      throw new Error('bad arg');
+      throw new Error("bad arg");
     }
   }
 
@@ -457,7 +447,7 @@ Socket.prototype.write = function(data, arg1, arg2) {
   if (typeof data === 'string') {
     data = new Buffer(data, encoding);
   } else if (!Buffer.isBuffer(data)) {
-    throw new TypeError('First argument must be a buffer or a string.');
+    throw new TypeError("First argument must be a buffer or a string.");
   }
 
   this.bytesWritten += data.length;
@@ -480,13 +470,16 @@ Socket.prototype.write = function(data, arg1, arg2) {
 Socket.prototype._write = function(data, encoding, cb) {
   timers.active(this);
 
-  if (!this._handle) throw new Error('This socket is closed.');
+  if (!this._handle) {
+    this._destroy(new Error('This socket is closed.'), cb);
+    return false;
+  }
 
   // `encoding` is unused right now, `data` is always a buffer.
   var writeReq = this._handle.write(data);
 
   if (!writeReq) {
-    this.destroy(errnoException(errno, 'write'));
+    this._destroy(errnoException(errno, 'write'), cb);
     return false;
   }
 
@@ -507,7 +500,7 @@ function afterWrite(status, handle, req, buffer) {
   }
 
   if (status) {
-    self.destroy(errnoException(errno, 'write'));
+    self._destroy(errnoException(errno, 'write'), req.cb);
     return;
   }
 
@@ -516,18 +509,20 @@ function afterWrite(status, handle, req, buffer) {
   self._pendingWriteReqs--;
 
   if (self._pendingWriteReqs == 0) {
+    // TODO remove all uses of ondrain - this is not a good hack.
+    if (self.ondrain) self.ondrain();
     self.emit('drain');
   }
 
   if (req.cb) req.cb();
 
   if (self._pendingWriteReqs == 0 && self._flags & FLAG_DESTROY_SOON) {
-    self.destroy();
+    self._destroy();
   }
 }
 
 
-function connect(self, address, port, addressType, localAddress) {
+function connect(self, address, port, addressType) {
   if (port) {
     self.remotePort = port;
   }
@@ -540,49 +535,39 @@ function connect(self, address, port, addressType, localAddress) {
 
   var connectReq;
   if (addressType == 6) {
-    if (localAddress) {
-      self._handle.bind6(localAddress);
-    }
     connectReq = self._handle.connect6(address, port);
   } else if (addressType == 4) {
-    if (localAddress) {
-      self._handle.bind(localAddress);
-    }
     connectReq = self._handle.connect(address, port);
   } else {
-    if (localAddress) {
-      self._handle.bind(localAddress);
-    }
     connectReq = self._handle.connect(address, afterConnect);
   }
 
   if (connectReq !== null) {
     connectReq.oncomplete = afterConnect;
   } else {
-    self.destroy(errnoException(errno, 'connect'));
+    self._destroy(errnoException(errno, 'connect'));
   }
 }
 
 
-Socket.prototype.connect = function(options, cb) {
-  if (typeof options !== 'object') {
-    // Old API:
-    // connect(port, [host], [cb])
-    // connect(path, [cb]);
-    var args = normalizeConnectArgs(arguments);
-    return Socket.prototype.connect.apply(this, args);
-  }
-
+Socket.prototype.connect = function(port /* [host], [cb] */) {
   var self = this;
-  var pipe = !!options.path;
+
+  var pipe = isPipeName(port);
 
   if (this.destroyed || !this._handle) {
     this._handle = pipe ? createPipe() : createTCP();
     initSocketHandle(this);
   }
 
-  if (typeof cb === 'function') {
-    self.on('connect', cb);
+  var host;
+  if (typeof arguments[1] === 'function') {
+    self.on('connect', arguments[1]);
+  } else {
+    host = arguments[1];
+    if (typeof arguments[2] === 'function') {
+      self.on('connect', arguments[2]);
+    }
   }
 
   timers.active(this);
@@ -591,14 +576,9 @@ Socket.prototype.connect = function(options, cb) {
   self.writable = true;
 
   if (pipe) {
-    connect(self, options.path);
+    connect(self, /*pipe_name=*/port);
 
-  } else if (!options.host) {
-    debug('connect: missing host');
-    connect(self, '127.0.0.1', options.port, 4);
-
-  } else {
-    var host = options.host;
+  } else if (typeof host == 'string') {
     debug('connect: find host ' + host);
     require('dns').lookup(host, function(err, ip, addressType) {
       // It's possible we were destroyed while looking this up.
@@ -613,7 +593,7 @@ Socket.prototype.connect = function(options, cb) {
         // error event to the next tick.
         process.nextTick(function() {
           self.emit('error', err);
-          self.destroy();
+          self._destroy();
         });
       } else {
         timers.active(self);
@@ -624,9 +604,13 @@ Socket.prototype.connect = function(options, cb) {
         // expects remoteAddress to have a meaningful value
         ip = ip || (addressType === 4 ? '127.0.0.1' : '0:0:0:0:0:0:0:1');
 
-        connect(self, ip, options.port, addressType, options.localAddress);
+        connect(self, ip, port, addressType);
       }
     });
+
+  } else {
+    debug('connect: missing host');
+    connect(self, '127.0.0.1', port, 4);
   }
   return self;
 };
@@ -658,8 +642,9 @@ function afterConnect(status, handle, req, readable, writable) {
 
     if (self._connectQueue) {
       debug('Drain the connect queue');
-      for (var i = 0; i < self._connectQueue.length; i++) {
-        self._write.apply(self, self._connectQueue[i]);
+      var connectQueue = self._connectQueue;
+      for (var i = 0; i < connectQueue.length; i++) {
+        self._write.apply(self, connectQueue[i]);
       }
       self._connectQueueCleanUp();
     }
@@ -673,7 +658,7 @@ function afterConnect(status, handle, req, readable, writable) {
     }
   } else {
     self._connectQueueCleanUp();
-    self.destroy(errnoException(errno, 'connect'));
+    self._destroy(errnoException(errno, 'connect'));
   }
 }
 
@@ -791,13 +776,12 @@ Server.prototype._listen2 = function(address, port, addressType) {
   process.nextTick(function() {
     self.emit('listening');
   });
-};
+}
 
 
 function listen(self, address, port, addressType) {
-  if (process.env.NODE_UNIQUE_ID) {
-    var cluster = require('cluster');
-    cluster._getServer(self, address, port, addressType, function(handle) {
+  if (process.env.NODE_WORKER_ID) {
+    require('cluster')._getServer(address, port, addressType, function(handle) {
       self._handle = handle;
       self._listen2(address, port, addressType);
     });
@@ -894,15 +878,12 @@ function onconnection(clientHandle) {
 }
 
 
-Server.prototype.close = function(cb) {
+Server.prototype.close = function() {
   if (!this._handle) {
     // Throw error. Follows net_legacy behaviour.
     throw new Error('Not running');
   }
 
-  if (cb) {
-    this.once('close', cb);
-  }
   this._handle.close();
   this._handle = null;
   this._emitCloseIfDrained();
@@ -911,13 +892,9 @@ Server.prototype.close = function(cb) {
 };
 
 Server.prototype._emitCloseIfDrained = function() {
-  var self = this;
-
-  if (self._handle || self.connections) return;
-
-  process.nextTick(function() {
-    self.emit('close');
-  });
+  if (!this._handle && !this.connections) {
+    this.emit('close');
+  }
 };
 
 
@@ -959,26 +936,3 @@ exports.isIPv4 = function(input) {
 exports.isIPv6 = function(input) {
   return exports.isIP(input) === 6;
 };
-
-
-if (process.platform === 'win32') {
-  var simultaneousAccepts;
-
-  exports._setSimultaneousAccepts = function(handle) {
-    if (typeof handle === 'undefined') {
-      return;
-    }
-
-    if (typeof simultaneousAccepts === 'undefined') {
-      simultaneousAccepts = (process.env.NODE_MANY_ACCEPTS &&
-                             process.env.NODE_MANY_ACCEPTS !== '0');
-    }
-
-    if (handle._simultaneousAccepts !== simultaneousAccepts) {
-      handle.setSimultaneousAccepts(simultaneousAccepts);
-      handle._simultaneousAccepts = simultaneousAccepts;
-    }
-  };
-} else {
-  exports._setSimultaneousAccepts = function(handle) {};
-}
