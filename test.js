@@ -18,7 +18,7 @@
 	new net.RepSocket();
 
 
-
+	new ( iridium.module( "db" ).MongoDB )();
 /*
 	var rep = new Socket( {
 		type: "rep"
