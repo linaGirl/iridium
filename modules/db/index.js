@@ -1,7 +1,7 @@
 
 
 
-	var MongoDB = require( "./dep/node-mongolian/mongolian" )
+	var MongoDB = require( iridium.path + "modules/db/dep/node-mongolian/mongolian" )
 		, log = iridium( "log" );
 
 

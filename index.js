@@ -12,11 +12,16 @@
 
 
 
+
+
 	// the iridium module loader
 	global.iridium = function( coreModule ){
 		return require( cpath + coreModule );
 	}
 
+	// path
+	iridium.path = path;
+	
 
 	global.iridium.module = function( moduleName ){
 		return require( mpath + moduleName );
