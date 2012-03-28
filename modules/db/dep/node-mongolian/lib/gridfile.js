@@ -2,8 +2,8 @@
 var stream = require('stream')
 var util = require('util')
 var crypto = require('crypto')
-var Waiter = require('waiter')
-var buffalo = require('buffalo')
+var Waiter = require('../../node-waiter/waiter')
+var buffalo = require('../../node-buffalo/buffalo')
 
 var safetyNet = require('./util').safetyNet
 var callback = require('./util').callback

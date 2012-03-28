@@ -1,8 +1,8 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
-var Waiter = require('waiter')
-var taxman = require('taxman')
+var Waiter = require('../../node-waiter/waiter')
+var taxman = require('../../node-taxman/taxman')
 var EventEmitter = require('events').EventEmitter
-var buffalo = require('buffalo')
+var buffalo = require('../../node-buffalo/buffalo')
 var mongo = buffalo.mongo
 
 var safetyNet = require('./util').safetyNet

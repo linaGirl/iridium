@@ -1,6 +1,6 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
 var safetyNet = require('./util').safetyNet
-var buffalo = require('buffalo')
+var buffalo = require('../../node-buffalo/buffalo')
 var mongo = buffalo.mongo
 
 var MongolianCursor = module.exports = function(collection, criteria, fields) {

@@ -4,7 +4,7 @@
 
 var Long = require('./extern/long').Long
 var IEEE754 = require('./extern/buffer_ieee754')
-var toSource = require('tosource')
+var toSource = require('../../node-tosource/tosource')
 var binary = require('./binary')
 var ObjectId = require('./objectid')
 var DBRef = require('./dbref')

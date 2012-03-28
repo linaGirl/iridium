@@ -1,6 +1,6 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
 var util = require('util')
-var buffalo = require('buffalo')
+var buffalo = require('../../node-buffalo/buffalo')
 var mongo = buffalo.mongo
 
 var safetyNet = require('./util').safetyNet
