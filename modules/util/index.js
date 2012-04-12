@@ -1,6 +1,6 @@
 
 
 
-	modules.exports = {
+	module.exports = {
 		mime: require( "./lib/mime" )
 	};
