@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 apt-get install libzmq-dev -y
-cd ./zermomq
+cd ./zeromq
 node-waf distclean
 node-waf configure
 node-waf build
