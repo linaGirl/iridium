@@ -64,7 +64,7 @@
 
 		, get: function( extension ){
 			if ( this.__types[ extension ] ){
-				return this.__types[ extension ].type + this.__types[ extension ].defaultCharset ? ( "; charset=" + this.__types[ extension ].defaultCharset );
+				return this.__types[ extension ].type + this.__types[ extension ].defaultCharset ? ( "; charset=" + this.__types[ extension ].defaultCharset ) : "";
 			}
 			else {
 				return "";
