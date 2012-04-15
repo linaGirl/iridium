@@ -52,6 +52,11 @@
 		}
 
 
+		, listener: function( event ){
+			return this.$events[ event ] || [];
+		}
+
+
 		// remove all event s( no args ), all listeners of a specific event ( first arg ) or a specific listener ( two args )
 		, off: function( event, listener ){
 			var i;
@@ -72,6 +77,8 @@
 			else {
 				this.$events = {};
 			}
+
+			this.emit( "removeListener", events, listener );
 		}
 
 
@@ -104,7 +111,7 @@
 				, once: once === true
 			} );
 
-			this.emit( "listener", event, listener, once === true );
+			if ( event !== "listener" ) this.emit( "listener", event, listener, once === true );
 		}
 
 		// kill myself

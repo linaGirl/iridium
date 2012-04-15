@@ -10,6 +10,7 @@
 			, json:			{ defaultCharset: "utf-8", type: "application/json" }
 			, js:			{ defaultCharset: "utf-8", type: "application/javascript" }
 			, jsm:			{ defaultCharset: "utf-8", type: "application/javascript" }
+			, mjs: 			{ defaultCharset: "utf-8", type: "application/javascript" }
 			, unknown:		{ defaultCharset: "binary", type: "application/octet-stream" }
 			, bin:			{ defaultCharset: "binary", type: "application/octet-stream" }
 			, ogg:			{ defaultCharset: "binary", type: "application/ogg" }
