@@ -1,7 +1,9 @@
 	
 	require( "./" )( "iridium test", 1 );
+ 
 
-
+	new ( iridium.module( "web" ).Files)( { path: "../ewan/front/www" } );
+/*
 
 	var Socket = iridium.module( "net" ).Socket
 		, log = iridium( "log" )
@@ -19,6 +21,8 @@
 
 
 	new ( iridium.module( "db" ).MongoDB )();
+
+	*/
 /*
 	var rep = new Socket( {
 		type: "rep"
