@@ -39,6 +39,7 @@
 			, tpl:			{ defaultCharset: "utf-8", type: "text/html" }
 			, tplm:			{ defaultCharset: "utf-8", type: "text/html" }
 			, pong:			{ defaultCharset: "utf-8", type: "text/html" }
+			, htpl:			{ defaultCharset: "utf-8", type: "text/html" }
 			, _:			{ defaultCharset: "binary", type: "" }
 		}
 
