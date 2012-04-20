@@ -15,9 +15,6 @@
 		// theweb root folder
 		, __path: ""
 
-		// index files
-		, __indexFiles: []
-
 		// files
 		, __files: {}
 
@@ -47,8 +44,8 @@
 
 
 
-		, get: function( file ){
-
+		, get: function( path ){
+			return this.__files[ path ] || null;
 		}
 
 
@@ -85,10 +82,29 @@
 
 		, __handleFileChange: function( event, path ){
 			var webPath = path.substr( this.__path.length );
-			var loadFile = function( filrpath ){
-				fs.readFile( path, function( err, file ){
-					if ( err ) throw err;						
-					this.__files[ webPath ].file = file;
+			var loadFile = function( filePath ){
+				fs.readFile( filePath, function( err, file ){
+					if ( err ) throw err;
+
+					if ( this.__files[ webPath ] ){
+						this.__files[ webPath ].file = file;
+					}
+					else {
+						var ext = webPath.substr( webPath.lastIndexOf( "." ) + 1 );
+
+						this.__files[ webPath ] = { 
+							file: file
+							, extension: ext
+							, type: util.mime.get( ext )
+							, path: filePath 
+						};
+
+						// DIRECTORY INDEX
+						if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
+							this.__files[ webPath.substr( webPath.lastIndexOf( "/" ) ) ] = this.__files[ webPath ];
+						}
+					}
+					
 					this.__compile( [ webPath ] );
 				}.bind( this ) );
 			}.bind( this ); 
@@ -115,14 +131,19 @@
 							}.bind( this ) );
 						}
 						else {
+							// its a file
 							if ( this.__files[ webPath ] ){
+								if ( this.__files[ webPath.substr( webPath.lastIndexOf( "/") ) ] === this.__files[ webPath ] ){
+									// rm directoy index
+									delete this.__files[ webPath.substr( webPath.lastIndexOf( "/") ) ];
+								}
 								delete this.__files[ webPath ];
 							}
 							else {
 								var keys = Object.keys( this.__files ), i = keys.length;
 
 								while( i-- ){
-									if ( keys[ i ].indexOf( path ) === 0 ){
+									if ( keys[ i ].indexOf( webPath ) === 0 ){
 										delete this.__files[ keys[ i ] ];
 									} keys[ i ] 
 								}
@@ -486,6 +507,13 @@
 							, webPath = path.substr( this.__path.length );
 
 						this.__files[ webPath ] = { file: file, extension: ext, type: util.mime.get( ext ), path: path };
+						
+						// its a index file, map to directory
+						if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
+							this.__files[ webPath.substr( webPath.lastIndexOf( "/" ) ) ] = this.__files[ webPath ];
+						}
+
+
 						loadedFiles.push( webPath );
 
 						loading--; 
