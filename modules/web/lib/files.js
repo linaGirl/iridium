@@ -4,7 +4,12 @@
 		, util = iridium.module( "util" )
 		, fs = require( "fs" )
 		, path = require( "path" )
-		, log = iridium( "log" );
+		, crypto = require( "crypto" )
+		, log = iridium( "log" )
+		, uglify = require( "../dep/uglify/uglify-js" );
+
+
+
 
 
 
@@ -49,7 +54,9 @@
 		}
 
 
-
+		, getFileTreePointer: function(){
+			return this.__files;
+		}
 
 
 
@@ -77,37 +84,63 @@
 		}
 
  
+		, __loadFile: function( filePath, callback ){
+			var webPath = filePath.substr( this.__path.length )
+				, ext = webPath.substr( webPath.lastIndexOf( "." ) + 1 );
 
+			fs.readFile( filePath, function( err, file ){
+				if ( err ) throw err;
+
+				// compress
+				if ( ext === "js" && process.argv.indexOf( "--debug" ) === -1 ){
+					try {
+						file = uglify.uglify.gen_code( uglify.uglify.ast_squeeze ( uglify.uglify.ast_mangle( uglify.parser.parse( file.toString() ) ) ) );
+					} catch( e ){
+						log.warn( "uglify failed to shrink the file [" + filePath + "]: " + e );
+					}
+				}
+
+				if ( this.__files[ webPath ] ){
+					this.__files[ webPath ].file = file;
+					this.__files[ webPath ].etag = crypto.createHash( "sha1" ).update( file ).digest( "hex" );
+					this.__files[ webPath ].time = Date.now();
+				}
+				else {
+					this.__files[ webPath ] = { 
+						file: file
+						, extension: ext
+						, type: util.mime.get( ext )
+						, path: filePath 
+						, time: Date.now()
+						, etag: crypto.createHash( "sha1" ).update( file ).digest( "hex" )
+					};
+
+					this.emit( "change", {
+						path: webPath
+						, action: "set"
+						, file: this.__files[ webPath ]
+					} );
+
+					// DIRECTORY INDEX
+					if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
+						var idxPath = webPath.substr( webPath.lastIndexOf( "/" )  );
+
+						this.__files[ idxPath ] = this.__files[ webPath ];							
+						this.emit( "change", {
+							path: idxPath
+							, action: "set"
+							, file: this.__files[ idxPath ]
+						} );
+					}
+				}
+
+				callback();
+			}.bind( this ) );
+		}
 
 
 		, __handleFileChange: function( event, path ){
 			var webPath = path.substr( this.__path.length );
-			var loadFile = function( filePath ){
-				fs.readFile( filePath, function( err, file ){
-					if ( err ) throw err;
-
-					if ( this.__files[ webPath ] ){
-						this.__files[ webPath ].file = file;
-					}
-					else {
-						var ext = webPath.substr( webPath.lastIndexOf( "." ) + 1 );
-
-						this.__files[ webPath ] = { 
-							file: file
-							, extension: ext
-							, type: util.mime.get( ext )
-							, path: filePath 
-						};
-
-						// DIRECTORY INDEX
-						if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
-							this.__files[ webPath.substr( webPath.lastIndexOf( "/" ) ) ] = this.__files[ webPath ];
-						}
-					}
-					
-					this.__compile( [ webPath ] );
-				}.bind( this ) );
-			}.bind( this ); 
 
 			switch ( event ){
 
@@ -125,7 +158,9 @@
 									this.__load( path );
 								}
 								else if ( stats.isFile() ){
-									loadFile( path );
+									this.__loadFile( path, function(){
+										this.__compile( [ webPath ] );
+									}.bind( this ) );
 								}
 
 							}.bind( this ) );
@@ -133,10 +168,19 @@
 						else {
 							// its a file
 							if ( this.__files[ webPath ] ){
-								if ( this.__files[ webPath.substr( webPath.lastIndexOf( "/") ) ] === this.__files[ webPath ] ){
+								var idxPath = webPath.substr( webPath.lastIndexOf( "/") ) ;
+								if ( this.__files[ idxPath ] === this.__files[ webPath ] ){
+									this.emit( "change", {
+										path: idxPath
+										, action: "remove"
+									} );
 									// rm directoy index
 									delete this.__files[ webPath.substr( webPath.lastIndexOf( "/") ) ];
 								}
+								this.emit( "change", {
+									path: webPath
+									, action: "remove"
+								} );
 								delete this.__files[ webPath ];
 							}
 							else {
@@ -144,6 +188,10 @@
 
 								while( i-- ){
 									if ( keys[ i ].indexOf( webPath ) === 0 ){
+										this.emit( "change", {
+											path: keys[ i ]
+											, action: "remove"
+										} );
 										delete this.__files[ keys[ i ] ];
 									} keys[ i ] 
 								}
@@ -170,6 +218,14 @@
 					if ( this.__files[ files[ i ] ].extension === "mjs" ){
 						// extend file so its suitable for the webloadr
 						this.__files[ files[ i ] ].file = this.__prepareMJsFile( files[ i ], this.__files[ files[ i ] ].file );
+						this.__files[ files[ i ] ].etag = crypto.createHash( "sha1" ).update( this.__files[ files[ i ] ].file ).digest( "hex" );
+						this.__files[ files[ i ] ].time = Date.now();
+
+						this.emit( "change", {
+							path: files[ i ]
+							, action: "set"
+							, file: this.__files[ files[ i ] ]
+						} );
 					}
 				}
 			}
@@ -229,7 +285,7 @@
 		, __mergeTree: function( fileKey, loadedModules ){
 			var tree = this.__collectTree( fileKey )
 				, i = tree.length
-				, file
+				, file = ""
 				, packedFiles = []
 				, deferred = []
 				, deferredKeys
@@ -246,7 +302,7 @@
 					log.debug( "adding module [" + tree[ i ] + "] ....", this );
 
 					// concat file
-					file += "\n// start moduel " + tree[ i ] + "\n\n" + this.__graph[ tree[ i ] ].file;
+					file += "\n// start module " + tree[ i ] + "\n\n" + this.__graph[ tree[ i ] ].file;
 
 					// colelct deferring modules
 					deferredKeys = Object.keys( this.__graph[ tree[ i ] ].deferred ), d = deferredKeys.length;
@@ -263,9 +319,19 @@
 			}
 			
 			// store
-			this.__graph[ fileKey ].file = file;
+			//this.__graph[ fileKey ].file = file;
 			this.__graph[ fileKey ].deferringModules = deferred;
 			this.__graph[ fileKey ].includedModules = packedFiles;
+			
+			this.__files[ fileKey ].file = uglify.uglify.gen_code( uglify.uglify.ast_squeeze ( uglify.uglify.ast_mangle( uglify.parser.parse( file ) ) ) );
+			this.__files[ fileKey ].etag = crypto.createHash( "sha1" ).update( this.__files[ fileKey ].file ).digest( "hex" );
+			this.__files[ fileKey ].time = Date.now();
+
+			this.emit( "change", {
+				path: fileKey
+				, action: "set"
+				, file: this.__files[ fileKey ]
+			} );
 		}
 
 
@@ -499,22 +565,8 @@
 				}
 				else if ( stats.isFile() ){
 					loading++;
-					fs.readFile( path, function( err, file ){
-						if ( err ) throw err;
-
-						// store
-						var ext = path.substr( path.lastIndexOf( "." ) + 1 )
-							, webPath = path.substr( this.__path.length );
-
-						this.__files[ webPath ] = { file: file, extension: ext, type: util.mime.get( ext ), path: path };
-						
-						// its a index file, map to directory
-						if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
-							this.__files[ webPath.substr( webPath.lastIndexOf( "/" ) ) ] = this.__files[ webPath ];
-						}
-
-
-						loadedFiles.push( webPath );
+					this.__loadFile( path, function(){
+						loadedFiles.push( path.substr( this.__path.length ) );
 
 						loading--; 
 						if ( loading === 0 ) callback();

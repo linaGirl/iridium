@@ -2,7 +2,14 @@
 	require( "./" )( "iridium test", 1 );
  
 
-	new ( iridium.module( "web" ).Files)( { path: "../ewan/front/www" } );
+	var log = iridium( "log" );
+
+	new ( iridium.module( "web" ).Files)( { 
+		path: "../ewan/front/www"
+		, on: {
+			change: function( evt ){ }
+		} 
+	} );
 /*
 
 	var Socket = iridium.module( "net" ).Socket
