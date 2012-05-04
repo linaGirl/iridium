@@ -1,5 +1,78 @@
 
 
+// iridium-service = sso;
+
+
+/*
+	var service = iridium.module( "service" );
+
+	service.setInstanceCount();
+
+	var SSO = new service.Client( {
+		serviceName: "sso"
+	} );
+
+
+	SSO.create( {
+		userId: "vandi"
+		, password: "atikan"
+		, first: ""
+		, last: ""
+	}, function( err, user ){
+
+	}.bind( this ) );
+
+
+
+
+
+
+
+
+	var SSOService = module.exports = new service.Service( { 
+
+		  stateful: true	// if true requests from another service will be routed always to the same instance
+		, unique: false		// this service can be started only once
+		, serviceId: "" 	// unique id for services which arent unique and have multiple instances ( can be used to create tqargeted request on the service )
+
+
+		, shared: [ "./shared/sso.js" ] // this classes will be loaded on a per process base and shared between the service insatcnes
+
+
+
+		// start the service, call callback if ready
+		, start: function( callback ) {
+
+		}
+
+
+
+
+		, create: function( options, callback ){
+
+		}
+
+
+
+		// shutdown the service, call callback if ready
+		, stop: function( callback ){
+
+		}
+
+		// you've got only the current cycle to do what you should do, so asnyc stuff wont be executed!
+		, kill: function(){
+
+		}
+	} );
+
+
+
+
+
+*/
+
+
+
 
 var Class = iridium( "class" )
 	, Events = iridium( "events" )

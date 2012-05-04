@@ -1,6 +1,7 @@
 	
 	require( "./" )( "iridium test", 1 );
- 
+ 	
+ 	new ( iridium( "argv" ) )();
 
 	var log = iridium( "log" );
 

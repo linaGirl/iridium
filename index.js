@@ -13,7 +13,6 @@
 
 
 
-
 	// the iridium module loader
 	global.iridium = function( coreModule ){
 		return require( cpath + coreModule );
@@ -32,7 +31,6 @@
 		return require( spath + serviceName );
 	}
 
-	
 
 
 	// print iridium intro
@@ -44,9 +42,11 @@
 
 
 
+
+
+
 	// global error catching
-	process.on( "uncaughtException", function (err) {
-		
+	process.on( "uncaughtException", function( err ) {
 		log.error( "Uncaught Exception:", { $id: "main.js:main" } );
 		log.trace( err );
 		log.highlight( "Bye ...", { $id: "main.js:main" }  );

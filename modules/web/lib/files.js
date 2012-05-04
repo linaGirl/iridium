@@ -5,8 +5,7 @@
 		, fs = require( "fs" )
 		, path = require( "path" )
 		, crypto = require( "crypto" )
-		, log = iridium( "log" )
-		, uglify = require( "../dep/uglify/uglify-js" );
+		, log = iridium( "log" );
 
 
 
@@ -90,15 +89,6 @@
 
 			fs.readFile( filePath, function( err, file ){
 				if ( err ) throw err;
-
-				// compress
-				if ( ext === "js" && process.argv.indexOf( "--debug" ) === -1 ){
-					try {
-						file = uglify.uglify.gen_code( uglify.uglify.ast_squeeze ( uglify.uglify.ast_mangle( uglify.parser.parse( file.toString() ) ) ) );
-					} catch( e ){
-						log.warn( "uglify failed to shrink the file [" + filePath + "]: " + e );
-					}
-				}
 
 				if ( this.__files[ webPath ] ){
 					this.__files[ webPath ].file = file;
@@ -212,7 +202,7 @@
 		// analyze the depency tree, compile if needed
 		, __compile: function( files ){
 			if ( process.argv.indexOf( "--debug" ) >= 0 ){
-				// dev mode, dont combine files, dont uglify, prepare for clientside module loader
+				// dev mode, dont combine files, prepare for clientside module loader
 				var i = files.length;
 				while( i-- ){
 					if ( this.__files[ files[ i ] ].extension === "mjs" ){
@@ -230,7 +220,7 @@
 				}
 			}
 			else {
-				// merge modules, uglify
+				// merge modules
 
 				// locate iridium if not already known
 				if ( ! this.__iridiumPath ){
@@ -323,7 +313,7 @@
 			this.__graph[ fileKey ].deferringModules = deferred;
 			this.__graph[ fileKey ].includedModules = packedFiles;
 			
-			this.__files[ fileKey ].file = uglify.uglify.gen_code( uglify.uglify.ast_squeeze ( uglify.uglify.ast_mangle( uglify.parser.parse( file ) ) ) );
+			this.__files[ fileKey ].file = file;
 			this.__files[ fileKey ].etag = crypto.createHash( "sha1" ).update( this.__files[ fileKey ].file ).digest( "hex" );
 			this.__files[ fileKey ].time = Date.now();
 
