@@ -7,31 +7,25 @@
 		, path = module.filename.substr( 0, module.filename.lastIndexOf( "/" ) + 1 )
 		, mpath = path + "modules/"
 		, cpath = path + "core/"
-		, spath = path + "services/"
-		, log = require( "./core/log" );
+		, log = require( "./core/log" )
+		, fs = require( "fs" );
 
 
 
 
 	// the iridium module loader
 	global.iridium = function( coreModule ){
-		return require( cpath + coreModule );
+		if ( fs.existsSync( cpath + coreModule + ".js" ) ){
+			return require( cpath + coreModule );
+		}
+		else {
+			return require( mpath + coreModule );
+		}
 	}
 
 	// path
 	iridium.path = path;
 	
-
-	global.iridium.module = function( moduleName ){
-		return require( mpath + moduleName );
-	}
-
-
-	global.iridium.service = function( serviceName ){
-		return require( spath + serviceName );
-	}
-
-
 
 	// print iridium intro
 	module.exports = function( productName, version ){

@@ -1,7 +1,7 @@
 
 	var Class = iridium( "class" )
 		, Events = iridium( "events" )
-		, util = iridium.module( "util" )
+		, util = iridium( "util" )
 		, fs = require( "fs" )
 		, path = require( "path" )
 		, crypto = require( "crypto" )
@@ -14,7 +14,7 @@
 
 	var Files = module.exports = new Class( {
 		$id: "web.Files"
-		, Extends: Events
+		, inherits: Events
 
 		// theweb root folder
 		, __path: ""
@@ -28,7 +28,7 @@
 
 
 
-		, constructor: function( options ){
+		, init: function( options ){
 			this.__path = path.resolve( options.path );
 
 			// go

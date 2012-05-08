@@ -8,7 +8,7 @@
 		, __argv: {}
 
 
-		, constructor: function(){
+		, init: function(){
 			var argv = Array.prototype.slice.call( process.argv, 2 ).join( " " ).split( "--" ).filter( function( item ){ 
 				return item.length > 0; 
 			} ).forEach( function( item ){

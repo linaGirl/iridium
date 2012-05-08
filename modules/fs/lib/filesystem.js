@@ -13,7 +13,7 @@
 	var Filesystem = module.exports = new Class( {
 		$id: "fs.Filesystem"
 
-		, Extends: Events
+		, inherits: Events
 
 
 		// the fs uri.  if uri starts with "net://" it will try to connect through the net system.
@@ -31,7 +31,7 @@
 		, __writeable: false
 
 
-		, constructor: function( options ){
+		, init: function( options ){
 			if ( typeof options === "object" ){
 				if ( typeof options.uri === "string" ){
 					this.__uri = options.uri;

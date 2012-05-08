@@ -32,12 +32,12 @@ include the framwork. this provides the now glbally available modules Class, Eve
 
 	var MyClass = new Class( {
 		$id: "MyClass"  	// used for logging
-		, Extends: Events 
+		, inherits: Events 
 
 		, name: "sven"
 
 
-		, constructor: function( options ){
+		, init: function( options ){
 			log.info( "myclass is executing its constructor", this ); // the "this" argument is used for logging 
 			log.debug( "my name is", this.name, this );
 

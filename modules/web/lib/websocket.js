@@ -5,10 +5,10 @@
 
 
 	var Websocket = module.exports = new Class( {
-		Extends: Events
+		inherits: Events
 
 
-		, constructor: function( options ){
+		, init: function( options ){
 			this.__socket = options.socket;
 		}
 	} );

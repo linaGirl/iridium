@@ -9,10 +9,10 @@
 
 
 	var Service = module.exports = new Class( {
-		Extends: Events
+		inherits: Events
 
 
-		, constructor: function( options ){
+		, init: function( options ){
 			this.start = options.start.bind( this );
 			this.stop = options.stop.bind( this );
 		}

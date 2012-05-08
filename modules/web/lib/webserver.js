@@ -15,7 +15,7 @@
 
 
 	module.exports = new Class( {
-		Extends: Events
+		inherits: Events
 
 		, __port: 80
 		, __cpuCount: 1

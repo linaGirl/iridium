@@ -9,7 +9,7 @@
 			, arr: []
 			, my: { name: { is: "unintresting" } } 
 
-			, constructor: function( newName ){
+			, init: function( newName ){
 				assert.strictEqual( this.name, "test" );
 				this.name = newName;
 				this.arr.push( newName );
@@ -27,9 +27,9 @@
 		var otherClass = new Class( {
 			$id: "otherClass"
 
-			, Extends: cls
+			, inherits: cls
 
-			, constructor: function( anotherName ){
+			, init: function( anotherName ){
 				assert.strictEqual( this.getName(), "test" );
 				this.arr.push( anotherName );
 				this.my.name.is = anotherName;
