@@ -2,6 +2,7 @@
 
 
 	var MongoDB = require( iridium.path + "modules/db/dep/node-mongolian/mongolian" )
+		, mysql = require( iridium.path + "modules/db/dep/node-mysql" )
 		, log = iridium( "log" );
 
 
@@ -25,5 +26,9 @@
 				log.trace( e );
 				process.exit();
 			}
+		}
+
+		, MySQL: function( options ){
+			return mysql.createClient( options );
 		}
 	}
