@@ -1,4 +1,4 @@
-var hashish = require('hashish');
+var hashish = require('../../node-hashish');
 
 // Connections Flags
 hashish.update(exports, {

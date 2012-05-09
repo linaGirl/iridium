@@ -1,5 +1,5 @@
 var mysql = exports;
-var hashish = require('hashish');
+var hashish = require('../../node-hashish');
 var Client = exports.Client = require('./client');
 var constants = require('./constants');
 var fs = require('fs');
