@@ -15,6 +15,9 @@
 		, inherits: Events
 
 
+		
+
+
 		, init: function(){
 
 		}
@@ -36,6 +39,7 @@
 
 
 		, init: function( options ) {
+			// tinynet works on a per process base, one connection per target host, multiple virtual connections on top of it
 			return global.tinyNet || ( global.tinyNet = new TinyNet() );
 		}
 	} );
