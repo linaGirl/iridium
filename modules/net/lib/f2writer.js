@@ -26,6 +26,6 @@
 			buffer.write( packet, 4 );
 			buffer.write( "\u0000\u0000", packet.length + 13 );
 
-			this.emit( "buffer", buffer );
+			return buffer;
 		}
 	} );

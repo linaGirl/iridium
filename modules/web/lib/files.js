@@ -247,6 +247,8 @@
 				// compile changed files
 				this.__compileMJS();
 			}
+			
+			this.emit( "load" );
 		}
 
 
