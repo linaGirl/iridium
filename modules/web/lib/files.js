@@ -135,13 +135,25 @@
 			switch ( event ){
 
 				case "change":
-					loadFile( path );
+					fs.stat( path, function( err, stats ){
+						if ( err ) throw err;
+
+						if ( stats.isDirectory() ){
+							this.__load( path );
+						}
+						else if ( stats.isFile() ){
+							this.__loadFile( path, function(){
+								this.__compile( [ webPath ] );
+							}.bind( this ) );
+						}
+
+					}.bind( this ) );
 					break;
 
 				case "rename": // aka delete, move, create
 					fs.exists( path, function( exists ){
 						if ( exists ){
-							fs.stats( path, function( err, stats ){
+							fs.stat( path, function( err, stats ){
 								if ( err ) throw err;
 
 								if ( stats.isDirectory() ){
@@ -266,7 +278,7 @@
 				}
 			}
 
-			log.info( "mjs compiler finished ...", this );
+			// log.info( "mjs compiler finished ...", this );
 		}
 
 
