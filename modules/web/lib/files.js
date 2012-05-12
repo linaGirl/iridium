@@ -45,7 +45,9 @@
 
 
 
-
+		, exists: function( path ){
+			return !!this.__files[ path ];
+		}
 
 
 		, get: function( path ){
@@ -91,16 +93,19 @@
 				if ( err ) throw err;
 
 				if ( this.__files[ webPath ] ){
-					this.__files[ webPath ].file = file;
+					this.__files[ webPath ].file = this.__files[ webPath ].binary ? file : file.toString( "utf-8" ) ;
+					this.__files[ webPath ].length = file.length;
 					this.__files[ webPath ].etag = crypto.createHash( "sha1" ).update( file ).digest( "hex" );
 					this.__files[ webPath ].time = Date.now();
 				}
 				else {
 					this.__files[ webPath ] = { 
-						file: file
+						file: util.mime.isBinary( ext ) ? file : file.toString( "utf-8" )
+						, length: file.length
 						, extension: ext
+						, binary: util.mime.isBinary( ext )
 						, type: util.mime.get( ext )
-						, path: filePath 
+						, path: filePath
 						, time: Date.now()
 						, etag: crypto.createHash( "sha1" ).update( file ).digest( "hex" )
 					};
