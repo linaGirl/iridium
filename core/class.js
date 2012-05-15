@@ -1,12 +1,26 @@
 
 	var clone = function( input ){
-		var result = Object.create( input )
-			, keys = Object.keys( result )
-			, i = keys.length;
+		var result = Object.prototype.toString.apply( input ) === "[object Array]" ? [] : {}
+			, keys = Object.keys( input )
+			, i = keys.length
+			, current;
 
 		while( i-- ){
-			if ( typeof result[ keys[ i ] ] === "object" ){
-				result[ keys[ i ] ] = clone( result[ keys[ i ] ] );
+			current = input[ keys[ i ] ];
+			if ( typeof current === "object" ){
+				console.log( current, Object.prototype.toString.apply( current ) )
+				if ( current === null ){
+					result[ keys[ i ] ] = null;
+				}
+				else if ( Object.prototype.toString.apply( current ) === "[object Array]" ){
+					result[ keys[ i ] ] = current.slice();
+				}
+				else {
+					result[ keys[ i ] ] = clone( current );
+				}
+			}
+			else {
+				result[ keys[ i ] ] = current;
 			}
 		}
 
