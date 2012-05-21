@@ -36,7 +36,6 @@
 				if ( exists ) {
 					this.__load( this.__path );
 					this.__watch();
-					setTimeout( function(){ log.dir( this.__files); }.bind( this ), 1000 );
 				}
 				else {
 					throw new Error( "cannot load web files: the path [" + this.__path + "] does not exist!" );
@@ -90,8 +89,6 @@
 			var webPath = filePath.substr( this.__path.length )
 				, ext = webPath.substr( webPath.lastIndexOf( "." ) + 1 );
 
-			console.log( filePath, webPath, ext );
-
 			fs.readFile( filePath, function( err, file ){
 				if ( err ) throw err;
 
@@ -122,7 +119,7 @@
 					// DIRECTORY INDEX
 					if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
 						var idxPath = webPath.substr( 0, webPath.lastIndexOf( "/" ) ) + "/" ;
-						
+
 						this.__files[ idxPath ] = this.__files[ webPath ];							
 						this.emit( "change", {
 							path: idxPath
