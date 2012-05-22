@@ -227,6 +227,7 @@
 						this.__files[ files[ i ] ].file = this.__prepareMJsFile( files[ i ], this.__files[ files[ i ] ].file );
 						this.__files[ files[ i ] ].etag = crypto.createHash( "sha1" ).update( this.__files[ files[ i ] ].file ).digest( "hex" );
 						this.__files[ files[ i ] ].time = Date.now();
+						this.__files[ files[ i ] ].length = Buffer.byteLength( this.__files[ files[ i ] ].file );
 
 						this.emit( "change", {
 							path: files[ i ]
@@ -257,6 +258,7 @@
 						fileInfo[ files[ i ] ] = this.__flattenMJsFile( files[ i ], this.__files[ files[ i ] ].file );
 					}
 				}
+
 
 				// update depency graph
 				this.__updateDepencyGraph( fileInfo );
@@ -301,7 +303,6 @@
 				, loadedModulesCopy = []
 				, d, k;
 
-			
 			log.info( "compiling " + ( loadedModules ? "entrypoint ": "" ) + "module [" + fileKey + "] ...", this );
 
 			while( i-- ){
@@ -321,6 +322,12 @@
 				}
 			}
 
+			// add actual file
+			if ( this.__graph[ fileKey ].entrypoint ){
+				file += "\n// module code\n\n" + this.__graph[ fileKey ].file;
+			}
+
+
 			// compile deferring modules
 			k = deferred.length;
 			while( k-- ){
@@ -335,6 +342,7 @@
 			this.__files[ fileKey ].file = file;
 			this.__files[ fileKey ].etag = crypto.createHash( "sha1" ).update( this.__files[ fileKey ].file ).digest( "hex" );
 			this.__files[ fileKey ].time = Date.now();
+			this.__files[ fileKey ].length = Buffer.byteLength( this.__files[ fileKey ].file );
 
 			this.emit( "change", {
 				path: fileKey
@@ -371,7 +379,7 @@
 
 
 		, __updateDepencyGraph: function( files ){
-			
+
 			// add to depencygraph
 			var keys = Object.keys( files ), i = keys.length, current;
 			while( i-- ){
@@ -434,8 +442,8 @@
 
 			var   modulesReg = /require\s*\(\s*"(.+)"\s*\)/gi
 				, defferedModuleReg = /require\s*\(\s*"(.+)"\s*[^\)\s]+/gi
-				, iridiumModulesReg = /iridium\.module\s*\(\s*"(.+)"\s*\)/gi
-				, iridiumCoreReg = /iridium\s*\(\s*"(.+)"\s*\)/gi
+				, iridiumModulesReg = /iridium\s*\(\s*"(.+)"\s*\)/gi
+				, iridiumCoreReg = /iridium\s*\(\s*"(class|events)"\s*\)/gi
 				, regResult
 				, replacements = {}
 				, modules = []
@@ -453,9 +461,10 @@
 
 			// extract the regular modules
 			while( regResult = modulesReg.exec( file ) ){
-				replacements[ regResult[ 1 ] ] = path.join( filePath_, regResult[ 1 ] ); 				
+				replacements[ regResult[ 1 ] ] = path.join( filePath_, "../", regResult[ 1 ] + ".mjs" ); 				
 				modules.push( { type: "normal", module: replacements[ regResult[ 1 ] ] } );
 			}
+
 
 			// replace relative paths with absolute paths
 			keys = Object.keys( replacements );
@@ -465,13 +474,6 @@
 				file = file.replace( new RegExp( "require\\s*\\(\\s*\"" + keys[ i ] + "\"\\s*\\)", "gi" ), "require( \"" + replacements[ keys[ i ] ] + "\" )" );
 			}
 
-			// extract iridium modules
-			while( regResult = iridiumModulesReg.exec( file ) ) {
-				current = path.join( this.__iridiumPath, "modules", regResult[ 1 ], "index.mjs" );
-				modules.push( { type: "normal", module: current } );
-				file = file.replace( new RegExp( "iridium\\.module\\s*\\(\\s*\"" + regResult[ 1 ] + "\"\\s*\\)", "gi" ), "require( \"" + current + "\" )" );
-			}
-
 			// extract iridium core modules
 			while( regResult = iridiumCoreReg.exec( file ) ){
 				current = path.join( this.__iridiumPath, "core", regResult[ 1 ] + ".mjs" );
@@ -479,8 +481,15 @@
 				file = file.replace( new RegExp( "iridium\\s*\\(\\s*\"" + regResult[ 1 ] + "\"\\s*\\)", "gi" ), "require( \"" + current + "\" )" );
 			}
 
+			// extract iridium modules
+			while( regResult = iridiumModulesReg.exec( file ) ) {
+				current = path.join( this.__iridiumPath, "modules", regResult[ 1 ], "index.mjs" );
+				modules.push( { type: "normal", module: current } );
+				file = file.replace( new RegExp( "iridium\\s*\\(\\s*\"" + regResult[ 1 ] + "\"\\s*\\)", "gi" ), "require( \"" + current + "\" )" );
+			}
+
 			file = "( function(){ module = { exports: {} };\n" + file;
-			file += "\nwindow.__modules[ \"" + filePath_ + "\" ] = { module: module.exports, status: \"loaded\" }; } )();";
+			file += "\nwindow.__modules[ \"" + filePath_ + ".mjs\" ] = { module: module.exports, status: \"loaded\" }; } )();";
 
 			return { depencies: modules, file: file, entrypoint: isEntrypoint };
 		}
@@ -490,7 +499,7 @@
 
 
 
-		// make paths absolut, add prefixes for iridium modules, add pre & suffix for clientside depency loading
+		// make paths absolute, add prefixes for iridium modules, add pre & suffix for clientside depency loading
 		, __prepareMJsFile: function( filePath_, file ){
 
 			file = file.toString();

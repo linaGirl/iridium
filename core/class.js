@@ -1,5 +1,7 @@
 
 	var clone = function( input ){
+		if ( input === null ) return null;
+		
 		var result = Object.prototype.toString.apply( input ) === "[object Array]" ? [] : {}
 			, keys = Object.keys( input )
 			, i = keys.length
