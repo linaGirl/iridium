@@ -1,7 +1,15 @@
 	
 	require( "./" )( "iridium test", 1 );
+
+	var net = iridium( "net" )
+		, log = iridium( "log");
+
+	var x = new net.RepSocket( {
+		on: {
+			listening: function(a){ log.dir( a )}
+		}
+	} );
  	
- 	iridium( "db" );
 /*
 
 	var Socket = iridium.module( "net" ).Socket

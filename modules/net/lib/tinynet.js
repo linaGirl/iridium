@@ -19,55 +19,23 @@
 
 
 		, __connections: {}
-		, __processId: ""
-		, __uidCounter: Math.round( Math.random() * 0xFFFF ) // init vector for process id
 
 
 
 		, init: function(){
-			this.__processId = process.pid + "" + Date.now();
-		}
-
-
-		, __prepareConnection: function( host, port, id ){
-			if ( ! this.__connections[ id ] ){
-				this.__connections[ id ] = new TinyConnection( {
-					id: id
-					, host: host
-					, port: port
-				} );
-			}
-
-			return this.__connections[ id ];
+			this.__listen();
 		}
 
 
 
-		, getConnection: function( host, port ){
-			var id = host + ":" + port;
-
-			// request the connection @ the pool
-			var connection = ;
-
-			// return virtual connection
-			return new TinyVirtualConnection( {
-				host: host
-				, port: port
-				, connectionId: id
-				, id: this.__uid()
-				, connection: this.__prepareConnection( host, port, id )
-			} );
-		}
-
-
-
-
-		, __uid: function(  ){
-			return crypto.createHash( "sha512" ).update( this.__processId + "" + ( this.__uidCounter++ ) + "" + Math.random() ).digest( "binary" );
+		, listen: function(){
+			
 		}
 	} );
 
 
+
+	
 
 
 

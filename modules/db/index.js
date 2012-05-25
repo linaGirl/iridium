@@ -1,8 +1,9 @@
 
 
 
-	var MongoDB = require( iridium.path + "modules/db/dep/node-mongolian/mongolian" )
-		, mysql = require( iridium.path + "modules/db/dep/node-mysql" )
+	var MongoDB = require( "./dep/node-mongolian/mongolian" )
+		, mysql = require( "./dep/node-mysql" )
+		, OrientDB = require( "./lib/orientdb" )
 		, log = iridium( "log" );
 
 
@@ -27,6 +28,8 @@
 				process.exit();
 			}
 		}
+
+		, OrientDB: OrientDB
 
 		, MySQL: function( options ){
 			return mysql.createClient( options );

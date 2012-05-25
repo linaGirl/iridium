@@ -13,7 +13,7 @@
 		, emit: function( event ){
 			var args = arguments;
 			// emit awas on next tick
-			process.nextTick( function(){
+			//process.nextTick( function(){
 				var i, current;
 
 				if ( this.$events[ event ] ){
@@ -29,7 +29,7 @@
 						}
 					}
 				}
-			}.bind( this ) );
+			//}.bind( this ) );
 		}
 
 
@@ -78,7 +78,7 @@
 				this.$events = {};
 			}
 
-			this.emit( "removeListener", events, listener );
+			this.emit( "removeListener", event, listener );
 		}
 
 

@@ -22,19 +22,7 @@
 
 
 		, init: function( options ){
-
-
-			// buffer
-			this.__buffer = new TinyBuffer( {
-				on: {
-					free: function(){
-						// the buffer did become space again ...
-						this.__bufferIsFree = true;
-					}.bind( this )
-				}
-			} );
-
-
+			
 			// protocol
 			this.__reader = new f2.Reader();
 			this.__writer = new f2.Writer();		

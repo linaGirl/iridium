@@ -443,7 +443,7 @@
 			var   modulesReg = /require\s*\(\s*"(.+)"\s*\)/gi
 				, defferedModuleReg = /require\s*\(\s*"(.+)"\s*[^\)\s]+/gi
 				, iridiumModulesReg = /iridium\s*\(\s*"(.+)"\s*\)/gi
-				, iridiumCoreReg = /iridium\s*\(\s*"(class|events)"\s*\)/gi
+				, iridiumCoreReg = /iridium\s*\(\s*"(class|events|domready)"\s*\)/gi
 				, regResult
 				, replacements = {}
 				, modules = []
