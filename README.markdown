@@ -1,5 +1,7 @@
 # iridium framwework 
 
+the docs a re deprecated, sorry :( so dont even read them, there are many changes!
+
 the irdium framework is used to create distributed high performance applications for the web. it provides basic abstractions for several software layers so the programmer can focus on implementing the application itself. Beside this it provides some basic modules like a Class implementation, simpler Events abstration, an advanced logging facility and a stats data collector ( analyzer is a separate project depending on this framework ).
 
 the complete framework code runs under the "strict mode".
