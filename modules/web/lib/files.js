@@ -163,6 +163,7 @@
 
 								if ( stats.isDirectory() ){
 									this.__load( path );
+									this.__watch( path );
 								}
 								else if ( stats.isFile() ){
 									this.__loadFile( path, function(){
@@ -388,6 +389,7 @@
 				if ( ! this.__graph[ keys[ i ] ] ) {
 					this.__graph[ keys[ i ] ]  = { 
 						  dependsOn: {}
+						, deferred: {}
 						, depencyOf: {}
 						, deferredDepencyOf: {}
 						, entrypoint: false 
