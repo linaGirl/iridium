@@ -3,6 +3,7 @@
 
 	var MongoDB = require( "./dep/node-mongolian/mongolian" )
 		, mysql = require( "./dep/node-mysql" )
+		, mysqlQueues = require( "./dep/node-mysql-queues" )
 		, OrientDB = require( "./lib/orientdb" )
 		, log = iridium( "log" );
 
@@ -32,6 +33,8 @@
 		, OrientDB: OrientDB
 
 		, MySQL: function( options ){
-			return mysql.createClient( options );
+			var client = mysql.createClient( options );
+			mysqlQueues( client, false );
+			return client;
 		}
 	}
