@@ -2,13 +2,6 @@
 	
 	
 
-	var net = module.exports = {
-
-		/// a protocol handler
-		F2: require( "./lib/f2" )
+	module.exports = {
 		
-		, RepSocket: require( "./lib/repsocket" )
 	};
-
-
-	

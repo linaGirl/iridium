@@ -97,6 +97,8 @@
 					this.__files[ webPath ].length = file.length;
 					this.__files[ webPath ].etag = crypto.createHash( "sha1" ).update( file ).digest( "hex" );
 					this.__files[ webPath ].time = Date.now();
+
+
 				}
 				else {
 					this.__files[ webPath ] = { 
@@ -115,18 +117,18 @@
 						, action: "set"
 						, file: this.__files[ webPath ]
 					} );
+				}
 
-					// DIRECTORY INDEX
-					if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
-						var idxPath = webPath.substr( 0, webPath.lastIndexOf( "/" ) ) + "/" ;
+				// DIRECTORY INDEX
+				if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
+					var idxPath = webPath.substr( 0, webPath.lastIndexOf( "/" ) ) + "/" ;
 
-						this.__files[ idxPath ] = this.__files[ webPath ];							
-						this.emit( "change", {
-							path: idxPath
-							, action: "set"
-							, file: this.__files[ idxPath ]
-						} );
-					}
+					this.__files[ idxPath ] = this.__files[ webPath ];							
+					this.emit( "change", {
+						path: idxPath
+						, action: "set"
+						, file: this.__files[ idxPath ]
+					} );
 				}
 
 				callback();

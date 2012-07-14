@@ -21,6 +21,15 @@
 					this.__argv[ item ] = null;
 				}
 			}.bind( this ) );
+
+			var stat = require( "fs" ).statSync( process.argv[ 1 ] );
+			if ( stat.isDirectory() ){
+				this.__callingPath = process.argv[ 1 ] + "/";
+			}
+			else {
+				this.__callingPath = process.argv[ 1 ].substr( 0, process.argv[ 1 ].lastIndexOf( "/" ) + 1 );
+			}
+			
 		}
 
 
@@ -31,5 +40,10 @@
 
 		, get: function( key ){
 			return this.__argv[ key ];
+		}
+
+
+		, getCallingPath: function(){
+			return this.__callingPath;
 		}
 	} ) )();

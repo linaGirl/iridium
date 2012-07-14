@@ -1,14 +1,15 @@
 	
 	require( "./" )( "iridium test", 1 );
 
-	var net = iridium( "net" )
-		, log = iridium( "log");
+	var net = iridium( "net" );
 
-	var x = new net.RepSocket( {
-		on: {
-			listening: function(a){ log.dir( a )}
-		}
+
+	var pub = new net.PubSocket( {
+		name: "newasAboutFabian"
 	} );
+
+
+
  	
 /*
 

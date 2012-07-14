@@ -25,15 +25,17 @@
 
 	// path
 	iridium.path = path;
+	iridium.root = path.substr( 0, path.substr( 0, path.length - 1 ).lastIndexOf( "/" ) + 1 );
+	iridium.app = {
+		root: iridium( "util" ).argv.getCallingPath()
+	};
+	iridium.app.user = iridium.app.root + "user/";
 	
 
 	// print iridium intro
 	module.exports = function( productName, version ){
 		printLogo( productName, version );
 	};
-
-
-
 
 
 
