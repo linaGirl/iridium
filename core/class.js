@@ -1,4 +1,3 @@
-
 	var clone = function( input ){
 		if ( input === null ) return null;
 		
@@ -30,89 +29,59 @@
 	}
 
 
-	module.exports = function( classDefinition ){
-		classDefinition = classDefinition || {} ;
 
-		var classProperties = {}
-			, doesInherit = classDefinition.inherits && classDefinition.inherits.$baseClass
-			, baseClass = doesInherit ? Object.create( classDefinition.inherits.$baseClass, classDefinition.inherits.$classProperties ) : {} ;
-
-
-		var keys = Object.keys( baseClass )
-			, i = keys.length
-			, current;
+	var createProperty = function( input ){
+		return {
+			value: input
+			, writable: true
+			, configurable: true
+			, enumerable: true
+		};
+	}
 
 
-
-		// append object properties from inherited class
-		if ( doesInherit ){
-			while( i-- ){
-				current = baseClass[ keys[ i ] ];
-
-				if ( typeof current === "object" ){
-					//console.log( keys[ i ], current);
-					classProperties[ keys[ i ] ] = { value: clone( current ), writable: true, configurable: true, enumerable: true };
-				}
-				else if ( typeof current !== "function" ){
-					classProperties[ keys[ i ] ] = { value: current, writable: true, configurable: true, enumerable: true };
-				}
-			}
-		}
-
-
-		// separate methods from data, clone objects
-		keys = Object.keys( classDefinition ), i = keys.length;
+	var createProperties = function( input ){
+		var keys = Object.keys( input ), i = keys.length, result = {};
 		while( i-- ){
-			current = classDefinition[ keys[ i ] ];
-
-			if ( typeof current === "function" ){
-				baseClass[ keys[ i ] ] = current;
-			}
-			else if ( typeof current === "object" ){
-				classProperties[ keys[ i ] ] = { value: clone( current ), writable: true, configurable: true, enumerable: true };
-			}
-			else {
-				classProperties[ keys[ i ] ] = { value: current, writable: true, configurable: true, enumerable: true };
+			if ( keys[ i ] !== "inherits" ){
+				result[ keys[ i ] ] = createProperty( input[ keys[ i ] ] );
 			}
 		}
 
+		return result;
+	}
 
 
-		// return the class contructor
-		var Class = function( options ){
-			var okeys = Object.keys( classProperties ), i = okeys.length, newClassProperties = {};
-			while( i-- ){
-				if ( typeof classProperties[ okeys[ i ] ].value === "object" ){
-					newClassProperties[ okeys[ i ] ] = { value: clone( classProperties[ okeys[ i ] ].value ), writable: true, configurable: true, enumerable: true };
-				}
-				else {
-					newClassProperties[ okeys[ i ] ] = classProperties[ okeys[ i ] ];
-				}
-			}
 
-			var classInstance = Object.create( baseClass, newClassProperties );
+	module.exports = function( definition ){
+		var baseclass = definition.inherits ? ( definition.inherits.___iridium_baseclass ? definition.inherits.___iridium_baseclass : definition.inherits ) : {}
+			, properties = createProperties( definition )
+			, ref = Object.create( clone ( baseclass ), clone( properties ) );
 
-			// debugging stuff, a bit stupid
-			var modulename = ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ];
-			if ( /index.js/.test( modulename ) ) modulename = ( /.*\n.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( new Error().stack ) || [ "", "" ] )[ 1 ] || modulename;
-			classInstance.$id = ( classInstance.$id || "-" ) + " <" + modulename + ">" ;
+		var constructor = function( options ){
+			var parent = clone ( baseclass )
+				, instance = Object.create( parent, clone( properties ) )
+				, stacktrace = new Error().stack
+				, modulename = ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( stacktrace ) || [ "", "" ] )[ 1 ];
 
-			// constructor
-			if ( classInstance.init ){
-				var result = classInstance.init( options || {} );
+			if ( /index.js/.test( modulename ) || /class.js/.test( modulename ) ) modulename = ( /.*\n.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( stacktrace ) || [ "", "" ] )[ 1 ] || modulename;
+			instance.$id = ( instance.$id || "-" ) + " <" + modulename + ">" ;
+
+			instance.parent = parent;
+			if ( options && options.on && instance.$events ) instance.on( options.on );
+
+			if ( typeof instance.init === "function" ) {
+				var result = instance.init( options || {} );
 				if ( typeof result === "object" ){
-					classInstance = result;
+					instance = result;
 				}
 			}
 
-			// events
-			if ( options && options.on && classInstance.$events ) classInstance.on( options.on );
-			return classInstance;
-		}
+			
+			return instance;
+		} ;
 
-		// store references for inheritance
-		Class.$baseClass = baseClass;
-		Class.$classProperties = classProperties;
+		Object.defineProperty( constructor, "___iridium_baseclass", { value: ref, writable: false, configurable: false, enumerable: false } );
 
-		return Class;
+		return constructor
 	}

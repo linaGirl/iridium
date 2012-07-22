@@ -15,7 +15,6 @@
 			// emit awas on next tick
 			//process.nextTick( function(){
 				var i, current;
-
 				if ( this.$events[ event ] ){
 					i = this.$events[ event ].length;
 					while( i-- ){
@@ -25,6 +24,7 @@
 							if ( current.once ) this.$events[ event ].splice( i, 1 );
 						}
 						else {
+							throw new Error( "cannot emit event [" + event + "], listener is typeof [" + typeof current.listener + "]!" );
 							this.$events[ event ].splice( i, 1 );
 						}
 					}

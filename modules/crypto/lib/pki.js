@@ -9,61 +9,12 @@
 
 
 
-	module.exports = Class( {
+	module.exports = new ( Class( {
 		$id: "crypto.pki"
 
 
-		, __ca: {
-			key: ""
-			, cert: ""
-		}
-
-
-
-		, init: function( options ){
-			if ( options.ca ){
-				this.__ca = options.ca;
-			}
-		}
-
-
-
-
-
-
 		, cert: function( options, callback ){
-			var ca = options.ca || this.__ca;
-
-			console.log( [
-				  "genrsa"
-				, ( options.bits || "1024" )
-			].join( " " ) );
-
-			console.log([
-						  "req"
-						, "-new"
-						, "-key"
-						, "/dev/stdin"
-						, "-subj"
-						, this.__subject( options )
-					].join( " " ));
-
-			console.log([
-								  "x509"
-								, "-req"
-								, "-in"
-								, "/dev/stdin"
-								, "-CA"
-								, "/dev/stdin"
-								, "-CAkey"
-								, "/dev/stdin"
-								, "-CAcreateserial"
-								, "-passin"
-								, "pass:" + ca.options.passphrase
-								, "-days"
-								, ( options.days || 36500 )
-							].join( " " ));
-
+			var ca = options.ca;
 
 			this.__openssl( [
 				  "genrsa"
@@ -76,6 +27,8 @@
 						, "-new"
 						, "-key"
 						, "/dev/stdin"
+						, "-outform"
+						, "PEM"
 						, "-subj"
 						, this.__subject( options )
 					], [ key ], function( exitCode, stdout, stderr ){
@@ -92,7 +45,8 @@
 								, "-CAcreateserial"
 								, "-passin"
 								, "pass:" + ca.options.passphrase
-								, "-pubkey"
+								, "-outform"
+								, "PEM"
 								, "-days"
 								, ( options.days || 36500 )
 							], [ stdout, ca.cert, ca.key ], function( exitCode, stdout, stderr ){
@@ -125,7 +79,40 @@
 
 
 
+
+		, p12: function( options, callback ){
+			var parameters = [
+				  "pkcs12"
+				, "-export"
+				, "-in"
+				, "/dev/stdin"
+			]
+			, stdin = [ options.key.toString() + "\n"  + options.cert.toString()  ];
+			console.log( "=====================", options.cert.toString().trim()  + "\n" + options.key.toString() );
+			if ( options.keyPassphrase ){
+				parameters.push( "-passin" );
+				parameters.push( "pass:" + options.keyPassphrase );
+			}
+
+			if ( options.caCert ){
+				parameters.push( "-certfile" );
+				parameters.push( "/dev/stdin" );
+				stdin.push( options.caCert );
+			}
+
+			this.__openssl( parameters, stdin, function( exitCode, stdout, stderr ){
+				console.log( exitCode, stderr.toString(), stdout.toString() );
+			}.bind( this ) );
+		}
+
+
+
+
+
+
 		, ca: function( options, callback ){
+			var ca = {};
+
 			this.__openssl( [
 				  "genrsa"
 				, "-des3"
@@ -136,7 +123,7 @@
 				if ( exitCode === 0 ){
 
 					// store
-					this.__ca.key = stdout;
+					ca.key = stdout;
 
 					this.__openssl( [
 						  "req"
@@ -154,9 +141,9 @@
 
 						if ( exitCode === 0 ){
 							// store
-							this.__ca.cert = stdout;
-							this.__ca.options = options;
-							callback( null, this.__ca );
+							ca.cert = stdout;
+							ca.options = options;
+							callback( null, ca );
 						}
 						else {
 							callback( new Error( "failed to create ca: " + stderr ) );
@@ -189,17 +176,13 @@
 			var openssl = spawn( "openssl", parameters )
 				, stdout = new Buffer( 0 ) , stderr = new Buffer( 0 );
 
-
 			var writeToStdIn = function(){
 				if ( Array.isArray( stdin ) ) {
 					if ( stdin.length > 0 ){
-						//log.warn( "WRITING >>>" );
-						//console.log( stdin[ 0 ] );
-						//log.warn( "<<<<" );
 						if ( stdin.length > 1 ){
 							openssl.stdin.write( stdin.shift() );
 						}
-						else {
+						else if( stdin.length > 0 ) {
 							openssl.stdin.end( stdin.shift() );
 						}
 					}
@@ -209,7 +192,6 @@
 
 			writeToStdIn();
 
-
 			openssl.stdout.on( "data", function( data ){
 				if ( data.length > 0 ) {
 					var tbuf = new Buffer( stdout.length + data.length );
@@ -217,33 +199,26 @@
 					data.copy( tbuf, stdout.length );
 					stdout = tbuf;
 				}
-				//log.info( data.toString() );
 			}.bind( this ) );
 
 
-			openssl.stderr.on( "data", function( data ){
-				
-				
+			openssl.stderr.on( "data", function( data ){				
 				if ( data.length > 0 ) {
 					var tbuf = new Buffer( stderr.length + data.length );
 					stderr.copy( tbuf );
 					data.copy( tbuf, stderr.length );
 					stderr = tbuf;
 				}
-				//log.error( data.toString() );
 				var t = stderr.toString();
 
 				if ( t.substr( t.length - "Signature ok".length - 1 ).indexOf ( "Signature ok" ) >= 0 ||  t.substr( t.length - "Getting CA Private Key".length - 1 ).indexOf ( "Getting CA Private Key" ) >= 0 ){
 					writeToStdIn();
-				}
+				};
 			}.bind( this ) );
 
 
 			openssl.on( "exit", function( code ){
-				//log.warn( "exited with code " + code );
 				callback( code, stdout, stderr );
 			}.bind( this ) );
-
-
 		}
-	} );
+	} ) )();
