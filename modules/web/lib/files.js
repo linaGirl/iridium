@@ -25,6 +25,9 @@
 		// depency graph
 		, __graph: {}
 
+		// depency graph for the includes
+		, __includeGraph: {}
+
 
 
 
@@ -270,8 +273,73 @@
 				this.__compileMJS();
 			}
 			
+
+			// do the includes
+			this.__compileIncludes();
+		}
+
+
+
+		, __compileIncludes: function(){
+			var keys = Object.keys( this.__files ), i = keys.length, current;
+
+			this.__includeGraph = {};
+
+			// collect depencies
+			while( i-- ){
+				var current = this.__files[ keys[ i ] ]
+					, reg = /@iridium\s*\(\s*([^\)]+)\s*\)\s*\;/gi
+				
+				if ( !current.isBinary ){
+					while( result = reg.exec( this.__files[ keys[ i ] ].file ) ){
+						mypath = result[ 1 ].substr( 0, 1 ) === "/" ? result[ 1 ] : path.join( path.dirname( keys[ i ] ), result[ 1 ] );
+
+						if ( ! this.__includeGraph[ keys[ i ] ] ) this.__includeGraph[ keys[ i ] ] = { includedBy: [], includes: [], includeIds: [] };
+						if ( ! this.__includeGraph[ mypath ] ) this.__includeGraph[ mypath ] = { includedBy: [], includes: [], includeIds: [] };
+
+						this.__includeGraph[ keys[ i ] ].includes.push( mypath );
+						this.__includeGraph[ keys[ i ] ].includeIds.push( result[ 1 ] );
+						this.__includeGraph[ mypath ].includedBy.push( keys[ i ] );
+					}
+				}
+			}
+			//log.dir(this.__includeGraph);
+
+			// compile
+			keys = Object.keys( this.__includeGraph ), i = keys.length;
+			while( i-- ){
+				current = this.__includeGraph[ keys[ i ] ];
+				if ( current.includedBy.length === 0 && current.includes.length > 0 ){
+					// a toplevel module
+					this.__compileIncludeFile( keys[ i ], [] ) ;
+				}
+			}
+
+
 			this.emit( "load" );
 		}
+
+
+
+		, __compileIncludeFile: function( file, parents ){
+			var i = this.__includeGraph[ file ].includes.length;
+
+			// toplevel file
+			if ( i === 0 ) return this.__files[ file ] ? this.__files[ file ].file: "Exception: include file [" + file + "] does not exist!";
+
+			// dont do loops
+			if ( parents.indexOf( file ) >= 0 ) return "Exception: include loop for include [" + file + "] !";
+			parents.push( file );
+
+			while( i-- ){
+				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//gi, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], parents ) );
+			}
+			this.__files[ file ].etag = crypto.createHash( "md5" ).update( this.__files[ file ].file ).digest( "hex" );
+			this.__files[ file ].length = Buffer.byteLength( this.__files[ file ].file );
+			return this.__files[ file ].file;
+		}
+
+
 
 
 

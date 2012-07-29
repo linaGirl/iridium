@@ -62,6 +62,17 @@
 
 
 
+		// highlight a message
+		, security: function highlight(){
+			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
+			console.log( this.__createSignature( logs.source ) + logs.text.cyan.bold );
+
+			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
+				this.dir( logs.dir[ i ] );
+			}
+		}
+
+
 
 		// extract message
 		, __extractMessage: function extract( items ){

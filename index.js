@@ -8,7 +8,8 @@
 		, mpath = path + "modules/"
 		, cpath = path + "core/"
 		, log = require( "./core/log" )
-		, fs = require( "fs" );
+		, fs = require( "fs" )
+		, cluster = require( "cluster" );
 
 
 
@@ -33,8 +34,8 @@
 	
 
 	// print iridium intro
-	module.exports = function( productName, version ){
-		printLogo( productName, version );
+	module.exports = function( productName, version, dontPrint ){
+		if ( cluster.isMaster ) printLogo( productName, version );
 	};
 
 

@@ -57,7 +57,7 @@
 		var baseclass = definition.inherits ? ( definition.inherits.___iridium_baseclass ? definition.inherits.___iridium_baseclass : definition.inherits ) : {}
 			, properties = createProperties( definition )
 			, ref = Object.create( clone ( baseclass ), clone( properties ) );
-
+			
 		var constructor = function( options ){
 			var parent = clone ( baseclass )
 				, instance = Object.create( parent, clone( properties ) )
