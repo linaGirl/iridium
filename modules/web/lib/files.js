@@ -1,11 +1,16 @@
 
-	var Class = iridium( "class" )
-		, Events = iridium( "events" )
-		, util = iridium( "util" )
-		, fs = require( "fs" )
-		, path = require( "path" )
-		, crypto = require( "crypto" )
-		, log = iridium( "log" );
+	var   Class 		= iridium( "class" )
+		, Events 		= iridium( "events" )
+		, util 			= iridium( "util" )
+		, log 			= iridium( "log" );
+
+
+	var	  fs 			= require( "fs" )
+		, path 			= require( "path" )
+		, crypto 		= require( "crypto" );
+
+
+	var   hogan			= require( "../dep/hogan.js/lib/hogan.js" );
 
 
 
@@ -281,16 +286,24 @@
 
 
 		, __compileIncludes: function(){
-			var keys = Object.keys( this.__files ), i = keys.length, current;
+			var keys = Object.keys( this.__files ), i = keys.length, current, reg, hit;
 
 			this.__includeGraph = {};
 
+
+
 			// collect depencies
 			while( i-- ){
-				var current = this.__files[ keys[ i ] ]
-					, reg = /@iridium\s*\(\s*([^\)]+)\s*\)\s*\;/gi
+				current = this.__files[ keys[ i ] ];
+				reg = /@iridium\s*\(\s*([^\)]+)\s*\)\s*\;/gi;
+				hit = false;
 				
 				if ( !current.isBinary ){
+					// reset
+					//console.log( !!current.original, current.time, current.originalTime, current.path );
+					// reset to original unless the file was reloaded 
+					if ( current.original && current.time === current.originalTime ) current.file = current.original;
+
 					while( result = reg.exec( this.__files[ keys[ i ] ].file ) ){
 						mypath = result[ 1 ].substr( 0, 1 ) === "/" ? result[ 1 ] : path.join( path.dirname( keys[ i ] ), result[ 1 ] );
 
@@ -300,10 +313,20 @@
 						this.__includeGraph[ keys[ i ] ].includes.push( mypath );
 						this.__includeGraph[ keys[ i ] ].includeIds.push( result[ 1 ] );
 						this.__includeGraph[ mypath ].includedBy.push( keys[ i ] );
+
+						// preserve the originals
+						if ( !hit ){
+							hit = true;
+							this.__files[ keys[ i ] ].original = this.__files[ keys[ i ] ].file;
+							this.__files[ keys[ i ] ].originalTime = this.__files[ keys[ i ] ].time;
+
+							this.__files[ mypath ].original = this.__files[ mypath ].file;
+							this.__files[ mypath ].originalTime = this.__files[ mypath ].time;
+						}						
 					}
 				}
 			}
-			//log.dir(this.__includeGraph);
+			//log.dir(this.__includeGraph );
 
 			// compile
 			keys = Object.keys( this.__includeGraph ), i = keys.length;
@@ -316,7 +339,7 @@
 			}
 
 
-			this.emit( "load" );
+			this.__compileTemplates();
 		}
 
 
@@ -334,12 +357,31 @@
 			while( i-- ){
 				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//gi, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], parents ) );
 			}
-			this.__files[ file ].etag = crypto.createHash( "md5" ).update( this.__files[ file ].file ).digest( "hex" );
+			this.__files[ file ].etag = crypto.createHash( "sha1" ).update( this.__files[ file ].file ).digest( "hex" );
 			this.__files[ file ].length = Buffer.byteLength( this.__files[ file ].file );
 			return this.__files[ file ].file;
 		}
 
 
+
+
+
+
+		, __compileTemplates: function(){
+			var keys = Object.keys( this.__files ), i = keys.length, current;
+
+			while( i-- ){
+				current = this.__files[ keys[ i ] ];
+
+				if ( current.extension === "tpl" ){
+					current.isTemplate = true;
+					current.template = hogan.compile( current.file );
+				}
+			}
+
+
+			this.emit( "load" );
+		}
 
 
 
