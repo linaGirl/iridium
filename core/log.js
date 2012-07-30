@@ -265,7 +265,7 @@
 			result += this.__pad( date.getMilliseconds(), 3 );
 
 			result += " > "
-			result += this.__pad( ( source || "-" ), 30, " " );
+			result += this.__pad( ( source || "-" ), 36, " " );
 			result += " >>> "
 
 			return result.grey;
