@@ -1,87 +1,49 @@
-	var clone = function( input ){
-		if ( input === null ) return null;
+	
+
+	// deep instantiate an object ( create new object from existing ones, set original prototype, set properties );
+	var instantiate = function( obj, proto ){
+		var newObj = Array.isArray( obj ) ? obj.slice() : Object.create( proto ? proto : ( ( !Object.prototype.hasOwnProperty.call( obj, "__proto__" ) && obj.__proto__ ) ? obj.__proto__ : null ), getProperties( obj ) );
+		var keys = Object.keys( newObj ), i = keys.length;
+		while( i-- ) if ( typeof( newObj[ keys[ i ] ] ) === "object" && newObj[ keys[ i ] ] !== null ) newObj[ keys[ i ] ] = instantiate( newObj[ keys[ i ] ] );
+		return newObj;
+	}
+
+	// create properties objects
+	var getProperties = function( obj ){
+		var keys = Object.keys( obj ), i = keys.length, newObj = {};
+		while( i-- ) if ( keys[ i ] !== "inherits" ) newObj[ keys[ i ] ] = { value: obj[ keys[ i ] ], writable: true, configurable: true, enumerable: true };
+		return newObj;
+	}
+
+
+
+
+	var Klass = module.exports = function( definition ){
+		var cls = instantiate( definition, definition.inherits ? definition.inherits.___iridium_baseclass : null );
 		
-		var result = Object.prototype.toString.apply( input ) === "[object Array]" ? [] : {}
-			, keys = Object.keys( input )
-			, i = keys.length
-			, current;
 
-		while( i-- ){
-			current = input[ keys[ i ] ];
-			if ( typeof current === "object" ){
-				//console.log( current, Object.prototype.toString.apply( current ) )
-				if ( current === null ){
-					result[ keys[ i ] ] = null;
-				}
-				else if ( Object.prototype.toString.apply( current ) === "[object Array]" ){
-					result[ keys[ i ] ] = current.slice();
-				}
-				else {
-					result[ keys[ i ] ] = clone( current );
-				}
-			}
-			else {
-				result[ keys[ i ] ] = current;
-			}
-		}
-
-		return result;
-	}
-
-
-
-	var createProperty = function( input ){
-		return {
-			value: input
-			, writable: true
-			, configurable: true
-			, enumerable: true
-		};
-	}
-
-
-	var createProperties = function( input ){
-		var keys = Object.keys( input ), i = keys.length, result = {};
-		while( i-- ){
-			if ( keys[ i ] !== "inherits" ){
-				result[ keys[ i ] ] = createProperty( input[ keys[ i ] ] );
-			}
-		}
-
-		return result;
-	}
-
-
-
-	module.exports = function( definition ){
-		var baseclass = definition.inherits ? ( definition.inherits.___iridium_baseclass ? definition.inherits.___iridium_baseclass : definition.inherits ) : {}
-			, properties = createProperties( definition )
-			, ref = Object.create( clone ( baseclass ), clone( properties ) );
-			
-		var constructor = function( options ){
-			var parent = clone ( baseclass )
-				, instance = Object.create( parent, clone( properties ) )
+		var ClassContructor = function( instanceOptions ){
+			var inherit = definition.inherits ? ( definition.inherits.___iridium_baseclass ? instantiate( definition.inherits.___iridium_baseclass ) : definition.inherits ) : null
+				, classInstance = instantiate( definition, inherit )
 				, stacktrace = new Error().stack
 				, modulename = ( /.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( stacktrace ) || [ "", "" ] )[ 1 ];
 
 			if ( /index.js/.test( modulename ) || /class.js/.test( modulename ) ) modulename = ( /.*\n.*\n.*\n.*\/(.+\:[0-9]+)\:/i.exec( stacktrace ) || [ "", "" ] )[ 1 ] || modulename;
-			instance.$id = ( instance.$id || "-" ) + " <" + modulename + ">" ;
+			classInstance.$id = ( classInstance.$id || "-" ) + " <" + modulename + ">" ;
 
-			instance.parent = parent;
-			if ( options && options.on && instance.$events ) instance.on( options.on );
+			if ( instanceOptions && instanceOptions.on && classInstance.$events ) classInstance.on( instanceOptions.on );
+			classInstance.parent = inherit;
 
-			if ( typeof instance.init === "function" ) {
-				var result = instance.init( options || {} );
+			if ( typeof classInstance.init === "function" ) {
+				var result = classInstance.init( instanceOptions || {} );
 				if ( typeof result === "object" ){
-					instance = result;
+					classInstance = result;
 				}
 			}
 
-			
-			return instance;
-		} ;
+			return classInstance;
+		}
 
-		Object.defineProperty( constructor, "___iridium_baseclass", { value: ref, writable: false, configurable: false, enumerable: false } );
-
-		return constructor
-	}
+		Object.defineProperty( ClassContructor, "___iridium_baseclass", { value: cls, writable: false, configurable: false, enumerable: false } );
+		return ClassContructor;
+	};
