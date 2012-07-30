@@ -46,7 +46,8 @@
 			if ( get || set ){
 				properties[ keys[ i ] ] = {};
 				if ( get ) properties[ keys[ i ] ].get = get;
-				if ( set ) properties[ keys[ i ] ].set = set;				
+				if ( set ) properties[ keys[ i ] ].set = set;
+				delete definition[ keys[ i ] ];		
 			}
 		}
 		
