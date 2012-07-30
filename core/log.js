@@ -1,7 +1,9 @@
 	"use strict";
 
 
-	var Class = require( "./class" );
+	var Class = require( "./class" )
+		, cluster = require( "cluster" )
+		, nolog = process.argv.indexOf( "--nolog" ) > -1;
 
 
 	// the logger is a singleton
@@ -10,6 +12,7 @@
 
 		// debug
 		, debug: function debug(){
+			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.grey );
 
@@ -20,6 +23,7 @@
 
 		// info
 		, info: function info(){
+			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.white );
 
@@ -30,6 +34,7 @@
 
 		// warn
 		, warn: function warn(){
+			//if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.yellow.bold );
 
@@ -40,6 +45,7 @@
 
 		// error ( uncatchable )
 		, error: function error(){
+			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.red.bold );
 
@@ -52,6 +58,7 @@
 
 		// highlight a message
 		, highlight: function highlight(){
+			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
 
@@ -64,6 +71,7 @@
 
 		// highlight a message
 		, security: function highlight(){
+			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
 			console.log( this.__createSignature( logs.source ) + logs.text.cyan.bold );
 
@@ -124,6 +132,7 @@
 
 		// dir an object displaying an optional message
 		, dir: function(){
+			if ( nolog ) return;
 			var items = Array.prototype.slice.call( arguments );
 
 			for ( var i = 0, l = items.length; i < l; i++ ){
@@ -227,6 +236,7 @@
 
 		// trace an error displaying an optional message
 		, trace: function trace( err, source ){
+			if ( nolog ) return;
 			source = source && source.$id ? source.$id : "" ;
 			var lines, current, i, l;
 			if ( err && err.stack ){
@@ -265,8 +275,9 @@
 			result += this.__pad( date.getMilliseconds(), 3 );
 
 			result += " > "
-			result += this.__pad( ( source || "-" ), 36, " " );
-			result += " >>> "
+			if ( cluster.isMaster || cluster.isWorker ) result += cluster.isMaster ? "master".white + " ".grey : ( cluster.isWorker ? "w " + this.__pad( cluster.worker.uniqueID, 4, " ", true ) + " " : "" )
+			result += this.__pad( ( source || "-" ), 40, " " ).grey;
+			result += " >>> ".grey
 
 			return result.grey;
 		}
