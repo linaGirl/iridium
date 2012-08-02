@@ -36,7 +36,8 @@
 	module.exports = function( definition ){
 		var properties = definition.inherits && definition.inherits.___iridium_sgetters ? definition.inherits.___iridium_sgetters : {}
 			, keys = Object.keys( definition )
-			, i = keys.length, get, set;
+			, i = keys.length, get, set
+			, statics = {}, staticKeys, k;
 
 		// extract setters && getters
 		while( i-- ){
@@ -49,7 +50,13 @@
 				if ( set ) properties[ keys[ i ] ].set = set;
 				delete definition[ keys[ i ] ];		
 			}
+			else if ( keys[ i ].indexOf( "static " ) === 0 ){
+				statics[ keys[ i ].substr( 7 ) ] = definition[ keys[ i ] ];
+				delete definition[ keys[ i ] ];		
+			}
 		}
+
+
 		
 
 		var ClassContructor = function( instanceOptions ){
@@ -62,8 +69,6 @@
 			// events
 			if ( instanceOptions && instanceOptions.on && classInstance.$events ) classInstance.on( instanceOptions.on );
 			
-			// ref to parent
-			classInstance.parent = inherit;
 
 			// properties
 			if ( properties ){
@@ -84,6 +89,10 @@
 
 			return classInstance;
 		}
+
+		// apply static functions
+		staticKeys = Object.keys( statics ), k = staticKeys.length;
+		while( k-- ) ClassContructor[ staticKeys[ k ] ] = statics[ staticKeys[ k ] ];
 
 		// reference used for inherit
 		Object.defineProperty( ClassContructor, "___iridium_baseclass", { value: instantiate( definition, definition.inherits ? definition.inherits.___iridium_baseclass : null ), writable: false, configurable: false, enumerable: false } );
