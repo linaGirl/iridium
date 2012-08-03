@@ -307,22 +307,28 @@
 					while( result = reg.exec( this.__files[ keys[ i ] ].file ) ){
 						mypath = result[ 1 ].substr( 0, 1 ) === "/" ? result[ 1 ] : path.join( path.dirname( keys[ i ] ), result[ 1 ] );
 
-						if ( ! this.__includeGraph[ keys[ i ] ] ) this.__includeGraph[ keys[ i ] ] = { includedBy: [], includes: [], includeIds: [] };
-						if ( ! this.__includeGraph[ mypath ] ) this.__includeGraph[ mypath ] = { includedBy: [], includes: [], includeIds: [] };
+						if ( this.__files[ mypath ] ){
 
-						this.__includeGraph[ keys[ i ] ].includes.push( mypath );
-						this.__includeGraph[ keys[ i ] ].includeIds.push( result[ 1 ] );
-						this.__includeGraph[ mypath ].includedBy.push( keys[ i ] );
+							if ( ! this.__includeGraph[ keys[ i ] ] ) this.__includeGraph[ keys[ i ] ] = { includedBy: [], includes: [], includeIds: [] };
+							if ( ! this.__includeGraph[ mypath ] ) this.__includeGraph[ mypath ] = { includedBy: [], includes: [], includeIds: [] };
 
-						// preserve the originals
-						if ( !hit ){
-							hit = true;
-							this.__files[ keys[ i ] ].original = this.__files[ keys[ i ] ].file;
-							this.__files[ keys[ i ] ].originalTime = this.__files[ keys[ i ] ].time;
+							this.__includeGraph[ keys[ i ] ].includes.push( mypath );
+							this.__includeGraph[ keys[ i ] ].includeIds.push( result[ 1 ] );
+							this.__includeGraph[ mypath ].includedBy.push( keys[ i ] );
 
-							this.__files[ mypath ].original = this.__files[ mypath ].file;
-							this.__files[ mypath ].originalTime = this.__files[ mypath ].time;
-						}						
+							// preserve the originals
+							if ( !hit ){
+								hit = true;
+								this.__files[ keys[ i ] ].original = this.__files[ keys[ i ] ].file;
+								this.__files[ keys[ i ] ].originalTime = this.__files[ keys[ i ] ].time;
+
+								this.__files[ mypath ].original = this.__files[ mypath ].file;
+								this.__files[ mypath ].originalTime = this.__files[ mypath ].time;
+							}
+						}
+						else {
+							log.error( "cannot resolve @iridium require from [" +keys[ i ] + "] to [" + mypath + "]!", this );
+						}					
 					}
 				}
 			}
