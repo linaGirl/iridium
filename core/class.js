@@ -37,9 +37,13 @@
 		var properties = definition.inherits && definition.inherits.___iridium_sgetters ? definition.inherits.___iridium_sgetters : {}
 			, keys = Object.keys( definition )
 			, i = keys.length, get, set
-			, statics = {}, staticKeys, k;
+			, statics = definition.inherits && definition.inherits.___iridium_statics ? definition.inherits.___iridium_statics : {}
+			, staticKeys, k
+			, parentStatics = {};
 
-		// extract setters && getters
+
+
+		// extract setters && getters && statics
 		while( i-- ){
 			get = definition.__lookupGetter__( keys[ i ] );
 			set = definition.__lookupSetter__( keys[ i ] );
@@ -52,9 +56,11 @@
 			}
 			else if ( keys[ i ].indexOf( "static " ) === 0 ){
 				statics[ keys[ i ].substr( 7 ) ] = definition[ keys[ i ] ];
+				parentStatics[ keys[ i ].substr( 7 ) ] = definition[ keys[ i ] ];
 				delete definition[ keys[ i ] ];		
 			}
 		}
+
 
 
 		
@@ -97,6 +103,7 @@
 		// reference used for inherit
 		Object.defineProperty( ClassContructor, "___iridium_baseclass", { value: instantiate( definition, definition.inherits ? definition.inherits.___iridium_baseclass : null ), writable: false, configurable: false, enumerable: false } );
 		Object.defineProperty( ClassContructor, "___iridium_sgetters", { value: properties, writable: false, configurable: false, enumerable: false } );
+		Object.defineProperty( ClassContructor, "___iridium_statics", { value: parentStatics, writable: false, configurable: false, enumerable: false } );
 		return ClassContructor;
 	};
 

@@ -7,10 +7,12 @@
 
 	var	  fs 			= require( "fs" )
 		, path 			= require( "path" )
-		, crypto 		= require( "crypto" );
+		, crypto 		= require( "crypto" )
+		, zlib 			= require( "zlib" );
 
 
-	var   hogan			= require( "../dep/hogan.js/lib/hogan.js" );
+	var   hogan			= require( "../dep/hogan.js/lib/hogan.js" )
+		, CSSPrefixer 	= require( "./cssprefixer" );
 
 
 
@@ -279,8 +281,69 @@
 			}
 			
 
+			// add vendor prefixes to css files
+			//this.__addVendorPrefixes();
+
+
 			// do the includes
 			this.__compileIncludes();
+
+
+			// create compressed versions of the files
+			this.__compressFiles( function(){
+				// ready :)
+				this.emit( "load" );
+			}.bind( this ) );
+		}
+
+
+
+
+		, __compressFiles: function( callback ){
+			var keys = Object.keys( this.__files ), l = keys.length * 2, i = keys.length;
+			var complete = function(){
+				l--;
+				if ( l === 0 ) callback();
+			}.bind( this );
+
+			while( i-- ){
+				( function( file ){
+					if ( file.type.indexOf( "utf-8" ) > -1 ){
+						zlib.gzip( file.file, function( err, data ){
+							if ( ! err ){
+								file.gzip = data;
+								file.gzipLength = data.length;
+							}
+							complete();
+						}.bind( this ) );
+						zlib.gzip( file.file, function( err, data ){
+							if ( ! err ){
+								file.deflate = data;
+								file.deflateLength = data.length;
+							}
+							complete();
+						}.bind( this ) );
+					}
+					else {						
+						complete();
+						complete();
+					}
+				}.bind( this ) )( this.__files[ keys[ i ]] );
+			}
+		}
+
+
+
+		, __addVendorPrefixes: function(){
+			var keys = Object.keys( this.__files ), i = keys.length;
+
+			while( i-- ){
+				if ( this.__files[ keys[ i ] ].extension.toLowerCase() === "css" ){
+					this.__files[ keys[ i ] ].file = CSSPrefixer.fix( this.__files[ keys[ i ] ].file ).debug;
+					this.__files[ keys[ i ] ].length = Buffer.byteLength( this.__files[ keys[ i ] ].file );
+					this.__files[ keys[ i ] ].etag = crypto.createHash( "sha1" ).update( this.__files[ keys[ i ] ].file ).digest( "hex" );
+				}
+			}
 		}
 
 
@@ -384,9 +447,6 @@
 					current.template = hogan.compile( current.file );
 				}
 			}
-
-
-			this.emit( "load" );
 		}
 
 
