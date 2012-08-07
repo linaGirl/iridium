@@ -442,7 +442,7 @@
 			while( i-- ){
 				current = this.__files[ keys[ i ] ];
 
-				if ( current.extension === "tpl" ){
+				if ( current.extension === "tpl" || current.extension === "mustache" ){
 					current.isTemplate = true;
 					current.template = hogan.compile( current.file );
 				}
