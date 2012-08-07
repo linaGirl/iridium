@@ -24,6 +24,28 @@
 		}
 	}
 
+
+
+	global.iridium.reportError = function( collection, err ){
+		var source = new Error().stack.split( "\n" ).map( function( line ){
+			var reg = /\(([^\)]+\/[^\)]+)\)/ig.exec( line );
+			return reg && reg[ 1 ] ? reg[ 1 ] : null ;
+		} ).filter( function( line ){
+			return !!line;
+		} ).concat( [ "" ] )[0];
+
+		var item = {
+			collection: collection
+			, source: source
+			, err: err
+		};
+
+		log.error( "reporting error: " );
+		log.dir( item );
+	}
+
+
+
 	// path
 	iridium.path = path;
 	iridium.root = path.substr( 0, path.substr( 0, path.length - 1 ).lastIndexOf( "/" ) + 1 );
