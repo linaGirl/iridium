@@ -34,7 +34,7 @@
 
 
 	module.exports = function( definition ){
-		var properties = definition.inherits && definition.inherits.___iridium_sgetters ? definition.inherits.___iridium_sgetters : {}
+		var properties = {} // = definition.inherits && definition.inherits.___iridium_sgetters ? definition.inherits.___iridium_sgetters : {}
 			, keys = Object.keys( definition )
 			, i = keys.length, get, set
 			, statics = definition.inherits && definition.inherits.___iridium_statics ? definition.inherits.___iridium_statics : {}

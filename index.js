@@ -26,7 +26,7 @@
 
 
 
-	global.iridium.reportError = function( collection, err ){
+	global.iridium.report = function( status, collection, err ){
 		var source = new Error().stack.split( "\n" ).map( function( line ){
 			var reg = /\(([^\)]+\/[^\)]+)\)/ig.exec( line );
 			return reg && reg[ 1 ] ? reg[ 1 ] : null ;
@@ -36,6 +36,7 @@
 
 		var item = {
 			collection: collection
+			, status: status
 			, source: source
 			, err: err
 		};
