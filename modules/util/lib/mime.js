@@ -15,7 +15,6 @@
 			, bin:			{ defaultCharset: "binary", type: "application/octet-stream" }
 			, ogg:			{ defaultCharset: "binary", type: "application/ogg" }
 			, pdf:			{ defaultCharset: "binary", type: "application/pdf" }
-			, wof:			{ defaultCharset: "binary", type: "application/x-woff" }
 			, xhtml:		{ defaultCharset: "utf-8", type: "application/xhtml+xml" }
 			, zip:			{ defaultCharset: "binary", type: "application/zip" }
 			, mp4:			{ defaultCharset: "binary", type: "audio/mp4" }
@@ -30,16 +29,16 @@
 			, tiff:			{ defaultCharset: "binary", type: "image/tiff" }
 			, ico:			{ defaultCharset: "binary", type: "image/vnd.microsoft.icon" }
 			, ttf:			{ defaultCharset: "binary", type: "application/x-font-ttf" }
+			, otf:			{ defaultCharset: "binary", type: "application/x-font-opentype" }
+			, woff:			{ defaultCharset: "binary", type: "application/x-font-woff" }
+			, eot:			{ defaultCharset: "binary", type: "application/vnd.ms-fontobject" }
 			, css:			{ defaultCharset: "utf-8", type: "text/css" }
 			, cssm:			{ defaultCharset: "utf-8", type: "text/css" }
 			, csv:			{ defaultCharset: "utf-8", type: "text/csv" }
 			, html:			{ defaultCharset: "utf-8", type: "text/html" }
-			, jbx:			{ defaultCharset: "utf-8", type: "text/html" }
 			, xml:			{ defaultCharset: "utf-8", type: "text/xml" }
 			, tpl:			{ defaultCharset: "utf-8", type: "text/html" }
-			, tplm:			{ defaultCharset: "utf-8", type: "text/html" }
 			, pong:			{ defaultCharset: "utf-8", type: "text/html" }
-			, htpl:			{ defaultCharset: "utf-8", type: "text/html" }
 			, mustache: 	{ defaultCharset: "utf-8", type: "text/html" }
 			, _:			{ defaultCharset: "binary", type: "" }
 		}
