@@ -1,0 +1,23 @@
+{ "name" : "solr"
+, "description" : "A low-level Solr client"
+, "version" : "0.2.2"
+, "author" : "Gabriel Farrell <gsf747@gmail.com>"
+, "contributors" :
+  [ "Sergey Polzunov <sergey@polzunov.com>"
+  , "Isaac Z. Schlueter <i@izs.me>"
+  , "Blagovest Dachev <blago@dachev.com>"
+  , "Miles Worthington <milesworthington@github>"
+  , "VASMAN <vasman@hidev.it>"
+  , "Lee Iverson <leei@ece.ubc.ca>"
+  , "V Sreekanth <sreeix@gmail.com>"
+  , "Ryan <ryan.fairchild@gmail.com>"
+  , "Fyodor Y <fygrave@o0o.nu>"
+  ]
+, "engines" : { "node": ">=0.4.0" }
+, "main" : "lib/solr"
+, "repository" :
+  { "type" : "git"
+  , "url" : "http://github.com/gsf/node-solr.git"
+  }
+, "scripts" : { "test" : "find test/test-*.js | xargs -n 1 -t node" }
+}

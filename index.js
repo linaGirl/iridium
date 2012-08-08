@@ -32,12 +32,12 @@
 			return reg && reg[ 1 ] ? reg[ 1 ] : null ;
 		} ).filter( function( line ){
 			return !!line;
-		} ).concat( [ "" ] )[0];
+		} );
 
 		var item = {
 			collection: collection
 			, status: status
-			, source: source
+			, stacktrace: source.length > 0 ? source.slice( 1 ) : [] 
 			, err: err
 		};
 
