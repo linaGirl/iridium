@@ -52,7 +52,7 @@
 			if ( request.url.indexOf( this.__endpoint ) === 0 ){
 				this.__handleTransportRequest( request, response );
 			}
-			else this.emit( "request", new Request( { request: request, respose: response } ), new Response( { request: request, respose: response } );
+			else this.emit( "request", new Request( { request: request, respose: response } ), new Response( { request: request, respose: response } ) );
 		}
 
 		// handle websocket requests
