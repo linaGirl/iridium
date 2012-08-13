@@ -14,13 +14,15 @@
 
 
 
+
+
 	module.exports = new Class( {
-		$id: "iridium.request"
+		$id: "iridium.cookie"
 		, inherits: Events
 
 
 
 		, init: function( options ){
-			
+
 		}
 	} );

@@ -2,7 +2,7 @@
 
 	module.exports = {
 		  // webserver with websocket support, you may provide files
-		  Server: require( "./lib/webserver" )
-		  , Files: require( "./lib/files" )
-		  , Request: require( "./lib/request" )
+		    Server: 		require( "./lib/server" )
+		  , Files: 			require( "./lib/files" )
+		  , Cookie: 		require( "./lib/cookie" )
 	};
