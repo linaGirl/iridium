@@ -190,7 +190,7 @@
 						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + ( isArray ? "(" + data.length + "):[" : "{" ).grey );
 						first = true;
 						while( i-- ){
-							if ( k > 50 ) {
+							if ( k > 200 ) {
 								console.log( this.__pad( "", ( margin + 1 ) * 4, " " ) + ", ".grey + ( isArray ? "" + name : name ) + "... ( omitted ".grey + ( i + 1 + "" ).grey + " ) // max items per object reached".grey );
 								console.log( this.__pad( "", margin * 4, " " ) + ( isArray ? "]" : "}" ).grey );
 								return;

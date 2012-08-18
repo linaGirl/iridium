@@ -290,10 +290,10 @@
 
 
 			// create compressed versions of the files
-			this.__compressFiles( function(){
+			//this.__compressFiles( function(){
 				// ready :)
 				this.emit( "load" );
-			}.bind( this ) );
+			//}.bind( this ) );
 		}
 
 

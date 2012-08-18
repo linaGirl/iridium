@@ -39,6 +39,7 @@
 			, status: status
 			, stacktrace: source.length > 0 ? source.slice( 1 ) : [] 
 			, err: err
+			, date: new Date().toUTCString()
 		};
 
 		log.error( "reporting error: " );
