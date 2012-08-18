@@ -55,6 +55,8 @@
 			else this.emit( "request", new Request( { request: request, respose: response } ), new Response( { request: request, respose: response } ) );
 		}
 
+
+
 		// handle websocket requests
 		, __handleWebsocketRequest: function( request ){
 

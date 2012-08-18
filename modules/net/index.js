@@ -3,5 +3,5 @@
 	
 
 	module.exports = {
-		
+		TCPServer: require( "./lib/tcpserver" )
 	};

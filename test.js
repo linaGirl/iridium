@@ -4,10 +4,10 @@
 
 
 
-	var web = iridium( "web" );
+	var net = iridium( "net" );
 
 
-	new web.Server( {} ).listen();
+	new net.TCPServer();
 
 
 	// var memfs = new iridium( "fs" ).MemoryFS( {

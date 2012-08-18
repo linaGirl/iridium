@@ -46,6 +46,9 @@
 	}
 
 
+	// storage for som eglobal iridium objects
+	global.iridium.__ = {};
+
 
 	// path
 	iridium.path = path;
