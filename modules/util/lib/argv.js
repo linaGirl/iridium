@@ -15,10 +15,10 @@
 				var reg = /([^ =]+)(?: |=)(.+)/gi.exec( item.trim() );
 
 				if ( reg ){
-					this.__argv[ reg[ 1 ] ] = reg[ 2 ];
+					this.__argv[ reg[ 1 ].trim() ] = reg[ 2 ];
 				}
 				else {
-					this.__argv[ item ] = null;
+					this.__argv[ item.trim() ] = null;
 				}
 			}.bind( this ) );
 
