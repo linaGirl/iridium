@@ -11,31 +11,8 @@
 		, $events: {}
 
 		, emit: function( event ){
-			var args = arguments;
-			// emit awas on next tick
-			//process.nextTick( function(){
-				var i, current;
-				if ( this.$events[ event ] ){
-					i = this.$events[ event ].length;
-					while( i-- ){
-						current = this.$events[ event ][ i ];
-						if ( typeof current.listener === "function" ){
-							current.listener.apply( null, Array.prototype.slice.call( args, 1 ) );
-							if ( current.once ) this.$events[ event ].splice( i, 1 );
-						}
-						else {
-							throw new Error( "cannot emit event [" + event + "], listener is typeof [" + typeof current.listener + "]!" );
-							this.$events[ event ].splice( i, 1 );
-						}
-					}
-				}
-			//}.bind( this ) );
-		}
-
-
-		, emitNow: function( event ){
 			var args = arguments, i, current;
-			
+
 			if ( this.$events[ event ] ){
 				i = this.$events[ event ].length;
 				while( i-- ){
@@ -45,10 +22,16 @@
 						if ( current.once ) this.$events[ event ].splice( i, 1 );
 					}
 					else {
+						throw new Error( "cannot emit event [" + event + "], listener is typeof [" + typeof current.listener + "]!" );
 						this.$events[ event ].splice( i, 1 );
 					}
 				}
 			}
+		}
+
+
+		, emitNow: function(){
+			this.emit.apply( this, arguments );
 		}
 
 

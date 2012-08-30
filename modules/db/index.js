@@ -5,6 +5,7 @@
 		, mysql = require( "./dep/node-mysql" )
 		, mysqlQueues = require( "./dep/node-mysql-queues" )
 		, OrientDB = require( "./lib/orientdb" )
+		, MySQLPool = require( "./lib/mysql" )
 		, log = iridium( "log" );
 
 
@@ -32,8 +33,10 @@
 
 		, OrientDB: OrientDB
 
+		, MySQLPool: MySQLPool
+
 		, MySQL: function( options ){
-			var client = mysql.createClient( options );
+			var client = mysql.createConnection( options );
 			mysqlQueues( client, false );
 			return client;
 		}
