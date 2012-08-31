@@ -46,6 +46,7 @@
 
 
 		, init: function( options ){
+			
 			// laod hosts, create connections, be ready
 			if ( !options.configs ) throw new Error( "missing database configuration!" );
 			this.__prepare( options.configs );
@@ -150,8 +151,6 @@
 				return a.load > b.load ? 1 : -1 ;
 			}.bind( this ) );
 
-			console.log( "creating connection ...");
-
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 		}
@@ -170,8 +169,8 @@
 						, password: 	configs[ i ].password
 						, database: 	configs[ i ].database
 					}
-					, writeable: 	configs[ i ].writeable
-					, weight: 		configs[ i ].weight
+					, writeable: 		configs[ i ].writeable
+					, weight: 			configs[ i ].weight
 					, on: {
 						connection: function( id, writeable, connection ){
 							this.__setConnection( writeable, connection );
@@ -183,7 +182,7 @@
 							else {
 								this.__readOnlyConnections.filter( function( c ){ return c !== connection } );
 							}
-						}
+						}.bind( this )
 					}
 				} );
 
