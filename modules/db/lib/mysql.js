@@ -46,10 +46,9 @@
 
 
 		, init: function( options ){
-			
 			// laod hosts, create connections, be ready
 			if ( !options.configs ) throw new Error( "missing database configuration!" );
-			this.__prepare( options.configs );
+			this.__prepare( options.configs, options.database );
 
 			this.__reg = /update|insert|delete|grant|create/gi;
 		}
@@ -60,7 +59,6 @@
 			writeable = writeable || ( writeable === undefined && this.__reg.test( query ) );
 
 			var connection = this.__getConnection( writeable );
-
 			if ( connection ){
 				connection.query( query, parameters, callback );
 			}
@@ -157,8 +155,9 @@
 
 
 		
-		, __prepare: function( configs ){
+		, __prepare: function( configs, database ){
 			var i = configs.length;
+
 			while( i-- ){
 				this.__hosts[ i ] = new Host( {
 					id: "h" + i
@@ -167,7 +166,7 @@
 						, port: 		configs[ i ].port || 3306
 						, user: 		configs[ i ].user
 						, password: 	configs[ i ].password
-						, database: 	configs[ i ].database
+						, database: 	database
 					}
 					, writeable: 		configs[ i ].writeable
 					, weight: 			configs[ i ].weight
