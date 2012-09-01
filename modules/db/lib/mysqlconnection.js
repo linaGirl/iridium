@@ -1,7 +1,8 @@
 
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
-		, log 			= iridium( "log" );
+		, log 			= iridium( "log" )
+		, debug 		= iridium( "util" ).argv.has( "debug" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -37,6 +38,13 @@
 		, query: function( query, parameters, callback ){
 			if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
 			this.__clearTimeout();
+
+			if ( debug ) {
+				log.debug( "<< --- QUERY ----------", this );
+				log.debug( query, this );
+				log.dir( parameters );
+				log.debug( "--- QUERY ---------- >>", this );
+			}
 
 			this.__connection.query( query, parameters, function( err, result ){
 				this.__setTimout();

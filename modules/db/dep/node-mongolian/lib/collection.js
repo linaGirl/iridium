@@ -1,6 +1,6 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
 var util = require('util')
-var buffalo = require('../../node-buffalo/buffalo')
+var buffalo = require('../../node-buffalo')
 var mongo = buffalo.mongo
 
 var safetyNet = require('./util').safetyNet
@@ -273,6 +273,10 @@ MongolianCollection.prototype.findAndModify = function(options, callback) {
     this.db.runCommand(command, safetyNet(callback, function(result) {
         callback(null, result.value)
     }))
+}
+
+MongolianCollection.prototype.group = function (command, callback) {
+    this.db.runCommand({group: command}, callback);
 }
 
 MongolianCollection.prototype.distinct = function(key, query, callback) {

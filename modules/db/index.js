@@ -17,14 +17,17 @@
 
 		MongoDB: function( options ){
 			try{
-				return new MongoDB( {
-					log: {
-						debug: log.debug.bind( log )
-						, info: log.info.bind( log )
-						, warn: log.warn.bind( log )
-						, error: log.error.bind( log )
-					}
-				} );
+				if ( ! options ) options = { servers: [] };
+				if ( ! options.servers ) options.servers = [];
+				if ( options.servers.length === 0 ) options.servers.push( { host: "localhost", port: 27018 } );	
+						
+				options.log = {
+					debug: log.debug.bind( log )
+					, info: log.info.bind( log )
+					, warn: log.warn.bind( log )
+					, error: log.error.bind( log )
+				};
+				return new MongoDB( options );
 			} catch( e ) {
 				log.trace( e );
 				process.exit();

@@ -1,8 +1,8 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
-var Waiter = require('../../node-waiter/waiter')
-var taxman = require('../../node-taxman/taxman')
+var Waiter = require('../../node-waiter')
+var taxman = require('../../node-taxman')
 var EventEmitter = require('events').EventEmitter
-var buffalo = require('../../node-buffalo/buffalo')
+var buffalo = require('../../node-buffalo')
 var mongo = buffalo.mongo
 
 var safetyNet = require('./util').safetyNet
@@ -96,6 +96,19 @@ var Mongolian = module.exports = function(serversOrOptions) {
         }
     }
 
+
+    var __opts = arguments[ 0 ], i = __opts.servers.length;
+    while( i-- ){
+        addServer( __opts.servers[ i ] );
+        if ( __opts.servers[ i ].database ) inlineDatabase = __opts.servers[ i ];
+    }
+    
+    this.log.debug  = __opts.log.debug;
+    this.log.info   = __opts.log.info;
+    this.log.warn   = __opts.log.warn;
+    this.log.error  = __opts.log.error;
+
+    /*
     // Browse the constructor arguments
     for (var i=0; i<arguments.length; i++) {
         var arg = arguments[i]
@@ -111,7 +124,8 @@ var Mongolian = module.exports = function(serversOrOptions) {
             }
             if (arg.host) addServer(arg)
         }
-    }
+    }*/
+    
     if (!this._servers.length) {
         addServer(parseUrl('localhost'))
     }

@@ -1,5 +1,5 @@
 /* Mongolian DeadBeef by Marcello Bastea-Forte - zlib license */
-var buffalo = require('../../node-buffalo/buffalo')
+var buffalo = require('../../node-buffalo')
 
 var safetyNet = require('./util').safetyNet
 var MongolianGridFile = require('./gridfile')
