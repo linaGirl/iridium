@@ -2,7 +2,8 @@
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
-		, debug 		= iridium( "util" ).argv.has( "debug" );
+		, debug 		= iridium( "util" ).argv.has( "debug" )
+		, timing 		= iridium( "util" ).argv.has( "timing" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -46,7 +47,10 @@
 				log.debug( "--- QUERY ---------- >>", this );
 			}
 
+			if ( timing ) var now = Date.now();
 			this.__connection.query( query, parameters, function( err, result ){
+				if ( timing ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
+				
 				this.__setTimout();
 
 				if ( typeof callback === "function" ){
