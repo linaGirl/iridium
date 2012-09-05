@@ -112,8 +112,6 @@
 		}
 
 		, __setConnection: function( writeable, connection ){
-			console.log( this.__writeableConnections.length, this.__readOnlyConnections.length );
-
 			if ( writeable ) this.__writeableConnections.push( connection );
 			else this.__readOnlyConnections.push( connection );
 
@@ -152,7 +150,7 @@
 			loadList.sort( function( a, b ){
 				return a.load > b.load ? 1 : -1 ;
 			}.bind( this ) );
-			log.dir(loadList);
+			
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 		}

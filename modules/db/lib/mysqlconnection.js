@@ -22,6 +22,9 @@
 
 		, __idleTimeoutTime: 300000
 
+		// kill queries after 
+		, __queryTimeoutTime: 60000
+
 
 		// status
 		, __available: false
@@ -47,10 +50,15 @@
 				log.debug( "--- QUERY ---------- >>", this );
 			}
 
+			// pseudo timeout
+			this.__setQueryTimeout( query, parameters );
+			
 			if ( timing ) var now = Date.now();
 			this.__connection.query( query, parameters, function( err, result ){
 				if ( timing ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
-				
+				if ( err ) log.trace ( err );
+				// not really a timeout :( no driver support
+				this.__cancelQuerytimeout();
 				this.__setTimout();
 
 				if ( typeof callback === "function" ) callback( err, result );
@@ -84,15 +92,32 @@
 		}
 
 
+		, __setQueryTimeout: function( sql, parameters ){
+			this.__queryTimeout = setTimeout( function () {
+				log.warn( "long running quer! canont timeout, you will probably loose this conenction!", this );
+				log.dir( sql, parameters );
+			}.bind( this ), this.__queryTimeoutTime );
+		}
+
+		, __cancelQuerytimeout: function(){
+			if ( this.__queryTimeout ) clearTimeout( this.__queryTimeout ), delete this.__queryTimeout;
+		}
+
 
 		, __free: function(){
 			process.nextTick( function(){
-				if ( !this.__available ) this.__available = true, this.emit( "available", this.__id, this );
+				if ( !this.__available ) {
+					this.__available = true;
+					this.emit( "available", this.__id, this );
+				}
 			}.bind( this ) );
 		}
 
 		, __busy: function(){
-			if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
+			if ( this.__available ) {
+				this.__available = false;
+				this.emit( "busy", this.__id, this );
+			}
 		}
 
 
@@ -101,7 +126,7 @@
 			this.__idleTimeout = setTimeout( function(){
 				this.emit( "idleTimeout", this.__id, this );
 				log.debug( "connection [" + this.__id + "] closed: idle timaout", this );
-				this.__connection.close();
+				this.__connection.end();
 				this.off();
 			}.bind( this ), this.__idleTimeoutTime );
 		}
@@ -127,7 +152,8 @@
 
 			// handle connection level errors
 			this.__connection.on( "error", function( err ){
-
+				//log.error( "go fuyk yourself!", this );
+				//log.trace( err );
 				// remove from stack
 				this.__busy();
 

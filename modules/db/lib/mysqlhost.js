@@ -82,11 +82,6 @@
 
 			// initialize connections ...
 			this.__prepare();
-
-			setInterval( function(){
-				var keys = Object.keys( this.__connections ), i = keys.length;
-				while( i-- ) log.error( keys[ i ], this.__connections[ keys[ i ] ].__available );
-			}.bind( this ), 1000 );
 		}
 
 
