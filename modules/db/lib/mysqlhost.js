@@ -27,7 +27,7 @@
 		, __pool: []
 
 		// status ( available as long connections can be established )
-		, __avaialble: true
+		, __available: true
 
 		// timetamp: if time > this you may try to create new connections 
 		, __newConnectionBlock: 0
@@ -82,6 +82,11 @@
 
 			// initialize connections ...
 			this.__prepare();
+
+			setInterval( function(){
+				var keys = Object.keys( this.__connections ), i = keys.length;
+				while( i-- ) log.error( keys[ i ], this.__connections[ keys[ i ] ].__available );
+			}.bind( this ), 1000 );
 		}
 
 
@@ -132,7 +137,6 @@
 							this.__loadFactor = this.__connectionCount / this.__weigth;
 							this.emit( "connectionError", this.__id, this.__writeable, connection );
 							delete this.__connections[ id ];
-							this.off();
 						}.bind( this )
 
 
@@ -142,7 +146,6 @@
 							this.__loadFactor = this.__connectionCount / this.__weigth;
 							this.emit( "connectionError", this.__id, this.__writeable, connection );
 							delete this.__connections[ id ];
-							this.off();
 						}.bind( this )
 					}
 				} );

@@ -86,7 +86,10 @@
 			var connection = this.__getConnection( true );
 
 			if ( connection ){
-				connection.createTransaction( callback );
+				connection.createTransaction( function( err, transaction ){
+					if ( err ) this.createTransaction( callback );
+					else callback( transaction );
+				}.bind( this ) );
 			}
 			else {
 				this.__writeableBuffer.push( { type: "transaction", callback: callback } );
@@ -109,7 +112,8 @@
 		}
 
 		, __setConnection: function( writeable, connection ){
-			
+			console.log( this.__writeableConnections.length, this.__readOnlyConnections.length );
+
 			if ( writeable ) this.__writeableConnections.push( connection );
 			else this.__readOnlyConnections.push( connection );
 
@@ -148,7 +152,7 @@
 			loadList.sort( function( a, b ){
 				return a.load > b.load ? 1 : -1 ;
 			}.bind( this ) );
-
+			log.dir(loadList);
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 		}

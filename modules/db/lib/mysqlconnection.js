@@ -37,7 +37,7 @@
 
 
 		, query: function( query, parameters, callback ){
-			if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
+			this.__busy();
 			this.__clearTimeout();
 
 			if ( debug ) {
@@ -53,36 +53,31 @@
 				
 				this.__setTimout();
 
-				if ( typeof callback === "function" ){
-					callback( err, result );
-				}
-				else if( typeof parameters === "function" ){
-					parameters( err, result );
-				}
+				if ( typeof callback === "function" ) callback( err, result );
+				else if( typeof parameters === "function" ) parameters( err, result );
 
-				this.emit( "available", this.__id, this );
+				this.__free();
 			}.bind( this ) );
 		}
 
 
 
 		, createTransaction: function( callback ){
-			if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
+			this.__busy();
 			var transaction = new Transaction( {
 				connection: this
 				, on: {
 					complete: function(){
-						if ( !this.__available ) this.__available = true, this.emit( "available", this.__id, this );
+						this.__free();
 					}.bind( this )
 					, ready: function(){
-						callback( transaction );
+						callback( null, transaction );
 					}.bind( this )
 					, error: function( err ){
 						log.error( "failed to create transaction!", this );
 						log.trace( err );
-						setTimeout( function(){
-							this.createTransaction( callback );
-						}.bind( this ), 1000 );						
+						callback( err );
+						this.__free();				
 					}.bind( this )
 				}
 			} );			
@@ -90,9 +85,24 @@
 
 
 
+		, __free: function(){
+			process.nextTick( function(){
+				if ( !this.__available ) this.__available = true, this.emit( "available", this.__id, this );
+			}.bind( this ) );
+		}
+
+		, __busy: function(){
+			if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
+		}
+
+
+
 		, __setTimout: function(){
 			this.__idleTimeout = setTimeout( function(){
 				this.emit( "idleTimeout", this.__id, this );
+				log.debug( "connection [" + this.__id + "] closed: idle timaout", this );
+				this.__connection.close();
+				this.off();
 			}.bind( this ), this.__idleTimeoutTime );
 		}
 
@@ -105,21 +115,29 @@
 		, __connect: function( attemptCount ){
 			attemptCount = attemptCount || 0;
 			// try to connect 12 times, the attempt will be delayed by attemptCount secods
-			if ( attemptCount > 10 ) return this.emit( "error", this.__id, this );
+			if ( attemptCount > 10 ){
+				this.__busy();
+				this.emit( "error", this.__id, this );
+				this.off();
+				return;
+			} 
 
 			// create a new connection
 			this.__connection = mysql.createConnection( this.__config );
 
 			// handle connection level errors
 			this.__connection.on( "error", function( err ){
+
 				// remove from stack
-				if ( this.__available ) this.__available = false, this.emit( "busy", this.__id, this );
+				this.__busy();
 
 				// the server doesnt accept more connections!
 				switch ( err.code ){
 					case "ER_TOO_MANY_USER_CONNECTIONS":
+					case "ER_CON_COUNT_ERROR":
 						this.emit( "tooManyConnections", this.__id, this );
 						this.emit( "error", this.__id, this );
+						this.off();
 						break;
 
 					case "PROTOCOL_CONNECTION_LOST":
@@ -131,6 +149,7 @@
 					default: 
 						this.emit( "error", this.__id, this, err );
 						log.trace( err );
+						this.off();
 						break;
 				}
 			}.bind( this ) );
@@ -142,7 +161,7 @@
 					log.dir( err );
 				}
 				else {
-					if ( !this.__available ) this.__available = true, this.emit( "available", this.__id, this );
+					this.__free();
 				}
 			}.bind( this ) );
 		}
