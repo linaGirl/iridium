@@ -28,7 +28,7 @@
 		, __hosts: {}
 
 
-		// holds avilable connections to the MySQL master
+		/*// holds avilable connections to the MySQL master
 		, __writeableConnections: []
 
 		// holds read only connections
@@ -39,18 +39,24 @@
 		, __writeableBuffer: []
 
 		// waiting wrrite queries / transactions
-		, __readableBuffer: []
+		, __readableBuffer: []*/
 
 
 
 
 
 		, init: function( options ){
+			this.__writeableConnections = [];
+			this.__readOnlyConnections = [];
+			this.__writeableBuffer = [];
+			this.__readableBuffer = [];
+
 			// laod hosts, create connections, be ready
 			if ( !options.configs ) throw new Error( "missing database configuration!" );
 			this.__prepare( options.configs, options.database );
 
 			this.__reg = /update|insert|delete|grant|create/gi;
+			this.__configs = options.configs;
 		}
 
 
@@ -112,6 +118,7 @@
 		}
 
 		, __setConnection: function( writeable, connection ){
+			if ( connection.__config.host !== this.__configs[ 0 ].host ) throw new Error( "got invalid connection!" ), process.exit();
 			if ( writeable ) this.__writeableConnections.push( connection );
 			else this.__readOnlyConnections.push( connection );
 

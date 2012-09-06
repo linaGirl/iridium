@@ -45,6 +45,7 @@
 
 			if ( debug ) {
 				log.debug( "<< --- QUERY ----------", this );
+				log.debug( "host: " + this.__config.host, this );
 				log.debug( query, this );
 				log.dir( parameters );
 				log.debug( "--- QUERY ---------- >>", this );

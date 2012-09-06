@@ -4,7 +4,7 @@
 
 	// deep instantiate an object ( create new object from existing ones, set original prototype, set properties );
 	var instantiate = function( obj, proto ){
-		var newObj = Array.isArray( obj ) ? obj.slice() : Object.create( proto ? proto : ( ( !Object.prototype.hasOwnProperty.call( obj, "__proto__" ) && obj.__proto__ ) ? obj.__proto__ : null ), getProperties( obj ) );
+		var newObj = Array.isArray( obj ) ? obj.slice( 0 ) : Object.create( proto ? proto : ( ( !Object.prototype.hasOwnProperty.call( obj, "__proto__" ) && obj.__proto__ ) ? obj.__proto__ : null ), getProperties( obj ) );
 		var keys = Object.keys( newObj ), i = keys.length;
 		while( i-- ) if ( typeof( newObj[ keys[ i ] ] ) === "object" && newObj[ keys[ i ] ] !== null ) newObj[ keys[ i ] ] = instantiate( newObj[ keys[ i ] ] );
 		return newObj;
