@@ -20,7 +20,7 @@
 		// connection config
 		, __config: {}
 
-		, __idleTimeoutTime: 300000
+		, __idleTimeoutTime: 1000 * 3600 * 24 * 365
 
 		// kill queries after 
 		, __queryTimeoutTime: 60000

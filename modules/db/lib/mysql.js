@@ -71,7 +71,7 @@
 			else {
 				if ( writeable ) this.__writeableBuffer.push( { type: "query", query: query, parameters: parameters, callback: callback } );
 				else this.__readableBuffer.push( { type: "query", query: query, parameters: parameters, callback: callback } );
-
+				
 				this.__createConnection( writeable );
 			}
 		}
@@ -118,23 +118,30 @@
 		}
 
 		, __setConnection: function( writeable, connection ){
-			if ( connection.__config.host !== this.__configs[ 0 ].host ) throw new Error( "got invalid connection!" ), process.exit();
+
 			if ( writeable ) this.__writeableConnections.push( connection );
 			else this.__readOnlyConnections.push( connection );
 
+
 			if ( writeable && this.__writeableBuffer.length > 0 ){
-				var item = this.__writeableBuffer.shift();
-				if ( item.type === "query" ){
-					this.query( item.query, item.parameters, item.callback );
-				}
-				else {
-					this.createTransaction( item.callback );
+				var i = this.__writeableBuffer.length, item;
+				while( i-- ){
+					item = this.__writeableBuffer.shift();
+					if ( item.type === "query" ){
+						this.query( item.query, item.parameters, item.callback );
+					}
+					else {
+						this.createTransaction( item.callback );
+					}
 				}
 			}
 			else if ( this.__readableBuffer.length > 0 ){
-				var item = this.__readableBuffer.shift();
-				if ( item.type === "query" ){
-					this.query( item.query, item.parameters, item.callback );
+				var i = this.__readableBuffer.length, item;
+				while( i-- ){
+					item = this.__readableBuffer.shift();
+					if ( item.type === "query" ){
+						this.query( item.query, item.parameters, item.callback );
+					}
 				}
 			}
 		}
