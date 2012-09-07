@@ -185,10 +185,10 @@
 						}.bind( this )
 						, connectionError: function( id, writeable, connection ){
 							if ( writeable ){
-								this.__writeableConnections.filter( function( c ){ return c !== connection } );
+								this.__writeableConnections = this.__writeableConnections.filter( function( c ){ return c !== connection } );
 							}
 							else {
-								this.__readOnlyConnections.filter( function( c ){ return c !== connection } );
+								this.__readOnlyConnections = this.__readOnlyConnections.filter( function( c ){ return c !== connection } );
 							}
 						}.bind( this )
 					}
