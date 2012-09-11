@@ -18,25 +18,16 @@
 
 
 		// all connections of this host
-		, __connections: {}
-
-		// connection count
-		, __connectionCount: 0 
-
-		// available ( idle ) connections
-		, __pool: []
-
-		// status ( available as long connections can be established )
-		, __available: true
-
+		, __connections: []
+	
 		// timetamp: if time > this you may try to create new connections 
 		, __newConnectionBlock: 0
 
 		// how long to wait until to reconnect when the connection limit of the host is reached
 		, __waitTime: 10000
 
-		// is this db host writeable ( master or slave )
-		, __writeable: false
+		// is this db host writable ( master or slave )
+		, __writable: false
 
 		// the weight of this host ( load balacing over hosts )
 		, __weigth: 1
@@ -62,6 +53,9 @@
 		// id
 		, __id: null
 
+
+
+
 		, init: function( options ){
 
 			// store configuration
@@ -78,7 +72,7 @@
 			if ( options.maxConnections ) this.__maxConnections = options.maxConnections;
 			if ( options.minConnections ) this.__minConnections = options.minConnections;
 			if ( options.weight ) this.__weigth = options.weight;
-			if ( options.writeable ) this.__writeable = options.writeable;
+			if ( options.writable ) this.__writable = options.writable;
 
 			// initialize connections ...
 			this.__prepare();
@@ -91,7 +85,7 @@
 
 
 		, createConnection: function(){
-			return this.__createConnection();
+			this.__createConnection();
 		}
 
 
@@ -103,53 +97,55 @@
 
 
 
-		,__createConnection: function( callback ){
-			var id = ++this.__connnectionIdCounter + this.__id;
-
-			if ( ( this.__maxConnections === 0 || this.__connectionCount >= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
+		, __createConnection: function( callback ){
+			if ( ( this.__maxConnections === 0 || this.__connectionCount <= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
 				
-				this.__connections[ id ] = new Connection( {
-					config: this.__config
-					, id: id
+				this.__connections.push( new Connection( {
+					config: 		this.__config
+					, writable:  	this.__writable
+					, id: 			++this.__connnectionIdCounter + this.__id
 					, on: {
-						available: function( id, connection ){
-							this.emit( "connection", this.__id, this.__writeable, connection );
+						// the connection now availabel for queries
+						available: function( connection ){
+							this.emit( "connection", connection );
 						}.bind( this )
 
-
-						, busy: function( id, connection ){
-
+						// the connection could be established
+						, ready: function( connection ){
+							this.__addConnection( connection );
 						}.bind( this )
 
+						// the connection was closed
+						, close: function( connection ){
+							this.__removeConnection( connection );
+						}.bind( this )
 
-						, tooManyConnections: function( id, connection ){
+						// the connection could not be established tue too many open connections
+						, tooManyConnections: function( connection ){
 							this.__newConnectionBlock = Date.now() + this.__waitTime;
+							this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
 						}.bind( this )
 
-
-						, idleTimeout: function( id, connection ){
-							this.__connectionCount--;
-							this.__loadFactor = this.__connectionCount / this.__weigth;
-							this.emit( "connectionError", this.__id, this.__writeable, connection );
-							delete this.__connections[ id ];
-						}.bind( this )
-
-
-						, error: function( id, connection ){							
+						// conenction error
+						, error: function( connection, err ){							
 							this.__newConnectionBlock = Date.now() + 1000;
-							this.__connectionCount--;
-							this.__loadFactor = this.__connectionCount / this.__weigth;
-							this.emit( "connectionError", this.__id, this.__writeable, connection );
-							delete this.__connections[ id ];
+							this.emit( "connectionError", connection, err );
 						}.bind( this )
 					}
-				} );
-
-				this.__connectionCount++;
-				this.__loadFactor = this.__connectionCount / this.__weigth;
-
-				return this.__connections[ id ];
+				} ) );
 			}
-			return null;
+		}
+
+
+		, __removeConnection: function( connection ){
+			this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
+			this.__loadFactor = this.__connections.length / this.__weigth;
+			this.emit( "connectionClose", connection );
+		}
+
+
+		, __addConnection: function( connection  ){
+			this.__connections.push( connection );
+			this.__loadFactor = this.__connections.length / this.__weigth;
 		}
 	} );

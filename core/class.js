@@ -2,109 +2,152 @@
 	"use strict";
 
 
-	// deep instantiate an object ( create new object from existing ones, set original prototype, set properties );
-	var instantiate = function( obj, proto ){
-		var newObj = Array.isArray( obj ) ? obj.slice( 0 ) : Object.create( proto ? proto : ( ( !Object.prototype.hasOwnProperty.call( obj, "__proto__" ) && obj.__proto__ ) ? obj.__proto__ : null ), getProperties( obj ) );
-		var keys = Object.keys( newObj ), i = keys.length;
-		while( i-- ) if ( typeof( newObj[ keys[ i ] ] ) === "object" && newObj[ keys[ i ] ] !== null ) newObj[ keys[ i ] ] = instantiate( newObj[ keys[ i ] ] );
-		return newObj;
-	}
+	// clone whatever comes
+	var clone = function( input ){
+		var result, i, keys;
 
-	// create properties objects
-	var getProperties = function( obj ){
-		var keys = Object.keys( obj ), i = keys.length, newObj = {}; 
-		while( i-- ) if ( keys[ i ] !== "inherits" ) newObj[ keys[ i ] ] = { value: obj[ keys[ i ] ], writable: true, configurable: true, enumerable: true };
-		return newObj;
-	}
+		switch ( typeof input ){
+			case "object":
+				if ( Array.isArray( input ) ){
+					result = input.length > 0 ? input.slice( 0 ) : [];
+					i = result.length;
+					while( i-- ) result[ i ] = clone( result[ i ] );
+				}
+				else if ( Buffer.isBuffer( input ) ){
+					result = new Buffer( input.length );
+					input.copy( result );
+				}
+				else if ( input === null ){
+					return null;
+				}
+				else {
+					result = {};
+					keys = Object.keys( input );
+					i = keys.length;
+					while( i-- ) result[ keys[ i ] ] = clone( input[ keys[ i ] ] );
+				}
+				break;
 
-
-	// some debugging stuff
-	var getModuleName = function(){
-		if ( process.argv.indexOf( "--nolog" ) !== -1 ) return "";
-		var moduleList = new Error().stack.split( "\n" ).map( function( line ){
-			var reg = /(.*)\/([^\/\:]+\/[^\/\:]+\:[0-9]+)\:[0-9]*\)\s*$/ig.exec( line );
-			return reg && reg[ 1 ].indexOf( "iridium" ) === -1 ? reg[ 2 ] : null ;
-		} ).filter( function( line ){
-			return !!line;
-		} );
-
-		return moduleList.length > 0 ? moduleList[ 0 ] : "-";
-	}
-
-
-
-	module.exports = function( definition ){
-		var properties = {} // = definition.inherits && definition.inherits.___iridium_sgetters ? definition.inherits.___iridium_sgetters : {}
-			, keys = Object.keys( definition )
-			, i = keys.length, get, set
-			, statics = definition.inherits && definition.inherits.___iridium_statics ? definition.inherits.___iridium_statics : {}
-			, staticKeys, k
-			, parentStatics = {};
-
-
-
-		// extract setters && getters && statics
-		while( i-- ){
-			get = definition.__lookupGetter__( keys[ i ] );
-			set = definition.__lookupSetter__( keys[ i ] );
-
-			if ( get || set ){
-				properties[ keys[ i ] ] = {};
-				if ( get ) properties[ keys[ i ] ].get = get;
-				if ( set ) properties[ keys[ i ] ].set = set;
-				delete definition[ keys[ i ] ];		
-			}
-			else if ( keys[ i ].indexOf( "static " ) === 0 ){
-				statics[ keys[ i ].substr( 7 ) ] = definition[ keys[ i ] ];
-				parentStatics[ keys[ i ].substr( 7 ) ] = definition[ keys[ i ] ];
-				delete definition[ keys[ i ] ];		
-			}
+			default:
+				return input;
 		}
 
+		return result;
+	}
+	
+
+	// create an properties object
+	var makeProperties = function( input ){
+		var properties = {}
+			, keys = Object.keys( input )
+			, i = keys.length;
+		while( i-- ) properties[ keys[ i ] ] = { value: input[ keys[ i ] ], writable: true, configurable: true, enumerable: true };
+		return properties;
+	}
 
 
+
+
+	module.exports = function( classDefinition ){
+		var   proto 			= {}
+			, classProperties 	= {}
+			, getters 			= {}
+			, setters 			= {}
+			, staticProperties 	= {}
+			, parentClass, keys, i, id, get, set, setterKeys, getterKeys, staticKeys, o;
+
+
+		// collect inherited data
+		if ( classDefinition.inherits ){
+			parentClass 		= classDefinition.inherits.$$__iridium__$$;
+			proto 				= Object.create( parentClass.proto );
+			classProperties 	= clone( parentClass.properties );
+			setters 			= clone( parentClass.setters );
+			getters				= clone( parentClass.getters );
+			staticProperties 	= clone( parentClass.staticProperties );
+		}
 		
 
-		var ClassContructor = function( instanceOptions ){
-			var inherit = definition.inherits ? ( definition.inherits.___iridium_baseclass ? instantiate( definition.inherits.___iridium_baseclass ) : definition.inherits ) : null
-				, classInstance = instantiate( definition, inherit );
+		// extract definition components
+		keys = Object.keys( classDefinition );
+		i = keys.length;
 
-			// id
-			classInstance.$id = ( classInstance.$id || "-" ) + " <" + getModuleName() + ">" ;
+		while( i-- ){
+			id  = keys[ i ];
+			get = classDefinition.__lookupGetter__( id );
+			set = classDefinition.__lookupSetter__( id );
 
-			// events
-			if ( instanceOptions && instanceOptions.on && classInstance.$events ) classInstance.on( instanceOptions.on );
-			
+			// separte getters & setters
+			if ( get || set ){
+				if ( get ) getters[ id ] = get;
+				if ( set ) setters[ id ] = set;
+			}
+			// separate static properties
+			else if ( id.indexOf( "static " ) === 0 ){
+				staticProperties[ id.substr( 7 ) ] = classDefinition[ id ];
+			}
+			// the rest
+			else if ( id !== "inherits" ){
+				switch ( typeof classDefinition[ id ] ){
+					case "function":
+						proto[ id ] = classDefinition[ id ];
+						break;
 
-			// properties
-			if ( properties ){
-				var keys = Object.keys( properties ), i = keys.length;
-				while( i-- ){
-					if ( properties[ keys[ i ] ].get ) classInstance.__defineGetter__( keys[ i ], properties[ keys[ i ] ].get );
-					if ( properties[ keys[ i ] ].set ) classInstance.__defineSetter__( keys[ i ], properties[ keys[ i ] ].set );
+					default:
+						classProperties[ id ] = classDefinition[ id ];
+						break;
 				}
 			}
-
-			// init, contructor
-			if ( typeof classInstance.init === "function" ) {
-				var result = classInstance.init( instanceOptions || {} );
-				if ( typeof result === "object" ){
-					classInstance = result;
-				}
-			}
-
-			return classInstance;
 		}
 
-		// apply static functions
-		staticKeys = Object.keys( statics ), k = staticKeys.length;
-		while( k-- ) ClassContructor[ staticKeys[ k ] ] = statics[ staticKeys[ k ] ];
 
-		// reference used for inherit
-		Object.defineProperty( ClassContructor, "___iridium_baseclass", { value: instantiate( definition, definition.inherits ? definition.inherits.___iridium_baseclass : null ), writable: false, configurable: false, enumerable: false } );
-		Object.defineProperty( ClassContructor, "___iridium_sgetters", { value: properties, writable: false, configurable: false, enumerable: false } );
-		Object.defineProperty( ClassContructor, "___iridium_statics", { value: parentStatics, writable: false, configurable: false, enumerable: false } );
-		return ClassContructor;
-	};
+		// get keys of the props
+		setterKeys = Object.keys( setters );
+		getterKeys = Object.keys( getters );
 
 
+		// this is the actual class contructor
+		var ClassConstructor = function( options ){
+			// instantiate the class with its prototype and porperties
+			// wee need to clone the properties so the properties
+			// typeof object wont be shared between the instances
+			var instance = Object.create( proto, makeProperties( clone( classProperties ) ) )
+				, k = setterKeys.length
+				, m = getterKeys.length
+				, contructorResult;
+
+			// add setters and getters
+			while( m-- ) instance.__defineGetter__( getterKeys[ m ], getters[ getterKeys[ m ] ] );
+			while( k-- ) instance.__defineSetter__( setterKeys[ k ], setters[ setterKeys[ k ] ] );
+
+			// add eventlisteners
+			if ( options && options.on && instance.$events ) instance.on( options.on );
+
+			// call the class contsructor
+			if ( typeof instance.init === "function" ){
+				contructorResult = instance.init( options || {} );
+				if ( typeof contructorResult === "object" ) instance = contructorResult;
+			}
+
+			// thats it :)
+			return instance;
+		};
+
+
+		// add static properties
+		staticKeys = Object.keys( staticProperties );
+		o = staticKeys.length;
+		while( o-- ) ClassConstructor[ staticKeys[ o ] ] = staticProperties[ staticKeys[ o ] ];
+
+
+		// store class components
+		Object.defineProperty( ClassConstructor, "$$__iridium__$$", { value: {
+			proto: 				proto
+			, properties: 		classProperties
+			, setters: 			setters
+			, getters: 			getters
+			, staticProperties: staticProperties	
+		}, writable: false, configurable: false, enumerable: false } );
+
+		return ClassConstructor;
+	}

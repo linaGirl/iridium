@@ -1,12 +1,7 @@
 
-	require( "../" )( "iridium framework tests", 1 );
+	
 
 	// core modules
+
+	// class
 	require( "./core/class" );
-
-
-
-
-
-
-	// modules

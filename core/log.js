@@ -195,8 +195,8 @@
 								console.log( this.__pad( "", margin * 4, " " ) + ( isArray ? "]" : "}" ).grey );
 								return;
 							}
-
-							this.__dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? "" +  keys[ l - i - 1  ]  : keys[ l - i - 1  ] ), first, knownObjects );
+							//console.log(keys[ l - i - 1  ] );
+							if ( data.hasOwnProperty( keys[ l - i - 1  ] ) ) this.__dir( data[ keys[ l - i - 1  ] ], margin + 1, ( isArray ? "" +  keys[ l - i - 1  ]  : keys[ l - i - 1  ] ), first, knownObjects );
 							if ( first ) first = false;
 							k++
 						}

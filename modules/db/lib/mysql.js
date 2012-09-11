@@ -2,7 +2,8 @@
 
 	var Class 				= iridium( "class" )
 		, Events 			= iridium( "events" )
-		, log 				= iridium( "log" );
+		, log 				= iridium( "log" )
+		, trace				= iridium( "util" ).argv.has( "trace-mysql" );
 
 	var mysql 				= require( "../dep/node-mysql" );
 
@@ -27,33 +28,16 @@
 		// the different hosts available
 		, __hosts: {}
 
+		, __connections: []
 
-		/*// holds avilable connections to the MySQL master
-		, __writeableConnections: []
-
-		// holds read only connections
-		, __readOnlyConnections: []
-
-
-		// waiting read only queries
-		, __writeableBuffer: []
-
-		// waiting wrrite queries / transactions
-		, __readableBuffer: []*/
-
-
-
+		, __buffer: []
 
 
 		, init: function( options ){
-			this.__writeableConnections = [];
-			this.__readOnlyConnections = [];
-			this.__writeableBuffer = [];
-			this.__readableBuffer = [];
 
 			// laod hosts, create connections, be ready
 			if ( !options.configs ) throw new Error( "missing database configuration!" );
-			this.__prepare( options.configs, options.database );
+			this.__createHosts( options.configs, options.database );
 
 			this.__reg = /update|insert|delete|grant|create/gi;
 			this.__configs = options.configs;
@@ -61,18 +45,25 @@
 
 
 
-		, query: function( query, parameters, callback, writeable ){
-			writeable = writeable || ( writeable === undefined && this.__reg.test( query ) );
+		, query: function( query, parameters, callback, writable ){
+			writable = writable || ( writable === undefined && this.__reg.test( query ) );
+			if ( trace ) log.info( "got query ...", this ), log.dir( query, parameters );
 
-			var connection = this.__getConnection( writeable );
+
+			var connection = this.__getConnection( writable );
 			if ( connection ){
+				if ( trace ) log.debug( "got a free connection for the query ...", this );
 				connection.query( query, parameters, callback );
 			}
 			else {
-				if ( writeable ) this.__writeableBuffer.push( { type: "query", query: query, parameters: parameters, callback: callback } );
-				else this.__readableBuffer.push( { type: "query", query: query, parameters: parameters, callback: callback } );
-				
-				this.__createConnection( writeable );
+				if ( trace ) log.debug( "buffering query ...", this );
+				this.__buffer.push( { 
+					type: 			"query"
+					, query: 		query
+					, parameters: 	parameters
+					, callback: 	callback 
+					, writable: 	writable
+				} );
 			}
 		}
 
@@ -98,62 +89,70 @@
 				}.bind( this ) );
 			}
 			else {
-				this.__writeableBuffer.push( { type: "transaction", callback: callback } );
-				this.__createConnection( true );
+				this.__buffer.push( { 
+					type: 			"transaction"
+					, callback: 	callback 
+					, writable: 	true
+				} );
 			}
 		}
 
 
 
 
-		, __getConnection: function( writeable ){
-			if ( writeable ){
-				if ( this.__writeableConnections.length > 0 ) return this.__writeableConnections.shift();
-			} 
-			else {
-				if ( this.__readOnlyConnections.length > 0 ) return this.__readOnlyConnections.shift();
-				if ( this.__writeableConnections.length > 0 ) return this.__writeableConnections.shift();
+		, __getConnection: function( writable ){
+			var i = this.__connections.length;
+			if ( trace ) log.debug( "[" + this.$id + "] has [" + i + "] connections ...", this );
+
+			while( i-- ) {
+				if ( ! writable || this.__connections[ i ].isWritable() ) {
+					return this.__connections.splice( i, 1 )[ 0 ];
+				}
 			}
+
+			// there wasnt a suitable connection, create one but not before letting the calling function push 
+			// the query to the buffer
+			process.nextTick( function(){
+				this.__createConnection( writable );
+			}.bind( this ) );			
 			return null;
 		}
 
-		, __setConnection: function( writeable, connection ){
 
-			if ( writeable ) this.__writeableConnections.push( connection );
-			else this.__readOnlyConnections.push( connection );
+		// when a connection becomes free it will be pushed through this function
+		, __setConnection: function( connection ){
+			var writable = connection.isWritable()
+				, i = this.__buffer.length
+				, item;
 
-
-			if ( writeable && this.__writeableBuffer.length > 0 ){
-				var i = this.__writeableBuffer.length, item;
-				while( i-- ){
-					item = this.__writeableBuffer.shift();
+			if ( trace ) log.debug( "[" + this.$id + "] got a free connection from the host ...", this );
+			
+			while( i-- ){
+				if ( writable || !this.__buffer[ i ].writable ){
+					item = this.__buffer.splice( i, 1 )[ 0 ];
 					if ( item.type === "query" ){
 						this.query( item.query, item.parameters, item.callback );
 					}
 					else {
 						this.createTransaction( item.callback );
 					}
+					return;
 				}
 			}
-			else if ( this.__readableBuffer.length > 0 ){
-				var i = this.__readableBuffer.length, item;
-				while( i-- ){
-					item = this.__readableBuffer.shift();
-					if ( item.type === "query" ){
-						this.query( item.query, item.parameters, item.callback );
-					}
-				}
-			}
+
+			// store connection
+			this.__connections.push( connection );
 		}
 
 
 
-		, __createConnection: function( writeable ){
+		, __createConnection: function( writable ){
+			if ( trace ) log.debug( "[" + this.$id + "] creating a new connection ...", this );
 			var loadList = [], keys = Object.keys( this.__hosts ), i = keys.length, current;
 
 			while( i-- ){
 				current = this.__hosts[ keys[ i ] ];
-				if ( !writeable || current.writeable ){
+				if ( !writable || current.writable ){
 					loadList.push( {
 						load: current.getLoad()
 						, id: keys[ i ]
@@ -171,7 +170,7 @@
 
 
 		
-		, __prepare: function( configs, database ){
+		, __createHosts: function( configs, database ){
 			var i = configs.length;
 
 			while( i-- ){
@@ -184,19 +183,17 @@
 						, password: 	configs[ i ].password
 						, database: 	database
 					}
-					, writeable: 		configs[ i ].writeable
+					, writable: 		configs[ i ].writable
 					, weight: 			configs[ i ].weight
 					, on: {
-						connection: function( id, writeable, connection ){
-							this.__setConnection( writeable, connection );
+						connection: function( connection ){
+							this.__setConnection( connection );
 						}.bind( this )
-						, connectionError: function( id, writeable, connection ){
-							if ( writeable ){
-								this.__writeableConnections = this.__writeableConnections.filter( function( c ){ return c !== connection } );
-							}
-							else {
-								this.__readOnlyConnections = this.__readOnlyConnections.filter( function( c ){ return c !== connection } );
-							}
+						, connectionClose: function( connection ){
+							this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
+						}.bind( this )
+						, connectionError: function( connection, err ){
+							log.error( "connection error: " + err, this );
 						}.bind( this )
 					}
 				} );
