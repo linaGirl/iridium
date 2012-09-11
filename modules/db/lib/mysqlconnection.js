@@ -21,8 +21,8 @@
 		, __config: {}
 
 
-		// after idling this amount of ms close the connection
-		, __idleTimeoutTime: 1000 * 300
+		// after idling this amount of ms close the connection 
+		, __idleTimeoutTime: 1000 * 900 // 15 mins
 
 		// kill queries after 
 		, __queryTimeoutTime: 60000
@@ -33,8 +33,8 @@
 
 
 		, init: function( options ){
-			this.__config = options.config;
-			this.__id = options.id;
+			this.__config 	= options.config;
+			this.__id 		= options.id;
 			this.__writable = options.writable;
 
 			// try to connect

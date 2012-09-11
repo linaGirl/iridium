@@ -102,7 +102,7 @@
 
 		, __getConnection: function( writable ){
 			var i = this.__connections.length;
-			if ( trace ) log.debug( "[" + this.$id + "] has [" + i + "] connections ...", this );
+			if ( trace ) log.debug( "has [" + i + "] connections ...", this );
 
 			while( i-- ) {
 				if ( ! writable || this.__connections[ i ].isWritable() ) {
@@ -125,10 +125,15 @@
 				, i = this.__buffer.length
 				, item;
 
-			if ( trace ) log.debug( "[" + this.$id + "] got a free connection from the host ...", this );
+			if ( trace ) log.debug( " got a free connection from the host ...", this );
+
+			// store connection
+			this.__connections.push( connection );
 			
 			while( i-- ){
+				if ( trace ) log.debug( " matching buffer [" + this.__buffer[ i ].writable + "] to connection [" + writable + "] ...", this );
 				if ( writable || !this.__buffer[ i ].writable ){
+					if ( trace ) log.debug( " executing buffered query ...", this );
 					item = this.__buffer.splice( i, 1 )[ 0 ];
 					if ( item.type === "query" ){
 						this.query( item.query, item.parameters, item.callback );
@@ -139,20 +144,17 @@
 					return;
 				}
 			}
-
-			// store connection
-			this.__connections.push( connection );
 		}
 
 
 
 		, __createConnection: function( writable ){
-			if ( trace ) log.debug( "[" + this.$id + "] creating a new connection ...", this );
+			if ( trace ) log.debug( " creating a new connection ...", this );
 			var loadList = [], keys = Object.keys( this.__hosts ), i = keys.length, current;
 
 			while( i-- ){
 				current = this.__hosts[ keys[ i ] ];
-				if ( !writable || current.writable ){
+				if ( !writable || current.isWritable() ){
 					loadList.push( {
 						load: current.getLoad()
 						, id: keys[ i ]
@@ -163,9 +165,16 @@
 			loadList.sort( function( a, b ){
 				return a.load > b.load ? 1 : -1 ;
 			}.bind( this ) );
-			
+
 			var x = loadList.length;
-			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
+
+			while( x-- ) {
+				if ( this.__hosts[ loadList[ x ].id ].createConnection() ){
+					return;
+				}
+			}
+
+			log.warn( "failed to create new connection!", this );
 		}
 
 

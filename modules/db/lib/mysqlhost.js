@@ -79,13 +79,18 @@
 		}
 
 
+		, isWritable: function(){
+			return this.__writable;
+		}
+
+
 		, getLoad: function(){
 			return this.__loadFactor;
 		}
 
 
 		, createConnection: function(){
-			this.__createConnection();
+			return this.__createConnection();
 		}
 
 
@@ -133,7 +138,9 @@
 						}.bind( this )
 					}
 				} ) );
+				return true;
 			}
+			return false;
 		}
 
 
