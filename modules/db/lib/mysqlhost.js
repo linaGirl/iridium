@@ -53,6 +53,10 @@
 		// id
 		, __id: null
 
+		// is this host available
+		, __available: true
+
+
 
 
 
@@ -83,6 +87,9 @@
 			return this.__writable;
 		}
 
+		, isAvailable: function(){
+			return this.__available;
+		}
 
 		, getLoad: function(){
 			return this.__loadFactor;
@@ -115,9 +122,10 @@
 							this.emit( "connection", connection );
 						}.bind( this )
 
-						// the connection could be established
+						// the connection could be established, fired once
 						, ready: function( connection ){
 							this.__addConnection( connection );
+							this.__available = true;
 						}.bind( this )
 
 						// the connection was closed
@@ -129,12 +137,22 @@
 						, tooManyConnections: function( connection ){
 							this.__newConnectionBlock = Date.now() + this.__waitTime;
 							this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
+
+							this.__available = false;
+							setTimeout( function(){
+								this.__available = true;
+							}.bind( this ), this.__waitTime );
 						}.bind( this )
 
 						// conenction error
-						, error: function( connection, err ){							
+						, error: function( connection, err ){
 							this.__newConnectionBlock = Date.now() + 1000;
 							this.emit( "connectionError", connection, err );
+
+							this.__available = false;
+							setTimeout( function(){
+								this.__available = true;
+							}.bind( this ), 1000 );
 						}.bind( this )
 					}
 				} ) );

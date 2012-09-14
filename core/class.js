@@ -20,6 +20,9 @@
 				else if ( input === null ){
 					return null;
 				}
+				else if ( input instanceof RegExp ){
+					return input;
+				}
 				else {
 					result = {};
 					keys = Object.keys( input );

@@ -41,6 +41,26 @@
 
 			this.__reg = /update|insert|delete|grant|create/gi;
 			this.__configs = options.configs;
+
+
+			this.__cleanBuffer();
+		}
+
+
+		// dont wait too long for new conenctions ...
+		, __cleanBuffer: function(){
+			setInterval( function(){
+				var now = Date.now() - 1000;
+				this.__buffer = this.__buffer.filter( function( item ){
+					if ( item.timeout < now ){
+						if ( typeof item.callback === "function" ){
+							item.callback( new Error( "failed to get a connection from the pool!" ).code = "connection_timeout" );
+						}
+						return false;
+					}
+					return true;
+				}.bind( this ) );
+			}.bind( this ), 1000 );
 		}
 
 
@@ -63,6 +83,7 @@
 					, parameters: 	parameters
 					, callback: 	callback 
 					, writable: 	writable
+					, timeout: 		Date.now()
 				} );
 			}
 		}
@@ -85,7 +106,7 @@
 			if ( connection ){
 				connection.createTransaction( function( err, transaction ){
 					if ( err ) this.createTransaction( callback );
-					else callback( transaction );
+					else callback( null, transaction );
 				}.bind( this ) );
 			}
 			else {
@@ -93,6 +114,7 @@
 					type: 			"transaction"
 					, callback: 	callback 
 					, writable: 	true
+					, timeout: 		Date.now()
 				} );
 			}
 		}
@@ -154,7 +176,7 @@
 
 			while( i-- ){
 				current = this.__hosts[ keys[ i ] ];
-				if ( !writable || current.isWritable() ){
+				if ( current.isAvailable() && ( !writable || current.isWritable() ) ){
 					loadList.push( {
 						load: current.getLoad()
 						, id: keys[ i ]
@@ -166,15 +188,16 @@
 				return a.load > b.load ? 1 : -1 ;
 			}.bind( this ) );
 
+
 			var x = loadList.length;
+			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 
-			while( x-- ) {
-				if ( this.__hosts[ loadList[ x ].id ].createConnection() ){
-					return;
-				}
-			}
 
-			log.warn( "failed to create new connection!", this );
+			// couldnt create a connection, try again in some ms
+			setTimeout( function(){
+				this.__createConnection( writable );
+			}.bind( this ), 50 );
+			log.debug( "failed to create new connection!", this );
 		}
 
 
