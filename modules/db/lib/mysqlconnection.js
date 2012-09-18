@@ -49,11 +49,16 @@
 
 
 		, query: function( query, parameters, callback ){
+			if ( typeof parameters === "function" ) {
+				callback = parameters;
+				parameters = null;
+			}
+
 			this.__setBusy();
 			this.__clearIdleTimeout();
 
 			if ( debug ) {
-				log.debug( "<< --- QUERY ----------", "host: " + this.__config.host, this );
+				log.info( "<< --- QUERY ----------", "host: " + this.__config.host, this );
 				log.debug( query, this );
 				log.dir( parameters );
 				log.debug( "--- QUERY ---------- >>", this );
@@ -71,7 +76,6 @@
 				this.__setIdleTimout();
 
 				if ( typeof callback === "function" ) callback( err, result );
-				else if( typeof parameters === "function" ) parameters( err, result );
 
 				this.__setAvailable();
 			}.bind( this ) );
@@ -113,10 +117,8 @@
 		}
 
 		, __cancelQuerytimeout: function(){
-			if ( this.__queryTimeout ) {
-				clearTimeout( this.__queryTimeout )
-				delete this.__queryTimeout;
-			}
+			clearTimeout( this.__queryTimeout );
+			if ( this.__queryTimeout !== undefined ) delete this.__queryTimeout;
 		}
 
 
@@ -148,10 +150,8 @@
 		}
 
 		, __clearIdleTimeout: function(){
-			if ( this.__idleTimeout ) {
-				clearTimeout( this.__idleTimeout )
-				delete this.__idleTimeout;
-			}
+			clearTimeout( this.__idleTimeout );
+			if ( this.__idleTimeout !== undefined ) delete this.__idleTimeout;
 		}
 
 
