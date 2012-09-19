@@ -61,12 +61,12 @@
 
 
 		, exists: function( path ){
-			return !!this.__files[ path ];
+			return this.__files.hasOwnProperty( path );
 		}
 
 
 		, get: function( path ){
-			return this.__files[ path ] || null;
+			return this.__files.hasOwnProperty( path ) ? this.__files[ path ] : null;
 		}
 
 
