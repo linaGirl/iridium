@@ -2,8 +2,7 @@
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
-		, debug 		= iridium( "util" ).argv.has( "debug" )
-		, timing 		= iridium( "util" ).argv.has( "timing" );
+		, debug 		= iridium( "util" ).argv.has( "trace-mysql" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -66,10 +65,10 @@
 
 			// pseudo timeout
 			this.__setQueryTimeout( query, parameters );			
-			if ( timing ) var now = Date.now();
+			if ( debug ) var now = Date.now();
 
 			this.__connection.query( query, parameters, function( err, result ){
-				if ( timing ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
+				if ( debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
 				if ( err ) log.trace ( err );
 				// not really a timeout :( no driver support
 				this.__cancelQuerytimeout();

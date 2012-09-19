@@ -41,6 +41,11 @@
 		, init: function( options ){
 			this.__path = path.resolve( options.path );
 
+			// did we get lanaguage data and constants?
+			if ( options.lang ) 		this.__lang 		= options.lang;
+			if ( options.constants ) 	this.__constants 	= options.constants;
+
+
 			// go
 			fs.exists( this.__path, function( exists ){
 				if ( exists ) {
@@ -289,12 +294,23 @@
 			this.__compileIncludes();
 
 
+			// compile templates
+			this.__compileTemplates();
+
+
+			// create locales fro templates
+			//if ( this.__lang ) this.__compileLocale();
+
+
 			// create compressed versions of the files
 			//this.__compressFiles( function(){
 				// ready :)
 				this.emit( "load" );
 			//}.bind( this ) );
 		}
+
+
+
 
 
 
@@ -406,9 +422,6 @@
 					this.__compileIncludeFile( keys[ i ], [] ) ;
 				}
 			}
-
-
-			this.__compileTemplates();
 		}
 
 
@@ -437,14 +450,56 @@
 
 
 		, __compileTemplates: function(){
-			var keys = Object.keys( this.__files ), i = keys.length, current;
-
+			var keys = Object.keys( this.__files ), i = keys.length, current, version, reg, result;
+			
 			while( i-- ){
 				current = this.__files[ keys[ i ] ];
 
 				if ( current.extension === "tpl" || current.extension === "mustache" ){
 					current.isTemplate = true;
-					current.template = hogan.compile( current.file );
+
+					// constants ...
+					if ( this.__constants ){
+						reg = /@constant\s*\(\s*([^\)]+)\s*\)\s*;/gi;
+						
+						while ( result = reg.exec( current.file ) ){
+							if ( this.__constants[ result[ 1 ] ] !== undefined ){
+								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__constants[ result[ 1 ] ] );
+							}
+							else{
+								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "constant:" + result[ 1 ] );
+								log.warn( "missing constant [" + result[ 1 ] + "] used in template [" + current.path + "] ...", this );
+							}
+						}
+					}
+
+
+					// locale?
+					if ( this.__lang ){
+						var x = this.__lang.languages.length, currentLang;
+						current.templates = {};
+						current.isLocalized = true;
+
+						while( x-- ){
+							version = current.file;
+							currentLang = this.__lang.languages[ x ];
+							reg = /@locale\s*\(\s*([^\)]+)\s*\)\s*;/gi;
+
+							while ( result = reg.exec( version ) ){
+								if ( this.__lang.locale[ currentLang ][ result[ 1 ] ] !== undefined ){
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ] );
+								}
+								else{
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + result[ 1 ] );
+									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
+								}
+							}
+							current.templates[ currentLang ] = hogan.compile( version );
+						}
+					}
+					else {
+						current.template = hogan.compile( current.file );
+					}
 				}
 			}
 		}
