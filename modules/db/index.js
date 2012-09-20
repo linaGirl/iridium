@@ -1,12 +1,13 @@
 
 
 
-	var MongoDB = require( "./dep/node-mongolian/mongolian" )
-		, mysql = require( "./dep/node-mysql" )
-		, mysqlQueues = require( "./dep/node-mysql-queues" )
-		, OrientDB = require( "./lib/orientdb" )
-		, MySQLPool = require( "./lib/mysql" )
-		, log = iridium( "log" );
+	var MongoDB 		= require( "./dep/node-mongolian/mongolian" )
+		, mysql 		= require( "./dep/node-mysql" )
+		, mysqlQueues 	= require( "./dep/node-mysql-queues" )
+		, LRUCache 		= require( "./lib/lru" )
+		, MySQLPool 	= require( "./lib/mysql" );
+
+	var log 			= iridium( "log" );
 
 
 
@@ -34,9 +35,12 @@
 			}
 		}
 
-		, OrientDB: OrientDB
 
 		, MySQLPool: MySQLPool
+
+
+		, LRUCache: LRUCache
+
 
 		, MySQL: function( options ){
 			var client = mysql.createConnection( options );
