@@ -3,7 +3,8 @@
 	var Class 				= iridium( "class" )
 		, Events 			= iridium( "events" )
 		, log 				= iridium( "log" )
-		, trace				= iridium( "util" ).argv.has( "trace-mysql" );
+		, argv 				= iridium( "util" ).argv
+		, debug 			= argv.has( "debug-mysql" ) || argv.has( "debug-all" );
 
 	var mysql 				= require( "../dep/node-mysql" );
 
@@ -67,16 +68,16 @@
 
 		, query: function( query, parameters, callback, writable ){
 			writable = writable || ( writable === undefined && this.__reg.test( query ) );
-			if ( trace ) log.info( "got query ...", this ), log.dir( query, parameters );
+			if ( debug ) log.info( "got query ...", this ), log.dir( query, parameters );
 
 
 			var connection = this.__getConnection( writable );
 			if ( connection ){
-				if ( trace ) log.debug( "got a free connection for the query ...", this );
+				if ( debug ) log.debug( "got a free connection for the query ...", this );
 				connection.query( query, parameters, callback );
 			}
 			else {
-				if ( trace ) log.debug( "buffering query ...", this );
+				if ( debug ) log.debug( "buffering query ...", this );
 				this.__buffer.push( { 
 					type: 			"query"
 					, query: 		query
@@ -123,12 +124,13 @@
 
 
 		, __getConnection: function( writable ){
-			var i = this.__connections.length;
-			if ( trace ) log.debug( "has [" + i + "] connections ...", this );
+			var i = this.__connections.length, connection;
+			if ( debug ) log.debug( "has [" + i + "] connections ...", this );
 
 			while( i-- ) {
 				if ( ! writable || this.__connections[ i ].isWritable() ) {
-					return this.__connections.splice( i, 1 )[ 0 ];
+					connection = this.__connections.splice( i, 1 )[ 0 ];
+					if ( connection.isAvailable() )	return connection;
 				}
 			}
 
@@ -147,15 +149,15 @@
 				, i = this.__buffer.length
 				, item;
 
-			if ( trace ) log.debug( " got a free connection from the host ...", this );
+			if ( debug ) log.debug( " got a free connection from the host ...", this );
 
 			// store connection
 			this.__connections.push( connection );
 			
 			while( i-- ){
-				if ( trace ) log.debug( " matching buffer [" + this.__buffer[ i ].writable + "] to connection [" + writable + "] ...", this );
+				if ( debug ) log.debug( " matching buffer [" + this.__buffer[ i ].writable + "] to connection [" + writable + "] ...", this );
 				if ( writable || !this.__buffer[ i ].writable ){
-					if ( trace ) log.debug( " executing buffered query ...", this );
+					if ( debug ) log.debug( " executing buffered query ...", this );
 					item = this.__buffer.splice( i, 1 )[ 0 ];
 					if ( item.type === "query" ){
 						this.query( item.query, item.parameters, item.callback );
@@ -171,7 +173,7 @@
 
 
 		, __createConnection: function( writable ){
-			if ( trace ) log.debug( " creating a new connection ...", this );
+			if ( debug ) log.debug( " creating a new connection ...", this );
 			var loadList = [], keys = Object.keys( this.__hosts ), i = keys.length, current;
 
 			while( i-- ){

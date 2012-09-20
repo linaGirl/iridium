@@ -2,7 +2,8 @@
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
-		, debug 		= iridium( "util" ).argv.has( "trace-mysql" );
+		, argv 			= iridium( "util" ).argv
+		, debug 		= argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -21,7 +22,7 @@
 
 
 		// after idling this amount of ms close the connection 
-		, __idleTimeoutTime: 1000 * 900 // 15 mins
+		, __idleTimeoutTime: 1000 * 60 // 1 mins
 
 		// kill queries after 
 		, __queryTimeoutTime: 60000
@@ -29,6 +30,7 @@
 
 		// status
 		, __available: false
+
 
 
 		, init: function( options ){
@@ -40,6 +42,11 @@
 			this.__connect();
 		}
 
+
+		// double check if the connection is ok...
+		, isAvailable: function(){
+			return !!this.__connection;
+		}
 
 
 		, isWritable: function(){
@@ -191,6 +198,7 @@
 			if ( err ) this.emit( "error", this, err );
 			this.emit( "close", this );
 			this.__connection.end();
+			delete this.__connection;
 			this.off();
 		}	
 	} );
