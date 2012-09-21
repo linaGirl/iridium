@@ -4,7 +4,7 @@
 		, Events 			= iridium( "events" )
 		, log 				= iridium( "log" )
 		, argv 				= iridium( "util" ).argv
-		, debug 			= argv.has( "debug-mysql" ) || argv.has( "debug-all" );
+		, debug 			= argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
 	var mysql 				= require( "../dep/node-mysql" );
 
@@ -125,11 +125,12 @@
 
 		, __getConnection: function( writable ){
 			var i = this.__connections.length, connection;
-			if ( debug ) log.debug( "has [" + i + "] connections ...", this );
+			if ( debug ) log.debug( "[" + i + "] existing connections ...", this );
 
 			while( i-- ) {
 				if ( ! writable || this.__connections[ i ].isWritable() ) {
 					connection = this.__connections.splice( i, 1 )[ 0 ];
+					if ( debug ) log.debug( "returning existing connection ...", this );
 					if ( connection.isAvailable() )	return connection;
 				}
 			}
@@ -138,7 +139,9 @@
 			// the query to the buffer
 			process.nextTick( function(){
 				this.__createConnection( writable );
-			}.bind( this ) );			
+			}.bind( this ) );
+
+			if ( debug ) log.debug( "no existing connection, creating one ...", this );
 			return null;
 		}
 
@@ -149,7 +152,7 @@
 				, i = this.__buffer.length
 				, item;
 
-			if ( debug ) log.debug( " got a free connection from the host ...", this );
+			if ( debug ) log.debug( "got a free connection ...", this );
 
 			// store connection
 			this.__connections.push( connection );
