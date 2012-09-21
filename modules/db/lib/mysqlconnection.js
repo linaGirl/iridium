@@ -22,7 +22,7 @@
 
 
 		// after idling this amount of ms close the connection 
-		, __idleTimeoutTime: 1000 * 60 // 1 mins
+		, __idleTimeoutTime: debug ? 1000 * 5 : 1000 * 900
 
 		// kill queries after 
 		, __queryTimeoutTime: 60000
