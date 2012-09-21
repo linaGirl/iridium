@@ -227,7 +227,13 @@
 							this.__setConnection( connection );
 						}.bind( this )
 						, connectionClose: function( connection ){
-							this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
+							this.__connections = this.__connections.filter( function( c ){
+								if ( c === connection ){
+									if ( debug ) log.debug( "deleting connection from available connections list ...", this );
+									return false;
+								}
+								return true;
+							} );
 						}.bind( this )
 						, connectionError: function( connection, err ){
 							log.error( "connection error: " + err, this );
