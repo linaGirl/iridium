@@ -233,7 +233,7 @@
 									return false;
 								}
 								return true;
-							} );
+							}.bind( this ) );
 						}.bind( this )
 						, connectionError: function( connection, err ){
 							log.error( "connection error: " + err, this );
