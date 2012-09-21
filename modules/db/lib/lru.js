@@ -1,6 +1,7 @@
 
-	var Class = iridium( "class" )
-		, log = iridium( "log" );
+	var Class 		= iridium( "class" )
+		, Events 	= iridium( "events" )
+		, log 		= iridium( "log" );
 
 
 
@@ -8,9 +9,16 @@
 
 	module.exports = new Class( {
 		$id: "LRUCache"
+		, inherits: Events
 
-		// dont cache too many itemss
+
+
+		// dont cache too many items
 		, __limit: 100000
+
+		// ttl
+		, __ttl: 3600000 // 1h
+		, __ttilIntervalTime: 10000 // 10 sec
 
 		// the actual items
 		, __data: {}
@@ -24,9 +32,16 @@
 
 
 
+
 		, init: function( options ){
-			if ( options.limit ) this.__limit = options.limit;
+			if ( options.limit ) 	this.__limit = options.limit;
+			if ( options.ttl ) 		this.__ttl = options.ttl;
+
+			// initialize the ttl check
+			setInterval( this.__ttlCheck.bind( this ), this.__ttilIntervalTime );
 		}
+
+
 
 
 		, set: function( id, data ){
@@ -44,6 +59,8 @@
 				if ( this.__count > this.__limit ){
 					this.remove( this.__first );
 				}
+
+				this.emit( "add", id, data );
 			}
 		}
 
@@ -67,6 +84,9 @@
 			var item = this.__removeFromList( id );
 			if ( item ) delete this.__data[ id ];
 			this.__count--;
+
+			this.emit( "remove", id, item.v, item.t );
+
 			return item.v;
 		}
 
@@ -74,6 +94,9 @@
 
 		// add to linked list
 		, __appendToList: function( item ){
+
+			// set ttl flag
+			item.t = Date.now() + this.__ttl;
 
 			if ( this.__first ){
 				// there is at least on item
@@ -132,6 +155,15 @@
 			}
 			return null;
 		}
+
+
+		// removed expired items
+		, __ttlCheck: function(){
+			var maxItems 	= 100
+				, now 		= Date.now();
+
+			while( maxItems-- && this.__first && this.__data[ this.__first ].t < now ){
+				this.remove( this.__first );
+			}
+		}
 	} );
-
-

@@ -5,7 +5,10 @@
 		, mysql 		= require( "./dep/node-mysql" )
 		, mysqlQueues 	= require( "./dep/node-mysql-queues" )
 		, LRUCache 		= require( "./lib/lru" )
-		, MySQLPool 	= require( "./lib/mysql" );
+		, MySQLPool 	= require( "./lib/mysql" )
+		, Model 		= require( "./lib/model" )
+		, Schema 		= require( "./lib/schema" )
+		, StaticModel 	= require( "./lib/staticmodel" );
 
 	var log 			= iridium( "log" );
 
@@ -37,6 +40,12 @@
 
 
 		, MySQLPool: MySQLPool
+
+
+		, Model: Model
+		, StaticModel: StaticModel
+		, Schema: Schema
+
 
 
 		, LRUCache: LRUCache
