@@ -84,19 +84,25 @@
 
 			log.trace = function( err, source ){
 				if ( err ){
-					airbrake.notify( err, function( airbrakeErr, url ){
-						if ( airbrakeErr ){
-							log.error( "error while reporting error to airbrake!", { $id: "iridium" } );
-							log.dir( airbrakeErr );
-						}
-						else {
-							log.info( "error was delivered to airbrake ...", { $id: "iridium" } );
-						}
-					} ); 
+					try {
+						airbrake.notify( err, function( airbrakeErr, url ){
+							if ( airbrakeErr ){
+								log.error( "error while reporting error to airbrake!", { $id: "iridium" } );
+								trace.call( log, airbrakeErr );
+							}
+							else {
+								log.info( "error was delivered to airbrake ...", { $id: "iridium" } );
+							}
+						} ); 
+					} catch ( e ){
+						// i have seen more stable software... dont let it brake ours..
+						log.error( "error while reporting error to airbrake!", { $id: "iridium" } );
+						trace.call( log, e );
+					}
 				}
 
 				// call the trace function
-				trace.call( this, err, source );
+				trace.call( log, err, source );
 			}.bind( log )
 		}
 
