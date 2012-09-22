@@ -20,7 +20,7 @@
 
 
 
-		, init: function( options ){ console.log( MySQLPool )
+		, init: function( options ){
 			// init db
 			// "this" references to the child because this class was already inherited by a schema class.
 			this.__proto__.__proto__.__proto__.init.call( this, options.config );

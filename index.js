@@ -62,26 +62,75 @@
 
 	// print iridium intro
 	module.exports = function( productName, version, dontPrint ){
-		if ( cluster.isMaster ) printLogo( productName, version );
+		var options 	= typeof productName === "object" ? productName : {}
+			, airbrake 	= options.airbrake ? iridium( "util" ).airbrake.createClient( options.airbrake ) : null;
+
+
+		if ( typeof productName === "string" ){
+			options = {
+				name: 			productName
+				, version:		version
+				, dontPrint: 	dontPrint
+			}
+		}
+		else {
+			options = productName;
+		}
+
+
+		// intercept traces
+		if ( airbrake ){
+			var trace = log.trace;
+
+			log.trace = function( err, source ){
+				if ( err ){
+					airbrake.notify( err, function( airbrakeErr, url ){
+						if ( airbrakeErr ){
+							log.error( "error while reporting error to airbrake!", { $id: "iridium" } );
+							log.dir( airbrakeErr );
+						}
+						else {
+							log.info( "error was delivered to airbrake ...", { $id: "iridium" } );
+						}
+					} ); 
+				}
+
+				// call the trace function
+				trace.call( this, err, source );
+			}.bind( log )
+		}
+
+
+		// handle uncatched
+		process.on( "uncaughtException", function( err ){
+
+			// send errors to airbrake?
+			if ( airbrake ){
+				airbrake.notify( err, function( airbrakeErr, url ){
+					if ( airbrakeErr ){
+						log.error( "error while reporting error to airbrake!", { $id: "iridium" } );
+						log.trace( airbrakeErr );
+					}
+					else {
+						log.info( "error was delivered to airbrake ...", { $id: "iridium" } );
+					}
+
+					log.error( "Uncaught Exception:", { $id: "main.js:main" } );
+					log.trace( err );
+					process.exit();
+				} ); 
+			}
+			else {
+				log.error( "Uncaught Exception:", { $id: "main.js:main" } );
+				log.trace( err );
+				process.exit();
+			}			
+		} );
+
+		if ( cluster.isMaster && !options.dontPrint ) printLogo( options.name, options.version );
 	};
 
 
-/*
-
-
-	// global error catching
-	process.on( "uncaughtException", function( err ) {
-		log.error( "Uncaught Exception:", { $id: "main.js:main" } );
-		log.trace( err );
-		log.highlight( "Bye ...", { $id: "main.js:main" }  );
-		process.exit();
-	});
-
-
-
-
-
-*/
 
 
 

@@ -84,7 +84,7 @@
 					values.push( this.id );
 					( this.__transaction || this.__db ).query( "UPDATE " + this.__databaseName + "." + this.__model + " SET " + updates.join( ", " ) + " WHERE id = ? LIMIT 1;", values, function( err, result ){
 						if ( err ){
-							iridium.reportError( "db", err );
+							log.trace( err );
 						}
 						else {
 							this.__changed = [];
@@ -103,7 +103,7 @@
 				// create new
 				( this.__transaction || this.__db ).query( "INSERT INTO " + this.__databaseName + "." + this.__model + " (" + updates.join( "," ) + ") VALUES (" + val.join( ", " ) + ");", values, function( err, result ){
 					if ( err ){
-						iridium.report( "error", "db", err );
+						log.trace( err );
 					}
 					else {
 						this.__isFromDB = true;
@@ -122,7 +122,11 @@
 
 		, toJSON: function(){
 			var keys = Object.keys( this ), i = keys.length, result = {};
-			while( i-- ) if ( this.__lookupGetter__( keys[ i ] ) ) result[ keys[ i ] ] = this[ keys[ i ] ];
+			while( i-- ) {
+				if ( this.__lookupGetter__( keys[ i ] ) ) {
+					result[ keys[ i ] ] = this[ keys[ i ] ];
+				}
+			} 
 			return result;
 		}
 	} );

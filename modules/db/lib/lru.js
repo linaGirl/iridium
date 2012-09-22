@@ -57,6 +57,7 @@
 				this.__count++;
 
 				if ( this.__count > this.__limit ){
+					this.emit( "autoremove", this.__first, this.__data[ this.__first ].v, this.__data[ this.__first ].t );
 					this.remove( this.__first );
 				}
 
@@ -163,6 +164,7 @@
 				, now 		= Date.now();
 
 			while( maxItems-- && this.__first && this.__data[ this.__first ].t < now ){
+				this.emit( "autoremove", this.__first, this.__data[ this.__first ].v, this.__data[ this.__first ].t );
 				this.remove( this.__first );
 			}
 		}

@@ -63,7 +63,9 @@
 				 } 
 				 else if( result.length === 1 ){
 				 	var instanceOptions = {
-				 		$fromDB: true
+				 		$fromDB: 	true
+		 				, $db: 		this.__db
+		 				, $dbName: 	this.__database
 				 	};
 
 				 	var keys = Object.keys( result[ 0 ] ), i = keys.length;
@@ -107,7 +109,9 @@
 				 	while( i-- ){
 					 	( function( index ){
 					 		var opts = {
-					 			$fromDB: true
+					 			$fromDB: 	true
+				 				, $db: 		this.__db
+				 				, $dbName: 	this.__database
 					 		};
 
 					 		var keys = Object.keys( result[ index ] ), k = keys.length;
