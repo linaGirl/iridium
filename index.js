@@ -103,7 +103,7 @@
 
 				// call the trace function
 				trace.call( log, err, source );
-			}.bind( log )
+			}
 		}
 
 

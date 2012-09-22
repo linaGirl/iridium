@@ -63,7 +63,7 @@
 		// dont wait too long for new conenctions ...
 		, __cleanBuffer: function(){
 			setInterval( function(){
-				var now = Date.now() - 1000;
+				var now = Date.now() - 5000;
 				this.__buffer = this.__buffer.filter( function( item ){
 					if ( item.timeout < now ){
 						if ( typeof item.callback === "function" ){
