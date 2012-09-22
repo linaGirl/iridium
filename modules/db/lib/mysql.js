@@ -45,7 +45,19 @@
 
 
 			this.__cleanBuffer();
+
+
+			// buffer check
+			setInterval( this.__checkConnections.bind( this ), 1000 );
 		}
+
+
+		, __checkConnections: function(){
+			if ( this.__buffer.length > 0 ){
+				this.__createConnection( this.__buffer[ 0 ].writable );
+			}
+		}
+
 
 
 		// dont wait too long for new conenctions ...
@@ -197,12 +209,7 @@
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 
-
-			// couldnt create a connection, try again in some ms
-			setTimeout( function(){
-				this.__createConnection( writable );
-			}.bind( this ), 50 );
-			log.debug( "failed to create new connection!", this );
+			if ( debug ) log.debug( "failed to create new connection!", this );
 		}
 
 
@@ -222,6 +229,7 @@
 					}
 					, writable: 		configs[ i ].writable
 					, weight: 			configs[ i ].weight
+					, maxConnections: 	( configs[ i ].maxConnections || 0 )
 					, on: {
 						connection: function( connection ){
 							this.__setConnection( connection );

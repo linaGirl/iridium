@@ -74,7 +74,7 @@
 				this.__appendToList( this.__removeFromList( id ) );
 
 				// return
-				return this.__data[ id ];
+				return this.__data[ id ].v;
 			}
 			return null;
 		}

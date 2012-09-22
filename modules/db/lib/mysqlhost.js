@@ -24,7 +24,7 @@
 		, __newConnectionBlock: 0
 
 		// how long to wait until to reconnect when the connection limit of the host is reached
-		, __waitTime: 10000
+		, __waitTime: 60000 //1m
 
 		// is this db host writable ( master or slave )
 		, __writable: false
@@ -110,8 +110,12 @@
 
 
 		, __createConnection: function( callback ){
-			if ( ( this.__maxConnections === 0 || this.__connectionCount <= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
+			if ( ( this.__maxConnections === 0 || this.__connections.length <= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
 				
+				// block, do not try to open multiple connections at the same time aka throttling
+				this.__available = false;
+
+
 				this.__connections.push( new Connection( {
 					config: 		this.__config
 					, writable:  	this.__writable
@@ -136,9 +140,10 @@
 						// the connection could not be established tue too many open connections
 						, tooManyConnections: function( connection ){
 							this.__newConnectionBlock = Date.now() + this.__waitTime;
-							this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
-
 							this.__available = false;
+
+							this.__removeConnection( connection );
+							
 							setTimeout( function(){
 								this.__available = true;
 							}.bind( this ), this.__waitTime );
