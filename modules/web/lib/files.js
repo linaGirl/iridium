@@ -43,9 +43,9 @@
 
 			// did we get lanaguage data and constants?
 			if ( options.lang ) 		this.__lang 		= options.lang;
+			if ( options.navigation )	this.__navigation 	= options.navigation;
 			if ( options.constants ) 	this.__constants 	= options.constants;
-
-
+			
 			// go
 			fs.exists( this.__path, function( exists ){
 				if ( exists ) {
@@ -450,7 +450,7 @@
 
 
 		, __compileTemplates: function(){
-			var keys = Object.keys( this.__files ), i = keys.length, current, version, reg, result;
+			var keys = Object.keys( this.__files ), i = keys.length, current, version, reg, result, navreg;
 			
 			while( i-- ){
 				current = this.__files[ keys[ i ] ];
@@ -494,6 +494,22 @@
 									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
 								}
 							}
+							
+							if ( this.__navigation ){
+								navreg = /@navigation\s*\(\s*([^\)]+)\s*\)\s*;/gi;
+
+								while ( result = navreg.exec( version ) ){
+									if ( this.__navigation[ currentLang ][ result[ 1 ] ] !== undefined ){
+										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__navigation[ currentLang ][ result[ 1 ] ] );
+									}
+									else{
+										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "navigation:" + result[ 1 ] );
+										log.warn( "missing navigation locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
+									}
+								}
+							}							
+
+							// compile the template
 							current.templates[ currentLang ] = hogan.compile( version );
 						}
 					}
