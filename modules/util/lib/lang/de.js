@@ -16,12 +16,12 @@
                 LLLL : "dddd, D. MMMM YYYY LT"
             },
             calendar : {
-                sameDay: "[Heute um] LT",
+                sameDay: "[Heute]",
                 sameElse: "L",
-                nextDay: '[Morgen um] LT',
-                nextWeek: 'dddd [um] LT',
-                lastDay: '[Gestern um] LT',
-                lastWeek: '[letzten] dddd [um] LT'
+                nextDay: '[Morgen]',
+                nextWeek: 'dddd',
+                lastDay: '[Gestern]',
+                lastWeek: '[letzten] dddd'
             },
             relativeTime : {
                 future : "in %s",

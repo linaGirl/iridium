@@ -780,11 +780,11 @@
             }
         },
         calendar : {
-            sameDay : '[Today at] LT',
-            nextDay : '[Tomorrow at] LT',
-            nextWeek : 'dddd [at] LT',
-            lastDay : '[Yesterday at] LT',
-            lastWeek : '[last] dddd [at] LT',
+            sameDay : '[Today]',
+            nextDay : '[Tomorrow]',
+            nextWeek : 'dddd',
+            lastDay : '[Yesterday]',
+            lastWeek : '[last] dddd',
             sameElse : 'L'
         },
         relativeTime : {

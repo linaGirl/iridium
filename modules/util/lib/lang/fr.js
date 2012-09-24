@@ -16,11 +16,11 @@
                 LLLL : "dddd D MMMM YYYY LT"
             },
             calendar : {
-                sameDay: "[Aujourd'hui à] LT",
-                nextDay: '[Demain à] LT',
-                nextWeek: 'dddd [à] LT',
-                lastDay: '[Hier à] LT',
-                lastWeek: 'dddd [dernier à] LT',
+                sameDay: "[Aujourd'hui]",
+                nextDay: '[Demain]',
+                nextWeek: 'dddd',
+                lastDay: '[Hier]',
+                lastWeek: 'dddd [dernier]',
                 sameElse: 'L'
             },
             relativeTime : {
