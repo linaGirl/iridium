@@ -155,6 +155,11 @@
 						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + "null".white );
 					}
 
+					// date
+					else if ( data instanceof Date ){
+						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toISOString().white );
+					}
+
 					// buffer
 					else if ( Buffer.isBuffer( data ) ){
 						var result =  this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name;

@@ -45,7 +45,7 @@
 			if ( options.lang ) 		this.__lang 		= options.lang;
 			if ( options.navigation )	this.__navigation 	= options.navigation;
 			if ( options.constants ) 	this.__constants 	= options.constants;
-			
+
 			// go
 			fs.exists( this.__path, function( exists ){
 				if ( exists ) {
@@ -294,8 +294,13 @@
 			this.__compileIncludes();
 
 
+			// do file revisions
+			this.__doAssetsVersioning();
+
+
 			// compile templates
 			this.__compileTemplates();
+
 
 
 			// create locales fro templates
@@ -310,6 +315,51 @@
 		}
 
 
+
+
+		// enable caching for images, css and js using md5 query parameters
+		, __doAssetsVersioning: function(){
+			var keys = Object.keys( this.__files )
+				, i = keys.length
+				, paths = {}
+				, reg, result, file, ePath, parts;
+
+			// set md5 etag on all files
+			while( i-- ){ 
+				this.__files[ keys[ i ] ].md5 = util.md5( this.__files[ keys[ i ] ].etag ); 
+			}
+
+			
+			i = keys.length;
+			while( i-- ){
+				file = this.__files[ keys[ i ] ];
+
+				if ( file.extension.toLowerCase() === "mustache" || file.extension.toLowerCase() === "html" || file.extension.toLowerCase() === "tpl" ){
+					// pattern src="" in mustache, html
+					reg = /src=[\"\']([^\"\']+)[\"\']/gi;
+					while( result = reg.exec( file.file ) ){
+						ePath = result[ 1 ];
+						if ( ePath.substr( 0, 7 ) !== "http://" &&  ePath.substr( 0, 8 ) !== "https://" ){
+							//parts = //gi.exec( ePath );
+							//console.log( ePath );
+						}
+					}
+
+
+					// pattern link rel="" href=""  in mustache, html
+
+				}
+				else if ( file.extension.toLowerCase() === "css" ){
+					// pattern url() in css
+
+				}
+			}
+
+			
+
+
+			
+		}
 
 
 
@@ -494,7 +544,7 @@
 									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
 								}
 							}
-							
+
 							if ( this.__navigation ){
 								navreg = /@navigation\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 
