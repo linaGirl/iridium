@@ -109,7 +109,7 @@
 
 		// handle uncatched
 		process.on( "uncaughtException", function( err ){
-
+			
 			// send errors to airbrake?
 			if ( airbrake ){
 				airbrake.notify( err, function( airbrakeErr, url ){
