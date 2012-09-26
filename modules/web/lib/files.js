@@ -564,7 +564,11 @@
 						}
 					}
 					else {
-						current.template = hogan.compile( current.file );
+						try {
+							current.template = hogan.compile( current.file );
+						} catch ( e ){
+							log.dir( current );
+						}
 					}
 				}
 			}
