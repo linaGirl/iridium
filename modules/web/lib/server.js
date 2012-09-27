@@ -3,22 +3,18 @@
 
 	// iridium modules
 	var   Class 			= iridium( "class" )
-		, Events 			= iridium( "events" )
 		, log 				= iridium( "log" )
 		, verbose 			= iridium( "util" ).argv.has( "verbose" );
 
 
 	// node classes
-	var   http 				= require( "http" );
+	var   http 				= require( "http" )
+		, urlParser 		= require( "url" );
 
 
 	// server components
 	var   Request 			= require( "./request" )
-		, Response 			= require( "./response" );
-
-
-	// depencies
-	var   WebSocketServer	= require( "../dep/WebSocket-Node" ).server;
+		, RewriteEngine 	= require( "./rewriteengine" );
 
 
 
@@ -26,7 +22,7 @@
 
 	module.exports = new Class( {
 		$id: "iridium.webserver"
-		, inherits: Events
+		, inherits: RewriteEngine
 
 
 		, init: function( options ){
@@ -37,36 +33,24 @@
 			// the interface to listen on
 			this.__address = options.address || "0.0.0.0";
 
-			// the endpoint to accept xhr requests on ( socket emulation )
-			this.__endpoint = options.endpoint || "/_t/";
-
-			// check websocket requestfor the origin
-			this.__origin = options.origin || /.*/gi;
+			// rewrite engine
+			this.__rewrite = new RewriteEngine();
 		}
-
 
 
 
 		// handlestandard http requests
 		, __handleRequest: function( request, response ){
-			if ( request.url.indexOf( this.__endpoint ) === 0 ){
-				this.__handleTransportRequest( request, response );
-			}
-			else this.emit( "request", new Request( { request: request, respose: response } ), new Response( { request: request, respose: response } ) );
+			var url 		= urlParser.parse( request.url, true )
+				, headers 	= requet.headers || {}
+				, command 	= this.__rewrite.rewrite( url, headers );
+
+
+			this.emit( "request", new Response( {
+				  request: request
+				, respose: response 
+			} ) );
 		}
-
-
-
-		// handle websocket requests
-		, __handleWebsocketRequest: function( request ){
-
-		}
-
-		// handle transport request -> xhr 
-		, __handleTransportRequest: function( request, response ){
-
-		}
-
 
 
 
@@ -82,7 +66,6 @@
 			this.__server.close();
 			return this;
 		}
-
 
 
 		// start a standard http server
@@ -108,18 +91,6 @@
 				log.info( "http server was closed due to an error: " + err, this );
 				this.emit( "error", err );
 			}.bind( this ) );
-
-
-
-			// attach websocket server to the http server
-			this.__socketServer = new WebSocketServer( {
-				httpServer: this.__server
-				, autoAcceptConnections: false
-			} );
-
-			// accept incoming websockets
-			this.__socketServer.on( "request", this.__handleWebsocketRequest.bind( this ) );
-
 
 			// listen
 			this.__server.listen( port || this.__port );
