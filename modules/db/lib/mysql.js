@@ -37,11 +37,11 @@
 		, init: function( options ){
 
 			// laod hosts, create connections, be ready
-			if ( !options.configs ) throw new Error( "missing database configuration!" );
-			this.__createHosts( options.configs, options.database );
+			if ( !options.hosts ) throw new Error( "missing database configuration!" );
+			this.__createHosts( options.hosts, options.database );
 
 			this.__reg = /update|insert|delete|grant|create/gi;
-			this.__configs = options.configs;
+			this.__configs = options.hosts;
 
 
 			this.__cleanBuffer();

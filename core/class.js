@@ -50,6 +50,17 @@
 
 
 
+	var getClassId = function(){
+		var path = ( /\(([^\:]+)\:/gi.exec( new Error().stack.split( "\n" )[ 3 ] ) || [ null, "" ] )[ 1 ].replace( /\.m?js$/, "" );
+
+		if ( global.iridium && path.indexOf( iridium.root ) === 0 ){
+			return path.substr( iridium.root.length ).replace( /\//g, "." );
+		}
+
+		return "";
+	}
+
+
 
 	module.exports = function( classDefinition ){
 		var   proto 			= {}
@@ -107,6 +118,10 @@
 		// get keys of the props
 		setterKeys = Object.keys( setters );
 		getterKeys = Object.keys( getters );
+
+		
+		// set class id
+		classProperties.$id = getClassId();
 
 
 		// this is the actual class contructor

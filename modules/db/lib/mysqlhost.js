@@ -109,7 +109,7 @@
 
 
 
-		, __createConnection: function( callback ){
+		, __createConnection: function(){
 			if ( ( this.__maxConnections === 0 || this.__connections.length <= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
 				
 				// block, do not try to open multiple connections at the same time aka throttling
@@ -158,6 +158,11 @@
 							setTimeout( function(){
 								this.__available = true;
 							}.bind( this ), 1000 );
+						}.bind( this )
+
+						// can the connection be removed? never close all connections
+						, requestRemove: function( callback ){
+							callback( this.__connections.length > 1 );
 						}.bind( this )
 					}
 				} ) );

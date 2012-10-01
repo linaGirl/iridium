@@ -60,7 +60,7 @@
 		, highlight: function highlight(){
 			if ( nolog ) return;
 			var logs = this.__extractMessage( Array.prototype.slice.call( arguments ) );
-			console.log( this.__createSignature( logs.source ) + logs.text.white.bold );
+			console.log( this.__createSignature( logs.source ) + logs.text.cyan.bold );
 
 			for ( var i = 0, l = logs.dir.length; i < l; i++ ){
 				this.dir( logs.dir[ i ] );
@@ -157,7 +157,7 @@
 
 					// date
 					else if ( data instanceof Date ){
-						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toISOString().white );
+						console.log( this.__pad( "", margin * 4, " " ) + ( ! first ? ", " : "" ).grey + name + data.toString().white );
 					}
 
 					// buffer

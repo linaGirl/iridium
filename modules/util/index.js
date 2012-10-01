@@ -11,6 +11,12 @@
 
 		, moment: require( "./lib/moment" )
 
+		, Sequence: require( "./lib/sequence" )
+
+		, Pool: require( "./lib/pool" )
+
+		, get: require( "./lib/get" )
+
 		, sha512: function( input ){
 			return require( "crypto" ).createHash( "sha512" ).update( input ).digest( "hex" );
 		}

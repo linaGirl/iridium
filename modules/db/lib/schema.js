@@ -19,45 +19,64 @@
 		, inherits: MySQLPool
 
 
+		, __models: {}
+
+
 
 		, init: function( options ){
 			// init db
-			// "this" references to the child because this class was already inherited by a schema class.
-			this.__proto__.__proto__.__proto__.init.call( this, options.config );
+			this.__proto__.__proto__.init.call( this, options.config );
 
 			// set database name
 			this.__databaseName = options.config.database;
+			this.__schema 		= options.name;
 
 			// load schema files
-			this.__loadFiles( this, "schema/" + this.__schema, { db: this.__db }, function(){
-				this.emit( "ready" );
-			}.bind( this ) );
+			this.__loadFiles( options.config.path + "/" + options.name );
 		}
 
 
 
 
 		// load files from the disk
-		, __loadFiles: function( collection, dir, options, callback ){
-			fs.exists( iridium.app.root + dir, function( exists ){
+		, __loadFiles: function( dir ){
+			fs.exists( dir, function( exists ){
 				if ( exists ){
-					fs.readdir( iridium.app.root + dir , function( err, files ){
+					// get all models
+					fs.readdir( dir , function( err, files ){
 						if ( err ) {
-							iridium.report( "error", "fs", err );
-							throw new Error( "failed to load " + dir + " ..." );
+							throw new Error( "failed to load models dir " + dir + ": " + err );
 						}
 
 						var i = files.length, apiName, Model;
 						while( i-- ){
-							apiName = files[ i ].substr( 0, files[ i ].length - 3 );
-							Model = require( iridium.app.root + dir + "/" + apiName );
-							if ( typeof Model !== "function" ) throw new Error( "the module [" + iridium.app.root + dir + "/" + apiName + "] doesnt export a class!", this );
-							collection[ apiName ] = new StaticModel( { db: this, model: apiName, database: this.__databaseName, cls: Model } );
-							log.debug( "loading " + dir + " [" + apiName + "] ...", this );
+							( function( filename ){
+
+								// model name
+								var modelName = filename.substr( 0, filename.length - 3 )
+									, Model = require( dir + "/" + modelName );		
+
+								// need to be class					
+								if ( typeof Model !== "function" ) throw new Error( "the module [" + dir + "/" + modelName + "] doesnt export a class!", this );
+
+								// create model
+								this.__models[ modelName ] = new StaticModel( { 
+									  db: 		this
+									, model: 	modelName
+									, database: this.__databaseName
+									, cls: 		Model 
+								} );
+
+								this.__defineSetter__( modelName, function(){ throw new Error( "you cannot overwrite the model [" + modelName + "] !" ); } );
+								this.__defineGetter__( modelName, function(){ return this.__models[ modelName ]; }.bind( this ) );
+							}.bind( this ) )( files[ i ] );
 						}
 
-						callback();
+						this.emit( "load" );
 					}.bind( this ) );
+				}
+				else {
+					throw new Error( "schema dir [" + dir + "] does not exist!" );
 				}
 			}.bind( this ) );			
 		}

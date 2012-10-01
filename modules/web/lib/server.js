@@ -3,26 +3,27 @@
 
 	// iridium modules
 	var   Class 			= iridium( "class" )
+		, Events 			= iridium( "events" )
 		, log 				= iridium( "log" )
-		, verbose 			= iridium( "util" ).argv.has( "verbose" );
+		, argv 				= iridium( "util" ).argv
+		, debug 			= argv.has( "trace-all" ) || argv.has( "trace-webservice" );
 
 
 	// node classes
-	var   http 				= require( "http" )
-		, urlParser 		= require( "url" );
+	var   http 				= require( "http" );
 
 
 	// server components
 	var   Request 			= require( "./request" )
-		, RewriteEngine 	= require( "./rewriteengine" );
+	 	, Response 			= require( "./response" );
 
 
 
 
+	
 
 	module.exports = new Class( {
-		$id: "iridium.webserver"
-		, inherits: RewriteEngine
+		inherits: Events
 
 
 		, init: function( options ){
@@ -34,22 +35,63 @@
 			this.__address = options.address || "0.0.0.0";
 
 			// rewrite engine
-			this.__rewrite = new RewriteEngine();
+			this.rewriteEngine = options.rewriteEngine;
+
+			// controllers
+			this.controllers = options.controllers;
+
+			// wait until this class was returned ( events emit immediately )
+			process.nextTick( function(){ this.emit( "load" ); }.bind( this ) );
 		}
 
 
 
 		// handlestandard http requests
-		, __handleRequest: function( request, response ){
-			var url 		= urlParser.parse( request.url, true )
-				, headers 	= requet.headers || {}
-				, command 	= this.__rewrite.rewrite( url, headers );
+		, __handleRequest: function( req, res ){
+			var request 		= new Request( { request: req } )
+				, response 		= new Response( { response: res, request: request } );
 
 
-			this.emit( "request", new Response( {
-				  request: request
-				, respose: response 
-			} ) );
+			if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
+
+			// get the command from the rewrite engine
+			this.rewriteEngine.rewrite( request, response, function( err, command ){
+				var controller;
+
+				if ( debug ){
+					log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
+					log.debug( "command -->", this );
+					log.dir( command );
+					log.debug( "<-- command", this );
+				} 
+				
+
+				if ( !response.isSent ){
+					if ( err ){
+						response.sendError( 500, "rewrite_error" );
+					}
+					else if ( command ){
+						if ( this.controllers.has( command.controller ) ){
+							controller = this.controllers.get( command.controller );
+
+							if ( controller.hasAction( command.action ) ){
+
+								// execute the action
+								controller[ command.action ]( request, response, command );
+							}
+							else {
+								response.sendError( 404, "invalid_action" );
+							}
+						}
+						else {
+							response.sendError( 404, "invalid_controller" );
+						}
+					}
+					else {
+						response.sendError( 404, "no_route" );
+					}
+				}
+			}.bind( this ) );
 		}
 
 

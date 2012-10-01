@@ -8,9 +8,8 @@
 	
 
 	module.exports = new Class( {
-		$id: "server.cookie"
 
-		, __value: ""
+		  __value: ""
 		, __name: "iridium"
 		, __secure: false
 		, __httponly: true

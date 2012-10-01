@@ -58,7 +58,6 @@
 		root: iridium( "util" ).argv.getCallingPath()
 	};
 	iridium.app.user = iridium.app.root + "user/";
-	
 
 	// print iridium intro
 	module.exports = function( productName, version, dontPrint ){

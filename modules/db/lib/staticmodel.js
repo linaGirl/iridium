@@ -16,6 +16,8 @@
 			this.__database = options.database;
 			this.__model 	= options.model;
 			this.__class 	= options.cls;
+
+			this.__from 	= options.database + "." + options.model;
 		}
 
 
@@ -31,13 +33,13 @@
 			}
 			values.push( id );
 
-			this.__db.query( "UPDATE " + this.__database + "." + this.__model + " SET " + fields.join( ", " ) + " WHERE id = ? LIMIT 1;", values, callback );
+			this.__db.query( "UPDATE " + this.__from + " SET " + fields.join( ", " ) + " WHERE id = ? LIMIT 1;", values, callback );
 		}	
 
 
 
 		, remove: function( id, callback ){
-			this.__db.query( "DELETE FROM " + this.__database + "." +this.__model + " WHERE id = ? LIMIT 1;", [ id ], callback );
+			this.__db.query( "DELETE FROM " + this.__from + " WHERE id = ? LIMIT 1;", [ id ], callback );
 		}
 
 
@@ -57,15 +59,16 @@
 				values.push( value[ i ] );
 			}
 
-			this.__db.query( "SELECT * FROM " + this.__database + "." + this.__model + " WHERE " + queries.join( " AND " ) + " LIMIT 1;", values, function( err, result ){
+			this.__db.query( "SELECT * FROM " + this.__from + " WHERE " + queries.join( " AND " ) + " LIMIT 1;", values, function( err, result ){
 				 if ( err ){
 				 	callback( err );
 				 } 
 				 else if( result.length === 1 ){
 				 	var instanceOptions = {
-				 		$fromDB: 	true
+				 		  $fromDB: 	true
 		 				, $db: 		this.__db
 		 				, $dbName: 	this.__database
+		 				, $model: 	this.__model
 				 	};
 
 				 	var keys = Object.keys( result[ 0 ] ), i = keys.length;
@@ -99,7 +102,7 @@
 			if ( !parameters.limit ) parameters.limit = [ 0, 100 ];
 			values = values.concat( parameters.limit );
 
-			this.__db.query( "SELECT * FROM " +this.__database + "." + this.__model + " WHERE " + queries.join( " AND " ) + " LIMIT ?, ?;", values, function( err, result ){
+			this.__db.query( "SELECT * FROM " + this.__from + " WHERE " + queries.join( " AND " ) + " LIMIT ?, ?;", values, function( err, result ){
 				if ( err ){
 					callback( err );
 				} 
@@ -109,9 +112,10 @@
 				 	while( i-- ){
 					 	( function( index ){
 					 		var opts = {
-					 			$fromDB: 	true
+					 			  $fromDB: 	true
 				 				, $db: 		this.__db
 				 				, $dbName: 	this.__database
+		 						, $model: 	this.__model
 					 		};
 
 					 		var keys = Object.keys( result[ index ] ), k = keys.length;
@@ -148,6 +152,7 @@
 			options 			= options || {};
 			options.$db 		= cOptions.db;
 			options.$dbName 	= cOptions.database;
+			options.$model 		= cOptions.model;
 
 			return new cOptions.cls( options );
 		}

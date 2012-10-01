@@ -19,17 +19,8 @@
 
 		// are ther changed values ?
 		, __changed: []
+		, __values: {}
 
-
-
-
-		, __isNumber: function( input ){
-			return !isNaN( input );
-		}
-
-		, __isHex: function( input ){
-			return /^[0-9a-f]*$/gi.test( input );
-		}
 
 
 
@@ -38,10 +29,15 @@
 		, init: function( options ){
 			var keys = Object.keys( options ), i = keys.length;
 
+
+			// create getters && setters
+			this.__initModel();
+
+			// set initial values
 			while( i-- ){
 				if ( keys[ i ][ 0 ] !== "$" ){
 					if ( options.$fromDB ){
-						this[ "__" + keys[ i ] ] = options[ keys[ i ] ];
+						this.__values[ keys[ i ] ] = options[ keys[ i ] ];
 					}
 					else {
 						this[ keys[ i ] ] = options[ keys[ i ] ];
@@ -52,6 +48,54 @@
 			if ( options.$fromDB ) 	this.__isFromDB 	= true;
 			if ( options.$db ) 		this.__db 			= options.$db;
 			if ( options.$dbName ) 	this.__databaseName = options.$dbName;
+			if ( options.$model ) 	this.__model 		= options.$model;
+		}
+
+
+
+		// create getters and setters for the properties
+		, __initModel: function(){
+			if ( this.__properties ){
+				var keys = Object.keys( this.__properties ), i = keys.length;
+
+				while( i-- ){
+					( function( key ){
+						if ( this.__properties[ key ] !== null && typeof this.__properties[ key ] === "object" ){
+							if ( typeof this.__properties[ key ].set === "function" ){
+								this.__defineSetter__( key, this.__properties[ key ].set.bind( this ) );
+							}
+							else {
+								this.__defineSetter__( key, function( value ){
+									this.__values[ key ] = value;
+									this.__changed.push( key );
+								}.bind( this ) );
+							}
+							
+							if ( typeof this.__properties[ key ].get === "function" ){
+								this.__defineGetter__( key, this.__properties[ key ].get.bind( this ) );
+							}
+							else {
+								this.__defineGetter__( key, function( value ){
+									this.__values[ key ] = value;
+									this.__changed.push( key );
+								}.bind( this ) );
+							}
+
+							if ( this.__properties[ key ].hasOwnProperty( "value" ) ) this.__values[ key ] = this.__properties[ key ].value;
+						}
+						else {
+							this.__defineSetter__( key, function( value ){
+								this.__values[ key ] = value;
+								this.__changed.push( key );
+							}.bind( this ) );
+
+							this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );
+
+							this.__values[ key ] = this.__properties[ key ];
+						}
+					}.bind( this ) )( keys[ i ] );
+				}
+			}
 		}
 
 
@@ -79,7 +123,7 @@
 				else {
 					while( i-- ){
 						updates.push( this.__changed[ i ] + " = ?" );
-						values.push( this[ this.__changed[ i ] ] );
+						values.push( this.__values[ this.__changed[ i ] ] );
 					}
 					values.push( this.id );
 					( this.__transaction || this.__db ).query( "UPDATE " + this.__databaseName + "." + this.__model + " SET " + updates.join( ", " ) + " WHERE id = ? LIMIT 1;", values, function( err, result ){
@@ -95,7 +139,7 @@
 			}
 			else {
 				while( i-- ){
-					values.push( this[ this.__changed[ i ] ] );
+					values.push( this.__values[ this.__changed[ i ] ] );
 					updates.push( this.__changed[ i ] );
 					val.push( "?" );
 				}

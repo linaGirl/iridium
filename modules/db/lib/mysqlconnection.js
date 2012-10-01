@@ -22,7 +22,7 @@
 
 
 		// after idling this amount of ms close the connection 
-		, __idleTimeoutTime: debug ? 1000 * 5 : 1000 * 900
+		, __idleTimeoutTime: debug ? 1000 * 5 : 1000 * 600
 
 		// kill queries after 
 		, __queryTimeoutTime: 60000
@@ -59,6 +59,9 @@
 				callback = parameters;
 				parameters = null;
 			}
+			// store callback globally
+			this.__callback = typeof callback === "function" ? callback : function(){};
+
 
 			this.__setBusy();
 			this.__clearIdleTimeout();
@@ -76,14 +79,29 @@
 
 			this.__connection.query( query, parameters, function( err, result ){
 				if ( debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
-				if ( err ) log.trace ( err );
-				// not really a timeout :( no driver support
-				this.__cancelQuerytimeout();
-				this.__setIdleTimout();
 
-				if ( typeof callback === "function" ) callback( err, result );
+				if ( !err || err.code === "ER_PARSE_ERROR" ){
+					// no or recoverable error
+					if ( err ) log.trace ( err );
+					this.__cancelQuerytimeout();
 
-				this.__setAvailable();
+					// call the callback
+					this.__callback( err, result );
+					delete this.__callback;
+
+					// timeouts
+					this.__setIdleTimout();
+
+					// im available agian
+					this.__setAvailable();
+				}
+				else {
+					// kill the connection, it may be broken
+					this.__callback( err, result );
+					delete this.__callback;
+
+					this.__close( err );
+				}
 			}.bind( this ) );
 		}
 
@@ -149,9 +167,13 @@
 
 		, __setIdleTimout: function(){
 			this.__idleTimeout = setTimeout( function(){
-				this.emit( "idleTimeout", this );
-				log.debug( "connection close because of idle timeout", this );
-				this.__close();
+				this.emit( "requestRemove", function( removalAllowed ){
+					if ( removalAllowed ){
+						this.emit( "idleTimeout", this );
+						if ( debug ) log.warn( "connection close [idle]", this );
+						this.__close();
+					}
+				}.bind( this ) );
 			}.bind( this ), this.__idleTimeoutTime );
 		}
 
@@ -184,6 +206,11 @@
 					default: 
 						this.__close( err );
 						break;
+				}
+
+				if ( this.__callback ){
+					this.__callback( err, result );
+					delete this.__callback;
 				}
 			}.bind( this ) );
 

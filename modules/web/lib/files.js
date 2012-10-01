@@ -2,7 +2,9 @@
 	var   Class 		= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, util 			= iridium( "util" )
-		, log 			= iridium( "log" );
+		, log 			= iridium( "log" )
+		, argv 			= util.argv
+		, debug 		= argv.has( "trace-all" ) || argv.has( "trace-webservice" );;
 
 
 	var	  fs 			= require( "fs" )
@@ -11,8 +13,7 @@
 		, zlib 			= require( "zlib" );
 
 
-	var   hogan			= require( "../dep/hogan.js/lib/hogan.js" )
-		, CSSPrefixer 	= require( "./cssprefixer" );
+	var   hogan			= require( "../dep/hogan.js/lib/hogan.js" );
 
 
 
@@ -20,8 +21,7 @@
 
 
 	var Files = module.exports = new Class( {
-		$id: "web.Files"
-		, inherits: Events
+		inherits: Events
 
 		// theweb root folder
 		, __path: ""
@@ -87,7 +87,7 @@
 						this.__handleFileChange( event, path + "/" + file );
 					}.bind( this ) );
 
-					log.debug( "added watch for directory [" + path + "] ...", this );
+					if ( debug ) log.debug( "added watch for directory [" + path + "] ...", this );
 
 					fs.readdir( path, function( err, filelist ){
 						if ( err ) throw err;
@@ -135,7 +135,7 @@
 				}
 
 				// DIRECTORY INDEX
-				if ( /index\.[a-z0-9_-]+$/gi.test( webPath ) ){
+				if ( /\/index\.html$/gi.test( webPath ) ){
 					var idxPath = webPath.substr( 0, webPath.lastIndexOf( "/" ) ) + "/" ;
 
 					this.__files[ idxPath ] = this.__files[ webPath ];							
@@ -308,10 +308,10 @@
 
 
 			// create compressed versions of the files
-			//this.__compressFiles( function(){
+			this.__compressFiles( function(){
 				// ready :)
 				this.emit( "load" );
-			//}.bind( this ) );
+			}.bind( this ) );
 		}
 
 
@@ -550,7 +550,7 @@
 
 								while ( result = navreg.exec( version ) ){
 									if ( this.__navigation[ currentLang ][ result[ 1 ] ] !== undefined ){
-										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__navigation[ currentLang ][ result[ 1 ] ] );
+										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "/" + currentLang  + this.__navigation[ currentLang ][ result[ 1 ] ] );
 									}
 									else{
 										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "navigation:" + result[ 1 ] );
@@ -563,12 +563,10 @@
 							current.templates[ currentLang ] = hogan.compile( version );
 						}
 					}
-					else {
-						try {
-							current.template = hogan.compile( current.file );
-						} catch ( e ){
-							log.dir( current );
-						}
+					try {
+						current.template = hogan.compile( current.file );
+					} catch ( e ){
+						log.dir( current );
 					}
 				}
 			}
@@ -607,13 +605,13 @@
 				, loadedModulesCopy = []
 				, d, k;
 
-			log.info( "compiling " + ( loadedModules ? "entrypoint ": "" ) + "module [" + fileKey + "] ...", this );
+			if ( debug ) log.info( "compiling " + ( loadedModules ? "entrypoint ": "" ) + "module [" + fileKey + "] ...", this );
 
 			while( i-- ){
 				if ( packedFiles.indexOf( tree[ i ] ) === -1 && loadedModules.indexOf( tree[ i ] ) === -1){
 					packedFiles.push( tree[ i ] );
 					loadedModules.push( tree[ i ] );
-					log.debug( "adding module [" + tree[ i ] + "] ....", this );
+					if ( debug ) log.debug( "adding module [" + tree[ i ] + "] ....", this );
 
 					// concat file
 					file += "\n// start module " + tree[ i ] + "\n\n" + this.__graph[ tree[ i ] ].file;
@@ -809,7 +807,7 @@
 
 			file = file.toString();
 
-			log.debug( "preparing mjs module [" + filePath_ + "]...", this );
+			if ( debug ) log.debug( "preparing mjs module [" + filePath_ + "]...", this );
 
 			var iridium_prefix = '"use strict"; __require( "@moduleName", @depencies, function(){ var module = { exports: {} };\n';
 			var iridium_suffix = '\nwindow.__iridiumLoader.moduleLoaded( "@moduleName", "@moduleAlias" ); return module; } );'
