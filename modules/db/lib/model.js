@@ -67,7 +67,7 @@
 							else {
 								this.__defineSetter__( key, function( value ){
 									this.__values[ key ] = value;
-									this.__changed.push( key );
+									if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
 								}.bind( this ) );
 							}
 							
@@ -77,7 +77,7 @@
 							else {
 								this.__defineGetter__( key, function( value ){
 									this.__values[ key ] = value;
-									this.__changed.push( key );
+									if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
 								}.bind( this ) );
 							}
 
@@ -86,7 +86,7 @@
 						else {
 							this.__defineSetter__( key, function( value ){
 								this.__values[ key ] = value;
-								this.__changed.push( key );
+								if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
 							}.bind( this ) );
 
 							this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );
