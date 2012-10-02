@@ -76,6 +76,7 @@
 			options = productName;
 		}
 
+/*
 
 		// intercept traces
 		if ( airbrake ){
@@ -105,7 +106,6 @@
 			}
 		}
 
-
 		// handle uncatched
 		process.on( "uncaughtException", function( err ){
 			
@@ -130,12 +130,17 @@
 				log.trace( err );
 				process.exit();
 			}			
-		} );
+		} );*/
 
 		if ( cluster.isMaster && !options.dontPrint ) printLogo( options.name, options.version );
 	};
 
 
+	process.on( "uncaughtException", function( err ){			
+		log.error( "Uncaught Exception:", { $id: "iridium.index" } );
+		log.trace( err );
+		process.exit();
+	} );
 
 
 
