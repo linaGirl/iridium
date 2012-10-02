@@ -51,47 +51,50 @@
 			var request 		= new Request( { request: req } )
 				, response 		= new Response( { response: res, request: request } );
 
+			// lb health check
+			if ( req.url === "/ping" ) response.send( 200, null, "healthy!" );
+			else {
+				if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
 
-			if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
+				// get the command from the rewrite engine
+				this.rewriteEngine.rewrite( request, response, function( err, command ){
+					var controller;
 
-			// get the command from the rewrite engine
-			this.rewriteEngine.rewrite( request, response, function( err, command ){
-				var controller;
+					if ( debug ){
+						log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
+						log.debug( "command -->", this );
+						log.dir( command );
+						log.debug( "<-- command", this );
+					} 
+					
 
-				if ( debug ){
-					log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
-					log.debug( "command -->", this );
-					log.dir( command );
-					log.debug( "<-- command", this );
-				} 
-				
+					if ( !response.isSent ){
+						if ( err ){
+							response.sendError( 500, "rewrite_error" );
+						}
+						else if ( command ){
+							if ( this.controllers.has( command.controller ) ){
+								controller = this.controllers.get( command.controller );
 
-				if ( !response.isSent ){
-					if ( err ){
-						response.sendError( 500, "rewrite_error" );
-					}
-					else if ( command ){
-						if ( this.controllers.has( command.controller ) ){
-							controller = this.controllers.get( command.controller );
+								if ( controller.hasAction( command.action ) ){
 
-							if ( controller.hasAction( command.action ) ){
-
-								// execute the action
-								controller[ command.action ]( request, response, command );
+									// execute the action
+									controller[ command.action ]( request, response, command );
+								}
+								else {
+									response.sendError( 404, "invalid_action" );
+								}
 							}
 							else {
-								response.sendError( 404, "invalid_action" );
+								response.sendError( 404, "invalid_controller" );
 							}
 						}
 						else {
-							response.sendError( 404, "invalid_controller" );
+							response.sendError( 404, "no_route" );
 						}
 					}
-					else {
-						response.sendError( 404, "no_route" );
-					}
-				}
-			}.bind( this ) );
+				}.bind( this ) );
+			}
 		}
 
 

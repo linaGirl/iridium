@@ -3,7 +3,9 @@
 
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
-		, log 			= iridium( "log" );
+		, log 			= iridium( "log" )
+		, argv 			= iridium( "util" ).argv
+		, debug 		= argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -117,7 +119,7 @@
 				this.__available = false;
 
 
-				this.__connections.push( new Connection( {
+				new Connection( {
 					config: 		this.__config
 					, writable:  	this.__writable
 					, id: 			this.__id + "c" + this.__connnectionIdCounter++
@@ -166,7 +168,7 @@
 							callback( this.__connections.length > 1 );
 						}.bind( this )
 					}
-				} ) );
+				} );
 				return true;
 			}
 			return false;
@@ -176,6 +178,7 @@
 		, __removeConnection: function( connection ){
 			this.__connections = this.__connections.filter( function( c ){ return c !== connection } );
 			this.__loadFactor = this.__connections.length / this.__weigth;
+			if ( debug ) log.debug( "[" + this.__connections.length + "] remaining, load is now [" + this.__loadFactor + "] ...", this );
 			this.emit( "connectionClose", connection );
 		}
 
@@ -183,5 +186,6 @@
 		, __addConnection: function( connection  ){
 			this.__connections.push( connection );
 			this.__loadFactor = this.__connections.length / this.__weigth;
+			if ( debug ) log.debug( "[" + this.__connections.length + "] connections on host, load is now [" + this.__loadFactor + "] ...", this );
 		}
 	} );

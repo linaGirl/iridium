@@ -18,7 +18,7 @@
 		// override the models save function ( it saves to the master and not to the db ! )
 		, save: function( callback ){
 			this.__send( "update", { session: this.toJSON() }, function( err, data ){
-				if ( err ) log.error( "faield to save session!" ), log.trace( err );
+				if ( err ) log.error( "failed to save session!" ), log.trace( err );
 				if ( callback ) callback( err, data );
 			}.bind( this ) );
 		}

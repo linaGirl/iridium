@@ -198,7 +198,7 @@
 
 		, __send: function( action, payload, callback ){
 
-			if ( debug ) log.info( "sending message [" + action + "] ...", this );
+			if ( debug ) log.info( "sending message [" + action + "] ...", this ), log.dir( payload );
 			// counter will not be increased too much ( 10000 calls / sec * 3600 seconds * 24 hours * 365 days * 10 years 
 			// -> 3.1536e+12 ( ~2^42 ) while javascript supports up to 9.0071993e+15 ( 2^53 ) )
 			var callId = ++this.__ipcCounter; 
