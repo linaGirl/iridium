@@ -125,10 +125,12 @@
 				log.info( "http server is listening on port [" + this.__port + "] ...", this );
 				this.emit( "listening" );
 			}.bind( this ) );
+
 			this.__server.on( "close", function(){
 				log.info( "http server was closed ...", this );
 				this.emit( "close" );
 			}.bind( this ) );
+			
 			this.__server.on( "error", function( err ){
 				log.info( "http server was closed due to an error: " + err, this );
 				this.emit( "error", err );

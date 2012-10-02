@@ -71,6 +71,7 @@
 
 			// set the id
 			this.__id = options.id;
+			this.$id += "@" + this.__id;
 
 			// additional configuration
 			if ( options.maxConnections ) this.__maxConnections = options.maxConnections;
@@ -119,7 +120,7 @@
 				this.__connections.push( new Connection( {
 					config: 		this.__config
 					, writable:  	this.__writable
-					, id: 			++this.__connnectionIdCounter + this.__id
+					, id: 			this.__id + "c" + this.__connnectionIdCounter++
 					, on: {
 						// the connection now availabel for queries
 						available: function( connection ){

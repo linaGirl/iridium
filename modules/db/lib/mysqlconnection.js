@@ -38,6 +38,8 @@
 			this.__id 		= options.id;
 			this.__writable = options.writable;
 
+			this.$id += "@" + this.__id;
+
 			// try to connect
 			this.__connect();
 		}
@@ -77,6 +79,7 @@
 			this.__setQueryTimeout( query, parameters );			
 			if ( debug ) var now = Date.now();
 
+			if ( debug ) log.debug( "starting query ...", this );
 			this.__connection.query( query, parameters, function( err, result ){
 				if ( debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
 
