@@ -52,7 +52,10 @@
 				, response 		= new Response( { response: res, request: request } );
 
 			// lb health check
-			if ( req.url === "/ping" ) response.send( 200, null, "healthy!" );
+			if ( req.url === "/ping" ){
+				response.send( 200, null, "healthy!" );
+				if ( debug ) log.debug( "LB ping ...", this );
+			} 
 			else {
 				if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
 
