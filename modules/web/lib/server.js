@@ -56,7 +56,7 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
-			var request 		= new Request( { request: req, resources: this.resources } )
+			var request 		= new Request( { request: req, resources: this.resources, response: res } )
 				, response 		= new Response( { response: res, request: request } );
 
 			// lb health check
@@ -90,8 +90,9 @@
 
 									// check if we need to get a session
 									if ( controller.requiresSession( command.action ) ){
+										
 										// get session
-										var cookie = request.getCookie( "sid" )
+										var cookie = request.getCookie( "sid" );
 										this.sessions.get( cookie, function( err, session ){
 											if ( err || !session ) response.sendError( 500, "sesison_error" );
 											else {

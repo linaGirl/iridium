@@ -103,11 +103,11 @@
 
 
 
-		, fectAll: function( callback ){
+		, fetchAll: function( callback ){
 			this.__db.query( "SELECT * FROM " + this.__from + ";", function( err, list ){
 				if ( err || !list ) callback( err );
 				else {
-					var i = list.length, items = [];
+					var i = list.length, result = [];
 					while( i-- ) {
 						( function( index ){
 					 		var opts = {
@@ -117,16 +117,16 @@
 		 						, $model: 	this.__model
 					 		};
 
-					 		var keys = Object.keys( result[ index ] ), k = keys.length;
+					 		var keys = Object.keys( list[ index ] ), k = keys.length;
 						 	while( k-- ){
-						 		opts[ keys[ k ] ] = result[ index ][ keys[ k ] ];
+						 		opts[ keys[ k ] ] = list[ index ][ keys[ k ] ];
 						 	}
 
-						 	items.push( new this.__class( opts ) );
+						 	result.push( new this.__class( opts ) );
 					 	}.bind( this ) )( i );
 					}
 
-					callback( null, items );
+					callback( null, result );
 				}
 			}.bind( this ) );
 		}		
@@ -206,6 +206,7 @@
 		contructor.find 	= staticmodel.find.bind( staticmodel );
 		contructor.update 	= staticmodel.update.bind( staticmodel );
 		contructor.remove 	= staticmodel.remove.bind( staticmodel );
+		contructor.fetchAll	= staticmodel.fetchAll.bind( staticmodel );
 
 
 		return contructor;

@@ -44,6 +44,7 @@
 		, init: function( options ){
 			this.__request = options.request;
 			this.__resources = options.resources;
+			this.__response = options.response;
 
 			this.__collectData();
 			if ( !this.__request.headers ) this.__request.headers = {};
@@ -177,7 +178,7 @@
 
 				if ( this.__language !== cookie ){
 					// set cookie
-					this.setCookie( new Cookie( { name: "lang", value: this.__language, path: "/", httponly: true, maxage: 315360000 } )  );
+					this.__response.setCookie( new Cookie( { name: "lang", value: this.__language, path: "/", httponly: true, maxage: 315360000 } )  );
 				}
 			} 
 			return this.__language;
