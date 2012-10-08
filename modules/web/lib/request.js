@@ -1,20 +1,23 @@
 
 
 
-	var Class 		= iridium( "class" )
-		, Events 	= iridium( "events" )
-		, log 		= iridium( "log" );
+	var   Class 		= iridium( "class" )
+		, Events 		= iridium( "events" )
+		, log 			= iridium( "log" );
 
-	var Cookie 		= require( "./cookie" );
+	var Cookie 			= require( "./cookie" );
 
-	var url 		= require( "url" );
+	var   url 			= require( "url" )
+		, querystring 	= require( "querystring" );
 
 
 
 
 	module.exports = new Class( {
-		
-		__headers: []
+		inherits: Events
+
+		, __headers: []
+		, __language: null
 
 
 		, get pathname(){			
@@ -29,16 +32,63 @@
 			return this.getUri().query;
 		}
 
+		, set query( query ){
+			this.getUri().query = query;
+		}
+
 		, get language(){
-			var lang = /^\/([a-z]{2})\//gi.exec( this.pathname );
-			if ( lang ) return lang[ 1 ].toLowerCase();
-			return null;
+			return this.__getRequestLanguage();
 		}
 
 
 		, init: function( options ){
 			this.__request = options.request;
+			this.__resources = options.resources;
+
+			this.__collectData();
 			if ( !this.__request.headers ) this.__request.headers = {};
+
+			this.on( "listener", function( evt, fn ){
+				if ( evt === "end" && this.__ended ){
+					fn();
+				}
+			}.bind( this ) );
+		}
+
+
+		, hasEnded: function(){
+			return !!this.__ended;
+		}
+
+		, getPostData: function( parsed ){
+			if ( this.__ended && this.__postData ){
+				if ( parsed ){
+					return querystring.parse( this.__postData.toString() );
+				}
+				else return this.__postData;
+			}
+			else  return null;
+		}
+
+		, __collectData: function(){
+			if ( this.__request.method === "POST" ){
+				var data, data2;
+				this.__request.on( "data", function( chunk ){
+					if ( !data ) data = chunk;
+					else {
+						data2 = new Buffer( data.length + data2.length );
+						data.copy( data2 );
+						chunk.copy( data2, data.length );
+						data = data2;
+					}
+				}.bind( this ) );
+
+				this.__request.on( "end", function(){
+					this.__postData = data;
+					this.__ended = true;
+					this.emit( "end" );
+				}.bind( this ) );
+			}
 		}
 
 		, hasQueryParameter: function( key, value ){
@@ -93,5 +143,43 @@
 				};
 			} ).sort( function( a, b ){ return a.q > b.q ? -1 : 1 } );
 			return parts.length > 0 ? parts: null;
+		}
+
+		, __getRequestLanguage: function(){
+			if ( this.__language === null ){
+				var lang = /^\/([a-z]{2})\//gi.exec( this.pathname )
+					, cookie = this.getCookie( "lang" ), langHeader;
+
+				// lang from url
+				if ( lang ) this.__language = lang[ 1 ].toLowerCase();
+				else {
+					// lang from cookie
+					if ( cookie && this.__resources.supportsLanguage( cookie ) ) this.__language = cookie;
+					else {
+						// lang from header
+						langHeader = this.getHeader( "accept-language", true );
+
+						if ( langHeader ){
+							for ( var i = 0, l = langHeader.length; i < l; i++ ){
+								if ( this.__resources.supportsLanguage( langHeader[ i ].value ) ){
+									this.__language = langHeader[ i ].value;
+									break;
+								}
+							}
+						}
+
+						// default
+						if ( this.__language === null ){
+							this.__language = this.__resources.defaultLanguage;
+						}
+					}
+				}
+
+				if ( this.__language !== cookie ){
+					// set cookie
+					this.setCookie( new Cookie( { name: "lang", value: this.__language, path: "/", httponly: true, maxage: 315360000 } )  );
+				}
+			} 
+			return this.__language;
 		}
 	} );

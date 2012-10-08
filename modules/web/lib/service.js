@@ -167,6 +167,8 @@
 				port: 				this.__options.port || 80
 				, rewriteEngine: 	this.rewriteEngine
 				, controllers: 		this.controllers
+				, sessions: 		this.sessions
+				, resources: 		this.resources
 				, on: { 
 					load: function(){
 						if ( debug ) log.debug( "finished loading WebServer ...", this );

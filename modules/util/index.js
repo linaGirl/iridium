@@ -17,6 +17,8 @@
 
 		, get: require( "./lib/get" )
 
+		, clone: require( "./lib/clone" )
+
 		, sha512: function( input ){
 			return require( "crypto" ).createHash( "sha512" ).update( input ).digest( "hex" );
 		}

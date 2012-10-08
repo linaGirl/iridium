@@ -20,6 +20,15 @@
 		}
 
 
+		, requiresSession: function( action ){
+			if ( this.hasAction( action ) ){
+				if ( this.__sessionRequirements && this.__sessionRequirements[ action ] !== undefined ) return this.__sessionRequirements[ action ];
+				else return this.__requiresSession || false;
+			}
+			else throw new Error( "invalid action" );
+		}
+
+
 		, __redirect: function( request, response, id, language, data ){
 			var command = this.resources.getCommandById( id ), controller;
 

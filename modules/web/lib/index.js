@@ -43,7 +43,7 @@
 					load: function(){
 
 						// expose classes
-						this.schames 		= this.__service.schemas;
+						this.schemas 		= this.__service.schemas;
 						this.resources 		= this.__service.resources;
 						this.sessions 		= this.__service.sessions;
 						this.rewriteEngine 	= this.__service.rewriteEngine;

@@ -63,10 +63,7 @@
 			}
 			// store callback globally
 			this.__callback = typeof callback === "function" ? callback : function(){};
-
-
 			this.__setBusy();
-			this.__clearIdleTimeout();
 
 			if ( debug ) {
 				log.info( "<< --- QUERY ----------", "host: " + this.__config.host, this );
@@ -93,7 +90,6 @@
 					delete this.__callback;
 
 					// timeouts
-					this.__setIdleTimout();
 
 					// im available agian
 					this.__setAvailable();
@@ -153,6 +149,7 @@
 		, __setAvailable: function(){
 			process.nextTick( function(){
 				if ( !this.__available ) {
+					this.__setIdleTimout();
 					this.__available = true;
 					this.emit( "available", this );
 				}
@@ -161,6 +158,7 @@
 
 		, __setBusy: function(){
 			if ( this.__available ) {
+				this.__clearIdleTimeout();
 				this.__available = false;
 				this.emit( "busy", this );
 			}
@@ -228,6 +226,7 @@
 
 
 		, __close: function( err ){
+			this.__clearIdleTimeout();
 			if ( err ) this.emit( "error", this, err );
 			this.emit( "close", this );
 			this.__connection.end();

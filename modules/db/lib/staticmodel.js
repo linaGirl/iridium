@@ -45,21 +45,39 @@
 
 
 		, findOne: function( key, value, callback ){
-			if ( arguments.length === 2 ) callback = value, value = key, key = "id";
-			var queries = [], values = [];
+			var parameters = []
+				, queries = []
+				, type = typeof key
+				, keys, i ;
 
-			if ( typeof key === "string" ){
-				key = [ key ];
-				value = [ value ];
+
+			if ( type === "string" ){
+				if ( typeof value === "function" ){
+					callback = value;
+					value = undefined;
+					queries.push( "id = ?" );
+					parameters.push( key );
+				}
+				else {
+					queries.push( key + " = ?" );
+					parameters.push( value );
+				}
+			}
+			else if ( type === "object" ){
+				callback = value;
+				value = undefined;
+				keys = Object.keys( key ), i = keys.length;
+				while( i-- ) {
+					queries.push( keys[ i ] + " = ?" );
+					parameters.push( key[ keys[ i ] ] );
+				}
+			}
+			else {
+				throw new Error( "invalid input!" );
 			}
 
-			var i = key.length;
-			while( i-- ){
-				queries.push( key[ i ] + " = ?" );
-				values.push( value[ i ] );
-			}
 
-			this.__db.query( "SELECT * FROM " + this.__from + " WHERE " + queries.join( " AND " ) + " LIMIT 1;", values, function( err, result ){
+			this.__db.query( "SELECT * FROM " + this.__from + " WHERE " + queries.join( " AND " ) + " LIMIT 1;", parameters, function( err, result ){
 				 if ( err ){
 				 	callback( err );
 				 } 
@@ -85,7 +103,33 @@
 
 
 
+		, fectAll: function( callback ){
+			this.__db.query( "SELECT * FROM " + this.__from + ";", function( err, list ){
+				if ( err || !list ) callback( err );
+				else {
+					var i = list.length, items = [];
+					while( i-- ) {
+						( function( index ){
+					 		var opts = {
+					 			  $fromDB: 	true
+				 				, $db: 		this.__db
+				 				, $dbName: 	this.__database
+		 						, $model: 	this.__model
+					 		};
 
+					 		var keys = Object.keys( result[ index ] ), k = keys.length;
+						 	while( k-- ){
+						 		opts[ keys[ k ] ] = result[ index ][ keys[ k ] ];
+						 	}
+
+						 	items.push( new this.__class( opts ) );
+					 	}.bind( this ) )( i );
+					}
+
+					callback( null, items );
+				}
+			}.bind( this ) );
+		}		
 
 
 		, find: function( parameters, callback ){

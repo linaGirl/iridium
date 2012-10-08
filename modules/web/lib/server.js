@@ -6,7 +6,8 @@
 		, Events 			= iridium( "events" )
 		, log 				= iridium( "log" )
 		, argv 				= iridium( "util" ).argv
-		, debug 			= argv.has( "trace-all" ) || argv.has( "trace-webservice" );
+		, debug 			= argv.has( "trace-all" ) || argv.has( "trace-webservice" )
+		, userDebug 		= argv.has( "debug" );
 
 
 	// node classes
@@ -15,7 +16,8 @@
 
 	// server components
 	var   Request 			= require( "./request" )
-	 	, Response 			= require( "./response" );
+	 	, Response 			= require( "./response" )
+	 	, Cookie 			= require( "./cookie" );
 
 
 
@@ -37,6 +39,12 @@
 			// rewrite engine
 			this.rewriteEngine = options.rewriteEngine;
 
+			// sesison manager
+			this.sessions = options.sessions;
+
+			// resources
+			this.resources = options.resources;
+
 			// controllers
 			this.controllers = options.controllers;
 
@@ -48,7 +56,7 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
-			var request 		= new Request( { request: req } )
+			var request 		= new Request( { request: req, resources: this.resources } )
 				, response 		= new Response( { response: res, request: request } );
 
 			// lb health check
@@ -78,11 +86,35 @@
 						else if ( command ){
 							if ( this.controllers.has( command.controller ) ){
 								controller = this.controllers.get( command.controller );
-
 								if ( controller.hasAction( command.action ) ){
 
-									// execute the action
-									controller[ command.action ]( request, response, command );
+									// check if we need to get a session
+									if ( controller.requiresSession( command.action ) ){
+										// get session
+										var cookie = request.getCookie( "sid" )
+										this.sessions.get( cookie, function( err, session ){
+											if ( err || !session ) response.sendError( 500, "sesison_error" );
+											else {
+												// fake auth
+												if ( userDebug ){
+													if ( request.hasQueryParameter( "authenticated", "true" ) && !session.authenticated ){
+														session.authenticated = true;
+														session.save();
+													}
+													else if ( request.hasQueryParameter( "authenticated", "false" ) && session.authenticated ) {
+														session.authenticated = false;
+														session.save();
+													}
+												}
+
+												// set session cookie
+												if ( cookie !== session.id ) response.setCookie( new Cookie( { name: "sid", value: session.id, path: "/", httponly: true, maxage: 315360000 } ) );
+
+												controller[ command.action ]( request, response, command, session );
+											}
+										}.bind( this ) );
+									}
+									else controller[ command.action ]( request, response, command );									
 								}
 								else {
 									response.sendError( 404, "invalid_action" );

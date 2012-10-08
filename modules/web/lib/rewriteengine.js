@@ -65,16 +65,20 @@
 
 
 		, __iridiumRewrite: function( request, response, callback ){
-			var pathname = request.pathname
-				, hasLang = /^\/[a-z]{2}(?:$|\/)/i.test( pathname ) // language code delivered?
-				, path =  hasLang ? pathname.substr( 3 ) : pathname // path without language
-				, commandPath = path[ path.length - 1 ] === "/" ? path : path + "/"; // has a trailing slash
+			var reg = /^\/([a-z]{2}\/)?([a-z][a-z0-9_-]+)?\/?([a-z][a-z0-9_-]+)?\/?([0-9]+)?\/?$/gi.exec( request.pathname ), path = "/";
+			
+			if ( reg ){
+				//if ( reg[ 1 ] ) request.language = reg[ 1 ].toLowerCase();
+				request.query.page = reg[ 4 ] ? ( parseInt( reg[ 4 ], 10 ) || 1 ) : 1 ;
 
-			if ( this.resources.hasCommand( commandPath ) ){
-				callback( null, this.resources.getCommand( commandPath ) );
+				if ( reg[ 2 ] ) path += reg[ 2 ] + "/";
+				if ( reg[ 3 ] ) path += reg[ 3 ] + "/";
+
+				if ( this.resources.hasCommand( path ) ){
+					callback( null, this.resources.getCommand( path ) );
+				}
+				else callback();
 			}
-			else {
-				callback();
-			}
+			else callback();
 		}
 	} )

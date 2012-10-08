@@ -13,6 +13,7 @@
 
 		, add: function( job, scope ){
 			this.__jobs.push( job.bind( scope ) );
+			return this;
 		}
 
 
