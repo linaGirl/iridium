@@ -31,7 +31,7 @@
 		, init: function( options ){
 
 			// the port to listen on
-			this.__port = options.port || 80;
+			this.__port = argv.get( "port" ) || options.port || 80;
 
 			// the interface to listen on
 			this.__address = options.address || "0.0.0.0";
