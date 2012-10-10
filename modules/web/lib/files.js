@@ -476,19 +476,22 @@
 
 
 
-		, __compileIncludeFile: function( file, parents ){
+		, __compileIncludeFile: function( file, parents  ){
 			var i = this.__includeGraph[ file ].includes.length;
 
 			// toplevel file
 			if ( i === 0 ) return this.__files[ file ] ? this.__files[ file ].file: "Exception: include file [" + file + "] does not exist!";
 
 			// dont do loops
-			if ( parents.indexOf( file ) >= 0 ) return "Exception: include loop for include [" + file + "] !";
+			if ( parents.indexOf( file ) >= 0 ) {
+				return "Exception: include loop for include [" + file + "] !";
+			}
 			parents.push( file );
 
 			while( i-- ){
-				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//gi, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], parents ) );
+				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//gi, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], util.clone( parents ) ) );
 			}
+
 			this.__files[ file ].etag = crypto.createHash( "sha1" ).update( this.__files[ file ].file ).digest( "hex" );
 			this.__files[ file ].length = Buffer.byteLength( this.__files[ file ].file );
 			return this.__files[ file ].file;
