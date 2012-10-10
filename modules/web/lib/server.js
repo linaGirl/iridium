@@ -56,8 +56,9 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
-			var request 		= new Request( { request: req, resources: this.resources, response: res } )
+			var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
 				, response 		= new Response( { response: res, request: request } );
+
 
 			// lb health check
 			if ( req.url === "/ping" ){
