@@ -6,7 +6,8 @@
 		, argv 				= iridium( "util" ).argv
 		, debug 			= argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
-	var mysql 				= require( "../dep/node-mysql" );
+	var mysql 				= require( "../dep/node-mysql" )
+		, SqlString 		= require( "../dep/node-mysql/lib/protocol/SqlString" );
 
 
 	var Host 				= require( "./mysqlhost" );
@@ -76,6 +77,8 @@
 			}.bind( this ), 1000 );
 		}
 
+		
+		, escape: SqlString.escape
 
 
 		, query: function( query, parameters, callback, writable ){

@@ -3,7 +3,8 @@
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
 		, argv 			= iridium( "util" ).argv
-		, debug 		= argv.has( "trace-mysql" ) || argv.has( "trace-all" );
+		, debug 		= argv.has( "trace-mysql" ) || argv.has( "trace-all" )
+		, timing 		= argv.has( "trace-mysql-timing" );
 
 	var mysql 			= require( "../dep/node-mysql" );
 
@@ -39,7 +40,7 @@
 			this.__writable = options.writable;
 
 			this.$id += "@" + this.__id;
-
+			
 			// try to connect
 			this.__connect();
 		}
@@ -74,11 +75,11 @@
 
 			// pseudo timeout
 			this.__setQueryTimeout( query, parameters );			
-			if ( debug ) var now = Date.now();
+			if ( timing || debug ) var now = Date.now();
 
 			if ( debug ) log.debug( "starting query ...", this );
 			this.__connection.query( query, parameters, function( err, result ){
-				if ( debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
+				if ( timing || debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
 
 				if ( !err || err.code === "ER_PARSE_ERROR" ){
 					// no or recoverable error
@@ -97,9 +98,9 @@
 				else {
 					// kill the connection, it may be broken
 					this.__callback( err, result );
-					delete this.__callback;
-
-					this.__close( err );
+					delete this.__callback;					
+					this.__cancelQuerytimeout();
+					log.trace ( err );
 				}
 			}.bind( this ) );
 		}
@@ -190,7 +191,7 @@
 
 			// handle connection level errors
 			this.__connection.on( "error", function( err ){
-
+				console.log(1);
 				if ( debug ) log.error( "error on connection:", this ), log.trace( err );
 
 				// remove from stack
@@ -210,7 +211,8 @@
 				}
 
 				if ( this.__callback ){
-					this.__callback( err, result );
+					this.__callback( err);
+					this.__cancelQuerytimeout();
 					delete this.__callback;
 				}
 			}.bind( this ) );
@@ -227,6 +229,7 @@
 
 		, __close: function( err ){
 			this.__clearIdleTimeout();
+			this.__cancelQuerytimeout();
 			if ( err ) this.emit( "error", this, err );
 			this.emit( "close", this );
 			this.__connection.end();

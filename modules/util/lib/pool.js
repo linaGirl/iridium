@@ -20,10 +20,15 @@
 		, __complete: function(){
 			this.__finishedCount++;
 			if ( this.__finishedCount === this.__jobs.length ){
-				this.__callback();
+				if ( this.__callback ) this.__callback();
 			}
 		}
 
+
+		, cancel: function( err ){
+			this.__callback( err );
+			delete this.__callback;
+		}
 
 		, start: function( callback ){
 			var i = this.__jobs.length;
@@ -36,7 +41,7 @@
 				}
 			}
 			else {
-				callback();
+				if ( callback ) callback();
 			}
 		}
 	} );

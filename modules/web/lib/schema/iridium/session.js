@@ -10,10 +10,10 @@
 		inherits: Model
 
 		, __properties: {
-			  id: 				null
+			  id: 				Model.PRIMARY
 			, userId: 			null
-			, lastHit: 			0
-			, authenticated: 	false
+			, lastHit: 			null
+			, authenticated: 	null
 		}
 
 

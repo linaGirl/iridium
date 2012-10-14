@@ -68,7 +68,7 @@
 			, getters 			= {}
 			, setters 			= {}
 			, staticProperties 	= {}
-			, parentClass, keys, i, id, get, set, setterKeys, getterKeys, staticKeys, o;
+			, parentClass, keys, i, id, get, set, setterKeys, getterKeys, staticKeys, o, parent;
 
 
 		// collect inherited data
@@ -79,6 +79,7 @@
 			setters 			= clone( parentClass.setters );
 			getters				= clone( parentClass.getters );
 			staticProperties 	= clone( parentClass.staticProperties );
+			parent 				= parentClass.proto;
 		}
 		
 
@@ -140,6 +141,9 @@
 
 			// add eventlisteners
 			if ( options && options.on && instance.$events ) instance.on( options.on );
+
+			// parent 
+			if ( parent ) instance.parent = parent;
 
 			// call the class contsructor
 			if ( typeof instance.init === "function" ){

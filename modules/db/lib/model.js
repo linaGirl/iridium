@@ -7,7 +7,7 @@
 
 
 
-	module.exports = new Class( {
+	var Model = module.exports = new Class( {
 		$id: "model"
 		, inherits: Events
 
@@ -20,15 +20,21 @@
 		// are ther changed values ?
 		, __changed: []
 		, __values: {}
+		, __primary: {}
+		, __relations: {}
+		, __properties: {}
+		, __relatedRecords: {}
+		, __foreignKeys: []
+		, __foreignRecords: []
 
 
-
+		, PRIMARY: "$$__iridium_primary__$$"
+		, FK: "$$__iridium_fk__$$"
 
 
 		// fill model with data
 		, init: function( options ){
 			var keys = Object.keys( options ), i = keys.length;
-
 
 			// create getters && setters
 			this.__initModel();
@@ -49,8 +55,39 @@
 			if ( options.$db ) 		this.__db 			= options.$db;
 			if ( options.$dbName ) 	this.__databaseName = options.$dbName;
 			if ( options.$model ) 	this.__model 		= options.$model;
+
+			if ( Object.keys( this.__relations ).length > 0 ) this.__hasRelations = true;
 		}
 
+
+		, hasForeignKeys: function(){
+			return !!this.__hasFK;
+		}
+
+		, getForeignKeys: function(){
+			return 
+		}
+
+		, hasRelations: function(){
+			return !!this.__hasRelations;
+		}
+
+		, getRelations: function(){
+			return this.__relations;
+		}
+
+		, touchRelatedRecord: function( id ){
+			if ( ! this.__relatedRecords[ id ] ) this.__relatedRecords[ id ] = [];
+		}
+
+		, addRelatedRecord: function( id, record ){
+			if ( ! this.__relatedRecords[ id ] ) this.__relatedRecords[ id ] = [];
+			this.__relatedRecords[ id ].push( record );
+		}
+
+		, getProperties: function(){
+			return this.__properties;
+		}
 
 
 		// create getters and setters for the properties
@@ -59,40 +96,27 @@
 				var keys = Object.keys( this.__properties ), i = keys.length;
 
 				while( i-- ){
-					( function( key ){
-						if ( this.__properties[ key ] !== null && typeof this.__properties[ key ] === "object" ){
-							if ( typeof this.__properties[ key ].set === "function" ){
-								this.__defineSetter__( key, this.__properties[ key ].set.bind( this ) );
-							}
-							else {
-								this.__defineSetter__( key, function( value ){
-									this.__values[ key ] = value;
-									if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
-								}.bind( this ) );
-							}
-							
-							if ( typeof this.__properties[ key ].get === "function" ){
-								this.__defineGetter__( key, this.__properties[ key ].get.bind( this ) );
-							}
-							else {
-								this.__defineGetter__( key, function( value ){
-									this.__values[ key ] = value;
-									if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
-								}.bind( this ) );
-							}
+					( function( key ){						
+						this.__defineSetter__( key, function( value ){
+							this.__values[ key ] = value;
+							if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
+						}.bind( this ) );
 
-							if ( this.__properties[ key ].hasOwnProperty( "value" ) ) this.__values[ key ] = this.__properties[ key ].value;
+						this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );
+
+						this.__values[ key ] = this.__properties[ key ];
+
+						// primary?
+						if ( this.__properties[ key ] === Model.PRIMARY ){
+							this.__primary[ key ] = null;
 						}
-						else {
-							this.__defineSetter__( key, function( value ){
-								this.__values[ key ] = value;
-								if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
-							}.bind( this ) );
 
-							this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );
-
-							this.__values[ key ] = this.__properties[ key ];
+						// foreign ?
+						if ( this.__properties[ key ] === Model.FK ) {
+							this.__hasFK = true;
+							this.__foreignKeys.push( key );
 						}
+
 					}.bind( this ) )( keys[ i ] );
 				}
 			}
@@ -114,19 +138,35 @@
 
 
 		, save: function( callback ){
-			var updates = [],  values = [], val = [],  i = this.__changed.length;
-
+			var updates = [],  values = [], val = [],  i = this.__changed.length, where, keys, k, whereConditions = [];
 			if ( this.__isFromDB ){
 				if ( this.__changed.length === 0 ){
-					callback();
+					if ( callback ) callback();
 				}
 				else {
 					while( i-- ){
 						updates.push( this.__changed[ i ] + " = ?" );
 						values.push( this.__values[ this.__changed[ i ] ] );
 					}
-					values.push( this.id );
-					( this.__transaction || this.__db ).query( "UPDATE " + this.__databaseName + "." + this.__model + " SET " + updates.join( ", " ) + " WHERE id = ? LIMIT 1;", values, function( err, result ){
+					
+
+					// create where 
+					if ( this.__primary ){
+						var keys = Object.keys( this.__primary ), k = keys.length;
+						while( k-- ){
+							whereConditions.push( keys[ k ] + " = ?" );
+							values.push( this.__values[ keys[ k ] ] );
+						}
+						where = "WHERE " + whereConditions.join( " AND " );
+					}
+					else{
+						where = "WHERE id = ?";
+						values.push( this.id );
+					}
+
+
+					( this.__transaction || this.__db ).query( "UPDATE " + this.__databaseName + "." + this.__model + " SET " + updates.join( ", " ) + " " + where + " LIMIT 1;", values, function( err, result ){
+						
 						if ( err ){
 							log.trace( err );
 						}
@@ -146,13 +186,14 @@
 				
 				// create new
 				( this.__transaction || this.__db ).query( "INSERT INTO " + this.__databaseName + "." + this.__model + " (" + updates.join( "," ) + ") VALUES (" + val.join( ", " ) + ");", values, function( err, result ){
+					
 					if ( err ){
 						log.trace( err );
 					}
 					else {
 						this.__isFromDB = true;
-						this.__id = this.id || result.insertId;
-						this.__changed = [];
+						if ( result.insertId ) this.id = result.insertId;
+						this.__changed 	= [];
 					}
 					if ( callback ) callback( err );
 				}.bind( this ) );

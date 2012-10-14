@@ -6,9 +6,8 @@
 
 	// cutom events, because they less suck
 	module.exports = new Class( {
-		$id: "events"
 		
-		, $events: {}
+		$events: {}
 
 		, emit: function( event ){
 			var args = arguments, i, current;
@@ -27,11 +26,15 @@
 					}
 				}
 			}
+
+			return this;
 		}
 
 
 		, emitNow: function(){
 			this.emit.apply( this, arguments );
+
+			return this;
 		}
 
 
@@ -62,12 +65,16 @@
 			}
 
 			this.emit( "removeListener", event, listener );
+
+			return this;
 		}
 
 
 		// add one ( two args ) or multiple events ( one arg -> object ). fired once.
 		, once: function( event, listener ){
 			this.on( event, listener, true );
+
+			return this;
 		}
 
 		// add one ( two args ) or multiple events ( one arg -> object ). fired once ( third arg )
@@ -84,6 +91,8 @@
 			else {
 				this.addListener( event, listener, once );
 			}
+
+			return this;
 		}
 
 		// adds a listenr, somehow private

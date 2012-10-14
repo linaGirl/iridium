@@ -1,10 +1,11 @@
 
 
-	var http = require( "http" );
+	var http = require( "http" )
+		, https = require( "https" );
 
 
 	module.exports = function( url, callback ){
-		http.get( url, function( res ){
+		( url.indexOf( "https://" ) === -1 ? http : https ).get( url, function( res ){
 			var data, tdata;
 
 			res.on( "data", function( c ){ 
@@ -22,7 +23,10 @@
 			}.bind( this ) );
 
 			res.on( "end", function(){
-				callback( null, data );
+				callback( null, {
+					  data: 	data 
+					, headers: 	res.headers
+				} );
 			}.bind( this ) );
 		}.bind( this ) );
 	}

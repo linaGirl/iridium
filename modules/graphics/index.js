@@ -1,11 +1,8 @@
 
 	
-	var Image = require( "./lib/image" );
-
 
 
 	module.exports = {
-		createImage: function( options ){
-			return new Image( options );
-		}
+		Canvas: require( "./node_modules/canvas" )
+		//Canvas: require( "./dep/node-canvas" )
 	};

@@ -39,7 +39,6 @@
 				, m = this.__rulesAfter.length
 				, mainruleDone = false;
 
-
 			if ( debug ) log.debug( "rewriting [" + request.pathname + "] ...", this );
 			
 			var nextRule = function(){
@@ -65,9 +64,9 @@
 
 
 		, __iridiumRewrite: function( request, response, callback ){
-			var reg = /^\/([a-z]{2}\/)?([^0-9][a-z0-9_-]+)?\/?([a-z][a-z0-9_-]+)?\/?([0-9]+)?\/?$/gi.exec( request.pathname ), path = "/";
+			var reg = /^\/([a-z]{2}\/)?([^0-9][^\/]+)?\/?([a-z][^\/]+)?\/?([0-9]+)?\/?$/gi.exec( request.pathname ), path = "/";
 			
-			
+
 			if ( reg ){
 				//if ( reg[ 1 ] ) request.language = reg[ 1 ].toLowerCase();
 				request.query.page = reg[ 4 ] ? ( parseInt( reg[ 4 ], 10 ) || 1 ) : 1 ;
