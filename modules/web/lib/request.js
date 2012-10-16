@@ -40,10 +40,15 @@
 			return this.__getRequestLanguage();
 		}
 
+		, get method(){
+			return this.__method.toLowerCase();
+		}
+
 
 		, init: function( options ){
 			this.__request = options.request;
 			this.__resources = options.resources;
+			this.__method = this.__request.method;
 
 			this.__collectData();
 			if ( !this.__request.headers ) this.__request.headers = {};

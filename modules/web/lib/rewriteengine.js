@@ -64,17 +64,18 @@
 
 
 		, __iridiumRewrite: function( request, response, callback ){
-			var reg = /^\/([a-z]{2}\/)?([^0-9][^\/]+)?\/?([a-z][^\/]+)?\/?([0-9]+)?\/?$/gi.exec( request.pathname ), path = "/";
+			var reg = /^\/([a-z]{2}\/)?([^0-9][^\/]+)?\/?([a-z][^\/]+)?\/?(.+)?\/?$/gi.exec( request.pathname ), path = "/";
 			
-
 			if ( reg ){
-				//if ( reg[ 1 ] ) request.language = reg[ 1 ].toLowerCase();
-				request.query.page = reg[ 4 ] ? ( parseInt( reg[ 4 ], 10 ) || 1 ) : 1 ;
-
 				if ( reg[ 2 ] ) path += reg[ 2 ] + "/";
 				if ( reg[ 3 ] ) path += reg[ 3 ] + "/";
 
 				if ( this.resources.hasCommand( path ) ){
+					if ( reg[ 4 ] ){
+						if ( !/[^0-9]/g.test( reg[ 4 ] ) ) request.query.page = parseInt( reg[ 4 ], 10 );
+						else request.query.parameters = reg[ 4 ].split( "/" ).filter( function( x ){ return !!x; } );
+					} else request.query.page = 1;
+
 					callback( null, this.resources.getCommand( path ) );
 				}
 				else callback();
