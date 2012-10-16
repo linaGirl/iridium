@@ -5,6 +5,7 @@
 		, Events 	= iridium( "events" )
 		, log 		= iridium( "log" )
 		, argv 		= iridium( "util" ).argv
+		, debug 	= argv.has( "trace-webservice" )
 		, userDebug = argv.has( "debug" );
 
 
@@ -125,6 +126,7 @@
 		}
 
 		, sendError: function( statusCode, reason ){
+			if( debug ) log.warn( statusCode, reason );
 			this.send( statusCode, null, reason );
 			return this;
 		}

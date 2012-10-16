@@ -3,22 +3,19 @@
 
 	module.exports = {
 		
-		  mime: require( "./lib/mime" )
+		  mime: 			require( "./lib/mime" )
+		, argv: 			require( "./lib/argv" )
+		, airbrake: 		require( "./node_modules/airbrake" )
+		, moment: 			require( "./lib/moment" )
+		, Sequence: 		require( "./lib/sequence" )
+		, Pool: 			require( "./lib/pool" )
+		, Waiter: 			require( "./lib/pool" )
+		, get: 				require( "./lib/get" )
+		, clone: 			require( "./lib/clone" )
+		, ReadableStream: 	require( "./lib/readablestream" )
+		, WritableStream: 	require( "./lib/writablestream" )
 
-		, argv: require( "./lib/argv" )
 
-		, airbrake: require( "./node_modules/airbrake" )
-
-		, moment: require( "./lib/moment" )
-
-		, Sequence: require( "./lib/sequence" )
-
-		, Pool: require( "./lib/pool" )
-		, Waiter: require( "./lib/pool" )
-
-		, get: require( "./lib/get" )
-
-		, clone: require( "./lib/clone" )
 
 		, CamelCase: function(){
 			return Array.prototype.slice.call( arguments, 0 ).map( function( i, index ){ 
