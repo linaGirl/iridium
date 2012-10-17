@@ -25,6 +25,15 @@
 		, __activeUser: null
 
 
+		, get id(){
+			return this.__sessionId;
+		}
+
+		, get uniqueId(){
+			return this.__uniqueId;
+		}
+
+
 		, init: function( options ){
 			this.__sessionId = options.sessionId;
 		}
@@ -67,6 +76,7 @@
 		, removeUser: function( id, callback ){
 			if ( this.__users[ id ] ) {
 				this.emit( "userRemove", this, this.__users[ id ], callback );
+				if ( this.__activeUser === id ) this.__activeUser = null;
 				delete this.__users[ id ];
 			} else if ( callback ) callback( null, null );
 		}
@@ -82,26 +92,5 @@
 				this.__activeUser = id;
 				this.emit( "activeUserChange", this, id, callback );
 			} else if ( callback ) callback( new Error( "user is not on this session!") );
-		}
-
-
-		// store data item ( in-memory, distributed )
-		, set: function( key, value ){
-
-		}
-
-		// check for a data item 
-		, has: function( key ){
-
-		}
-
-		// get a data item
-		, get: function( key ){
-
-		}
-
-		// delete a data item
-		, remove: function( key ){
-
 		}
 	} );

@@ -26,6 +26,7 @@
 				callback( null, {
 					  data: 	data 
 					, headers: 	res.headers
+					, status: 	res.statusCode
 				} );
 			}.bind( this ) );
 		}.bind( this ) );

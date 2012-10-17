@@ -111,9 +111,9 @@
 
 
 		, find: function( parameters, callback ){
-			var query = this.__prepareQuery( parameters );
+			var query = this.__renderQuery( parameters );
 
-			this.__db.query( "SELECT * FROM " + this.__from + " WHERE " + query.queries.join( " AND " ) + ";", query.values, function( err, result ){
+			this.__db.query( query.query, query.parameters, function( err, result ){
 				if ( err ) callback( err );
 				else if( result.length > 0 ){
 				 	var records = [], i = result.length, waiter = new Waiter();
@@ -207,24 +207,70 @@
 		}
 
 
+
+
+		, __renderQuery: function( config ){
+			var query = this.__prepareQuery( config ), limit = "", select = "*", where = "", order = "", group = "";
+
+			if ( query.queries.length > 0 ){
+				where = " WHERE " + query.queries.join( " AND " );
+			}
+			if ( query.order ){
+				order = " ORDER BY " + query.order;
+			}
+			if ( query.group ){
+				group = " GROUP BY " + query.group;
+			}
+			if ( query.limit !== undefined && query.offset !== undefined ){
+				limit = " LIMIT ?, ?";
+				query.values.push( query.offset, query.limit );
+			}
+			if ( query.select ) select = query.select;
+
+			return { query: "SELECT " + select + " FROM " + this.__from + where + order + group + limit + ";", parameters: query.values }; 
+		}
+
+
 		, __prepareQuery: function( config ){
 			var   queries 	= []
 				, values 	= []
 				, keys 		= Object.keys( config )
-				, i 		= keys.length;
+				, i 		= keys.length
+				, result 	= {};
 
 
 
 			while( i-- ){
-				if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null ){
+				if ( keys[ i ] === "$limit" ){
+					result.limit = config[ keys[ i ] ];
+				}
+				else if ( keys[ i ] === "$offset" ){
+					result.offset = config[ keys[ i ] ];
+				}
+				else if ( keys[ i ] === "$select" ){
+					result.select = config[ keys[ i ] ].join( ", " );
+				}
+				else if ( keys[ i ] === "$order" ){
+					result.order = config[ keys[ i ] ].join( ", " );
+				}				
+				else if ( keys[ i ] === "$group" ){
+					result.group = config[ keys[ i ] ].join( ", " );
+				}
+				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
-							queries.push( this.__db.escape( keys[ i ] ) + " IN ( ?" + new Array( config[ keys[ i ] ].in.length ).join( ", ?" ) + " )" );
+							queries.push( this.__db.escapeField( keys[ i ] ) + " IN ( ?" + new Array( config[ keys[ i ] ].in.length ).join( ", ?" ) + " )" );
 							values = values.concat( config[ keys[ i ] ].in );
 							//console.log( "SELECT * FROM " + this.__from + " WHERE " + queries.join( " AND " ) + ";", values);
 						}						
 					}
-					else throw new Error( "unknwown query format!" );
+					else if ( config[ keys[ i ] ].hasOwnProperty( "like" ) ){
+						if ( typeof config[ keys[ i ] ].like === "string" && config[ keys[ i ] ].like.length > 0 ){
+							queries.push( this.__db.escapeField( keys[ i ] ) + " LIKE ?" );
+							values = values.concat( config[ keys[ i ] ].like );
+						}
+					}
+					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
 				else {
 					queries.push( keys[ i ] + " = ?" );
@@ -232,7 +278,9 @@
 				}				
 			}
 
-			return { queries: queries, values: values };
+			result.queries = queries;
+			result.values = values;
+			return result;
 		}
 
 
@@ -254,7 +302,7 @@
 		// create instance of the static model
 		var staticmodel = new StaticModel( cOptions );
 
-		// creaate a contructor proxy
+		// create a contructor proxy
 		var contructor = function( options ){
 			options 			= options || {};
 			options.$db 		= cOptions.db;

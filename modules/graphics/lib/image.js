@@ -43,10 +43,10 @@
 						var   hFactor = height / size.height
 							, wFactor = width / size.width
 							, factor = wFactor > hFactor ? wFactor : hFactor
-							, newW = size.width * factor
-							, newH = size.height * factor
-							, paddingW = ( ( newW - width ) / 2 ) * ( newW > width ? 1 : -1 )
-							, paddingH = ( ( newH - height ) / 2 ) * ( newH > height ? 1 : -1 );
+							, newW = Math.round( size.width * factor )
+							, newH = Math.round( size.height * factor )
+							, paddingW = Math.round( ( ( newW - width ) / 2 ) * ( newW > width ? 1 : -1 ) )
+							, paddingH = Math.round( ( ( newH - height ) / 2 ) * ( newH > height ? 1 : -1 ) );
 
 						
 
@@ -64,8 +64,11 @@
 						} );*/
 
 						this.__gm.resize( newW, newH );
-						this.__gm.crop(  width, height, paddingW, paddingH );
-						this.toBuffer( mime, callback );
+						this.__gm.crop( Math.round( width ), Math.round( height ), paddingW, paddingH );
+						this.toBuffer( mime, function( err, imagedata ){
+							//console.log( err, imagedata, size );
+							callback( err, imagedata );
+						}.bind( this ) );
 					}
 				}.bind( this ) );
 			}
@@ -95,6 +98,10 @@
 					new WritableStream().pipe( stdout ).on( "end", function( data ){
 						callback( null, data );
 					}.bind( this ) );
+
+					/*new WritableStream().pipe( stderr ).on( "end", function( data ){
+						console.log( data.toString() );
+					}.bind( this ) );*/
 				}
 			}.bind( this ) );
 			return this;

@@ -69,10 +69,6 @@
 
 		, get: function( id ){
 			if ( this.__data[ id ] ){
-
-				// reposition item
-				this.__appendToList( this.__removeFromList( id ) );
-
 				// return
 				return this.__data[ id ].v;
 			}

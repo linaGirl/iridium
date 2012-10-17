@@ -80,6 +80,11 @@
 		
 		, escape: SqlString.escape
 
+		, escapeField: function( field ){
+			var escaped = SqlString.escape( field );
+			return "`" + escaped.substr( 1, escaped.length - 2 ) + "`";
+		}
+
 
 		, query: function( query, parameters, callback, writable ){
 			writable = writable || ( writable === undefined && this.__reg.test( query ) );

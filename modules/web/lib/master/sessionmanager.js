@@ -263,7 +263,7 @@
 
 		// broadcast a message to all workers, you may exclude on worker
 		, __broadcast: function( action, session, excludeId ){
-			var message = { action: action, payload: { session: session.toJSON() } };
+			var message = { action: action, payload: { session: { is: session.id } } };
 
 			if ( debug ) log.info( "broadcasting, exluding [" + excludeId + "] ...", this ), log.dir ( message );
 			this.emit( "broadcast", message, excludeId );

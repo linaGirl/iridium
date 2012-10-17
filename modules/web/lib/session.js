@@ -28,8 +28,8 @@
 		, destroy: function( callback ){
 			this.__send( "remove", { session: { id: this.id } }, function( err ){
 				this.emit( "destroy" );
-				callback( err );
-			}.bins( this ) );
+				if ( callback ) callback( err );
+			}.bind( this ) );
 		}
 
 

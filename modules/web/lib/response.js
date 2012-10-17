@@ -127,7 +127,7 @@
 
 		, sendError: function( statusCode, reason ){
 			if( debug ) log.warn( statusCode, reason );
-			this.send( statusCode, null, reason );
+			this.send( statusCode, { "content-type": "text/html" }, reason );
 			return this;
 		}
 	} );

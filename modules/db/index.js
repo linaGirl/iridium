@@ -5,6 +5,7 @@
 		, mysql 		= require( "./dep/node-mysql" )
 		, mysqlQueues 	= require( "./dep/node-mysql-queues" )
 		, LRUCache 		= require( "./lib/lru" )
+		, TTLCache 		= require( "./lib/ttlcache" )
 		, MySQLPool 	= require( "./lib/mysql" )
 		, Model 		= require( "./lib/model" )
 		, Schema 		= require( "./lib/schema" )
@@ -49,6 +50,7 @@
 
 
 		, LRUCache: LRUCache
+		, TTLCache: TTLCache
 
 
 		, MySQL: function( options ){
