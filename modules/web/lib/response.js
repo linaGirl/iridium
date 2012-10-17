@@ -102,7 +102,7 @@
 			this.setHeader( "date", new Date().toGMTString() );
 			this.setHeader( "server", "iridium" );
 
-			this.__response.writeHead( statusCode|| this.__statusCode, this.__headers );
+			this.__response.writeHead( statusCode || this.__statusCode, this.__headers );
 			this.__response.end( data );
 			this.__responseSent = true;
 			return this;

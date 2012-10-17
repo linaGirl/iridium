@@ -227,7 +227,7 @@
 			}
 			if ( query.select ) select = query.select;
 
-			return { query: "SELECT " + select + " FROM " + this.__from + where + order + group + limit + ";", parameters: query.values }; 
+			return { query: "SELECT " + select + " FROM " + this.__from + where + group + order + limit + ";", parameters: query.values }; 
 		}
 
 
