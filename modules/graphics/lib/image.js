@@ -99,9 +99,9 @@
 						callback( null, data );
 					}.bind( this ) );
 
-					/*new WritableStream().pipe( stderr ).on( "end", function( data ){
-						console.log( data.toString() );
-					}.bind( this ) );*/
+					new WritableStream().pipe( stderr ).on( "end", function( data ){
+						if ( data ) console.log( data.toString() );
+					}.bind( this ) );
 				}
 			}.bind( this ) );
 			return this;

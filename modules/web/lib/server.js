@@ -57,7 +57,8 @@
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
 			var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
-				, response 		= new Response( { response: res, request: request } );
+				, response 		= new Response( { response: res, request: request } )
+				, fakeSession 	= !req.headers[ "user-agent" ] || /bot|googlebot|crawler|spider|robot|crawling/.test( ( req.headers[ "user-agent" ] || "" ) );
 
 
 			// lb health check
@@ -80,6 +81,7 @@
 					} 
 					
 
+
 					if ( !response.isSent ){
 						if ( err ){
 							response.sendError( 500, "rewrite_error" );
@@ -91,44 +93,49 @@
 
 									// check if we need to get a session
 									if ( controller.requiresSession( command.action ) ){
-										
+
 										// get session
 										var cookie = request.getCookie( "sid" );
-										this.sessions.get( cookie, function( err, session ){
-											if ( err || !session ) response.sendError( 500, "sesison_error" );
+										this.sessions.get( cookie, function( err, existingSession ){
+											if ( err ) response.sendError( 500, "session error: " + err.message );
 											else {
-												// fake auth
-												if ( userDebug ){
-													if ( request.hasQueryParameter( "authenticated", "true" ) && !session.authenticated ){
-														session.authenticated = true;
-														session.save();
-													}
-													else if ( request.hasQueryParameter( "authenticated", "false" ) && session.authenticated ) {
-														session.authenticated = false;
-														session.save();
-													}
-												}
 
-												// set session cookie
-												if ( cookie !== session.id ) response.setCookie( new Cookie( { name: "sid", value: session.id, path: "/", httponly: true, maxage: 315360000 } ) );
+												var resume = function( session ){
+													// stats
+													session.ip = req.connection.remoteAddress;
+													session.useragent = req.headers[ "user-agent" ];
 
-												controller[ command.action ]( request, response, command, session );
+
+													// fake auth
+													if ( request.query.hasOwnProperty( "authenticated" ) ){
+														var status = !!request.query.authenticated;
+														if ( status !== session.authenticated ){
+															session.addUser( 0, function( err, sessionUser ){
+																if ( !err && sessionUser ) sessionUser.set( { authenticated: true, active: true } );
+															}.bind( this ) );
+														}
+													}
+
+
+													// set session cookie
+													if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+
+													controller[ command.action ]( request, response, command, session );
+												}.bind( this );
+
+												if ( existingSession ) resume( existingSession );
+												else {
+													this.sessions.create( function( err, newSession ){
+														if ( err ) response.sendError( 500, "session error: " + err.message );
+														else resume( newSession );
+													}.bind( this ), fakeSession );
+												}												
 											}
-										}.bind( this ) );
-									}
-									else controller[ command.action ]( request, response, command );									
-								}
-								else {
-									response.sendError( 404, "invalid_action" );
-								}
-							}
-							else {
-								response.sendError( 404, "invalid_controller" );
-							}
-						}
-						else {
-							response.sendError( 404, "no_route" );
-						}
+										}.bind( this ), fakeSession );
+									} else controller[ command.action ]( request, response, command );									
+								} else response.sendError( 404, "invalid_action" );
+							} else response.sendError( 404, "invalid_controller" );
+						} else response.sendError( 404, "no_route" );
 					}
 				}.bind( this ) );
 			}

@@ -14,6 +14,7 @@
 		, clone: 			require( "./lib/clone" )
 		, ReadableStream: 	require( "./lib/readablestream" )
 		, WritableStream: 	require( "./lib/writablestream" )
+		, Object: 			require( "./lib/object" )
 
 
 

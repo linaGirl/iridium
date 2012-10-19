@@ -86,9 +86,10 @@
 			if ( item ) delete this.__data[ id ];
 			this.__count--;
 
-			this.emit( "remove", id, item.v, item.t );
-
-			return item.v;
+			if ( item ) {
+				this.emit( "remove", id, item.v, item.t );
+				return item.v;
+			}
 		}
 
 

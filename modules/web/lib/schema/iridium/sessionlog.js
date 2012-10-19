@@ -11,15 +11,9 @@
 
 		, __properties: {
 			  id: 				Model.PRIMARY
-			, sessionId: 		null
-			, created: 			null
-			, modified: 		null
-		}
-
-
-
-		, save: function( callback ){
-			this.modified = new Date();
-			this.parent.save.call( this, callback );
+			, id_session: 		null
+			, accessed: 		null
+			, ip: 				null
+			, useragent: 		null
 		}
 	} );

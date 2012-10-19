@@ -18,7 +18,7 @@
 	 	, WebFiles 			= require( "./files" )
 	 	, SchemaManager		= require( "./schemamanager" )
 	 	, ControllerManager	= require( "./controllermanager" )
-	 	, SessionManager	= require( "./sessionmanager" )
+	 	, SessionManager	= require( "./worker/sessionmanager" )
 	 	, ResourceLoader	= require( "./resourceloader" )
 		, RewriteEngine 	= require( "./rewriteengine" );
 

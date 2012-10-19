@@ -137,6 +137,31 @@
 		}
 
 
+		, delete : function( callback ){
+			var where, keys, k, whereConditions = [];
+
+			// create where 
+			if ( this.__primary ){
+				var keys = Object.keys( this.__primary ), k = keys.length;
+				while( k-- ){
+					whereConditions.push( keys[ k ] + " = ?" );
+					values.push( this.__values[ keys[ k ] ] );
+				}
+				where = "WHERE " + whereConditions.join( " AND " );
+			}
+			else{
+				where = "WHERE id = ?";
+				values.push( this.id );
+			}
+
+			( this.__transaction || this.__db ).query( "DELETE FROM " + this.__databaseName + "." + this.__model + " " + where + " LIMIT 1;", values, function( err, result ){
+				if ( err ) log.trace( err );
+				else this.__changed = [];
+				if ( callback ) callback( err );
+			}.bind( this ) );
+		}
+
+
 		, save: function( callback ){
 			var updates = [],  values = [], val = [],  i = this.__changed.length, where, keys, k, whereConditions = [];
 			if ( this.__isFromDB ){
@@ -173,7 +198,7 @@
 						else {
 							this.__changed = [];
 						}
-						if ( callback ) callback( err );
+						if ( callback ) callback( err, this );
 					}.bind( this ) );
 				}
 			}
@@ -195,7 +220,7 @@
 						if ( result.insertId ) this.id = result.insertId;
 						this.__changed 	= [];
 					}
-					if ( callback ) callback( err );
+					if ( callback ) callback( err, this );
 				}.bind( this ) );
 			}
 
