@@ -26,24 +26,55 @@
 
 
 
-		, update: function( id, updates, callback ){
-			if ( ! updates ) return callback(); // no updates
-			var keys = Object.keys( updates ), i = keys.length, fields = [], values = [];
-			if ( i === 0 ) return callback(); // no updates
+		, update: function( config, updates, callback ){
+			var where, keys, k, whereConditions = [], values = [], updateConditions = [];
 
-			while( i-- ){
-				fields.push( keys[ i ] + " = ?" );
-				values.push( updates[ keys[ i ] ] );
+			// create update
+			keys = Object.keys( updates ), k = keys.length;
+			while( k-- ){
+				updateConditions.push( keys[ k ] + "SET " + this.__db.escape( keys[ k ] ) + "= ?" );
+				values.push( updates[ keys[ k ] ] );
 			}
-			values.push( id );
 
-			this.__db.query( "UPDATE " + this.__from + " SET " + fields.join( ", " ) + " WHERE id = ? LIMIT 1;", values, callback );
+
+			// create where 
+			if ( typeof config === "object" && config !== null ){
+				keys = Object.keys( config ), k = keys.length;
+				while( k-- ){
+					whereConditions.push( keys[ k ] + " = ?" );
+					values.push( config[ keys[ k ] ] );
+				}
+				where = "WHERE " + whereConditions.join( " AND " );
+			}
+			else{
+				where = "WHERE id = ?";
+				values.push( config );
+			}
+
+
+			this.__db.query( "UPDATE " + this.__from + " " + updateConditions.join( ", " ) + " " + where + " LIMIT 1;", values, callback );
 		}	
 
 
 
-		, remove: function( id, callback ){
-			this.__db.query( "DELETE FROM " + this.__from + " WHERE id = ? LIMIT 1;", [ id ], callback );
+		, remove: function( config, callback ){
+			var where, keys, k, whereConditions = [], values = [];
+
+			// create where 
+			if ( typeof config === "object" && config !== null ){
+				keys = Object.keys( config ), k = keys.length;
+				while( k-- ){
+					whereConditions.push( keys[ k ] + " = ?" );
+					values.push( config[ keys[ k ] ] );
+				}
+				where = "WHERE " + whereConditions.join( " AND " );
+			}
+			else{
+				where = "WHERE id = ?";
+				values.push( config );
+			}
+
+			this.__db.query( "DELETE FROM " + this.__from + " " + where + " LIMIT 1;", values, callback );
 		}
 
 

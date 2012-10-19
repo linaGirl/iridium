@@ -3,13 +3,13 @@
 	// this is the mainfile required for operating using the iridium framework
 	// import this as fake sub repository into your project
 
-	var prorotype = require( "./core/prototype" )
-		, path = module.filename.substr( 0, module.filename.lastIndexOf( "/" ) + 1 )
-		, mpath = path + "modules/"
-		, cpath = path + "core/"
-		, log = require( "./core/log" )
-		, fs = require( "fs" )
-		, cluster = require( "cluster" );
+	var prorotype 	= require( "./core/prototype" )
+		, path 		= module.filename.substr( 0, module.filename.lastIndexOf( "/" ) + 1 )
+		, mpath 	= path + "modules/"
+		, cpath 	= path + "core/"
+		, log 		= require( "./core/log" )
+		, fs 		= require( "fs" )
+		, cluster 	= require( "cluster" );
 
 
 
@@ -58,6 +58,12 @@
 		root: iridium( "util" ).argv.getCallingPath()
 	};
 	iridium.app.user = iridium.app.root + "user/";
+
+
+	if ( fs.existsSync( iridium.app.root + "config.js" ) ){
+		iridium.app.config = require( iridium.app.root + "config.js" );
+	}
+
 
 	// print iridium intro
 	module.exports = function( productName, version, dontPrint ){
