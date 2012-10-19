@@ -108,19 +108,24 @@
 
 													// fake auth
 													if ( request.query.hasOwnProperty( "authenticated" ) ){
-														var status = !!request.query.authenticated;
+														var status = request.query.authenticated === "true";
 														if ( status !== session.authenticated ){
-															session.addUser( 0, function( err, sessionUser ){
-																if ( !err && sessionUser ) sessionUser.set( { authenticated: status, active: true } );
-															}.bind( this ) );
+															if ( !session.hasUser( 0 ) ){
+																session.addUser( 0, function( err, sessionUser ){
+																	if ( !err && sessionUser ) sessionUser.set( { authenticated: status, active: true }, function(){
+																		if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+																		controller[ command.action ]( request, response, command, session );
+																	}.bind( this )  );
+																}.bind( this ) );
+															}
+															else {
+																session.getUser( 0 ).setAuthenticated( status, function(){
+																	if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+																	controller[ command.action ]( request, response, command, session );
+																}.bind( this ) );
+															}
 														}
 													}
-
-
-													// set session cookie
-													if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-
-													controller[ command.action ]( request, response, command, session );
 												}.bind( this );
 
 												if ( existingSession ) resume( existingSession );
