@@ -111,7 +111,7 @@
 														var status = !!request.query.authenticated;
 														if ( status !== session.authenticated ){
 															session.addUser( 0, function( err, sessionUser ){
-																if ( !err && sessionUser ) sessionUser.set( { authenticated: true, active: true } );
+																if ( !err && sessionUser ) sessionUser.set( { authenticated: status, active: true } );
 															}.bind( this ) );
 														}
 													}
