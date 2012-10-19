@@ -118,6 +118,19 @@
 			return this.__locale[ lang ] && this.__locale[ lang ][ id ] ? this.__locale[ lang ][ id ] : null;
 		}
 
+		// localizetion support
+		, getText: function( id, language, data ){
+			var text = this.getLocale( language, id ), keys, k;
+			if ( !text ) text = this.getLocale( "en", id );
+			if ( !text ) text = this.getLocale( "de", id );
+
+			if ( data && text ){
+				var keys = Object.keys( data ), k;
+				while( k-- ) text = text.replace( new RegExp( "\\{\\{" + keys [ k ] + "\\}\\}", "gi" ), data[ keys [ k ] ] );
+			}
+			return text;
+		}
+
 		, getLocales: function(){
 			return this.__locale;
 		}
@@ -129,6 +142,8 @@
 		, supportsLanguage: function( language ){
 			return this.__languages.indexOf( language ) >= 0;
 		}
+
+
 
 
 		// rewrite rules
