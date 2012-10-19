@@ -49,6 +49,20 @@
 
 
 
+
+		, getOrCreate: function( sessionId, callback, fakeSession ){
+			if ( !fakeSession ){
+				this.get( sessionId, function( err, session ){
+					if ( err || !session ) this.create( callback );
+					else callback( null, session );
+				}.bind( this ) );
+			}
+			else callback( null, new FakeSession() );
+		}
+
+
+
+
 		, create: function( callback, fakeSession ){
 			if ( debug ) log.info( "creating new session ...", this );
 
@@ -97,37 +111,39 @@
 			if ( debug ) log.info( "requesting session [" + sessionId + "] ...", this );
 
 			if ( !fakeSession ){
-				var cachedSession = this.__cache.get( sessionId );
+				if ( /^[a-f0-9]{50}$/i.test( sessionId ) ){
+					var cachedSession = this.__cache.get( sessionId );
 
-				if ( cachedSession ){
-					if ( debug ) log.info( "returning cached session ...", this );
-					callback( null, cachedSession );
-				}
-				else {
-					if ( debug ) log.info( "getting session from db ...", this );
-					this.__iridium.session.findOne( { sessionId: sessionId }, function( err, exisitingSession ){
-						if ( err ) callback( err );
-						else if ( exisitingSession ) {
-							new Session( { 
-								  dbSession: exisitingSession
-								, iridium: this.__iridium
-								, manager: this
-								, on: {
-									load:  function( err, session ){ 
-										if ( !err && session ) this.__cache.set( session.sessionId, session );
-									  	callback( err, session ); 
-									}.bind( this )
-									, renew: function( session, oldSessionId, newSessionId ){
-										// change caching key
-										this.__cache.remove( oldSessionId );
-										this.__cache.set( newSessionId, session );
-									}.bind( this )
-								}
-							} );
-						}
-						else callback();
-					}.bind( this ) );
-				}
+					if ( cachedSession ){
+						if ( debug ) log.info( "returning cached session ...", this );
+						callback( null, cachedSession );
+					}
+					else {
+						if ( debug ) log.info( "getting session from db ...", this );
+						this.__iridium.session.findOne( { sessionId: sessionId }, function( err, exisitingSession ){
+							if ( err ) callback( err );
+							else if ( exisitingSession ) {
+								new Session( { 
+									  dbSession: exisitingSession
+									, iridium: this.__iridium
+									, manager: this
+									, on: {
+										load:  function( err, session ){ 
+											if ( !err && session ) this.__cache.set( session.sessionId, session );
+										  	callback( err, session ); 
+										}.bind( this )
+										, renew: function( session, oldSessionId, newSessionId ){
+											// change caching key
+											this.__cache.remove( oldSessionId );
+											this.__cache.set( newSessionId, session );
+										}.bind( this )
+									}
+								} );
+							}
+							else callback();
+						}.bind( this ) );
+					}
+				} else callback();
 			}
 			else callback( null, new FakeSession() );
 		}

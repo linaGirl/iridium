@@ -52,7 +52,11 @@
 			return {};
 		}
 
-		, hasUser: function( userId ){
+		, hasUser: function(){
+			return false;
+		}
+
+		, hasUsers: function(){
 			return false;
 		}
 

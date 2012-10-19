@@ -142,7 +142,27 @@
 			}.bind( this ) );
 		}
 
+		// set authenticated = false for all users
+		, invalidate: function( callback ){
+			var keys = Object.keys( this.__users )
+				, i = keys.length
+				, waiter = new Waiter();
 
+			while( i-- ){
+				( function( index ){
+					waiter.add( function( cb ){
+						// diauthenticate all users, but dont renew the session for every user
+						this.__users[ keys[ index ] ].setAuthenticated( false, cb, true );
+					}.bind( this ) );
+				}.bind( this ) )( i );
+			}
+
+			// renew the session
+			waiter.add( this.renew.bind( this ) );
+
+			// execute the stack
+			waiter.start( callback );
+		}
 
 		// get user associated with the session
 		, getUser: function( userId ){
@@ -157,6 +177,10 @@
 		// has a specific user?
 		, hasUser: function( userId ){
 			return !!this.__users[ userId ]
+		}
+
+		, hasUsers: function(){
+			return Object.keys( this.__users ).length > 0;
 		}
 
 		// add a user

@@ -191,7 +191,6 @@
 
 			// handle connection level errors
 			this.__connection.on( "error", function( err ){
-				console.log(1);
 				if ( debug ) log.error( "error on connection:", this ), log.trace( err );
 
 				// remove from stack
@@ -228,9 +227,12 @@
 
 
 		, __close: function( err ){
+			if ( err ){
+				if ( err.code === "ER_CON_COUNT_ERROR" ) this.emit( "tooManyConnections", this );
+				else this.emit( "error", this, err );
+			} 
 			this.__clearIdleTimeout();
 			this.__cancelQuerytimeout();
-			if ( err ) this.emit( "error", this, err );
 			this.emit( "close", this );
 			this.__connection.end();
 			delete this.__connection;

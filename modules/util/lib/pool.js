@@ -26,8 +26,10 @@
 
 
 		, cancel: function( err ){
-			this.__callback( err );
-			delete this.__callback;
+			if ( this.__callback ) {
+				this.__callback( err );
+				delete this.__callback;
+			}
 		}
 
 		, start: function( callback ){

@@ -81,7 +81,7 @@
 
 
 
-		, setAuthenticated: function( authState, callback ){
+		, setAuthenticated: function( authState, callback, noRenew ){
 			if ( debug ) log.debug( "setting authstate [" + authState + "] on user [" + this.id + "] ...", this );
 
 			if ( !!authState !== this.__authenticated ) {
@@ -99,11 +99,13 @@
 								this.emit( "authchange", this, authState );
 								this.__authenticated = authState;
 
-								process.nextTick( function(){
-									this.__session.renew( function( err ){
-										if ( callback ) callback( err );
+								if ( !noRenew ){
+									process.nextTick( function(){
+										this.__session.renew( function( err ){
+											if ( callback ) callback( err );
+										}.bind( this ) );
 									}.bind( this ) );
-								}.bind( this ) );
+								}
 							} 
 						}.bind( this ) );
 					}
