@@ -100,6 +100,17 @@
 											if ( err ) response.sendError( 500, "session error: " + err.message );
 											else {
 
+												var complete = function( session ){
+													if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+
+													command.data.authenticated = session.authenticated;
+													command.data.lang = request.language;
+													command.data[ "lang" + request.language[ 0 ].toUpperCase() + request.language[ 1 ].toLowerCase() ] = true;
+													
+													controller[ command.action ]( request, response, command, session );
+												}.bind( this );
+
+
 												var resume = function( session ){
 													// stats
 													session.ip = req.connection.remoteAddress;
@@ -114,25 +125,21 @@
 																session.addUser( 0, function( err, sessionUser ){
 																	if ( !err && sessionUser ) {
 																		sessionUser.set( { authenticated: status, active: true }, function(){
-																			if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-																			controller[ command.action ]( request, response, command, session );
+																			complete( session );
 																		}.bind( this )  );
 																	}
-																	else {
-																		if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-																		controller[ command.action ]( request, response, command, session );
-																	}
+																	else complete( session );
 																}.bind( this ) );
 															}
 															else {
 																session.getUser( 0 ).setAuthenticated( status, function(){
-																	if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-																	controller[ command.action ]( request, response, command, session );
+																	complete( session );
 																}.bind( this ) );
 															}
-														} else controller[ command.action ]( request, response, command, session );
-													} else controller[ command.action ]( request, response, command, session );
+														} else complete( session );
+													} else complete( session );
 												}.bind( this );
+
 
 												if ( existingSession ) resume( existingSession );
 												else {
