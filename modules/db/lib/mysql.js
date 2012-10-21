@@ -19,8 +19,7 @@
 
 
 	module.exports = new Class( {
-		$id: "db.mysql"
-		, inherits: Events
+		inherits: Events
 
 
 		// we need to distinguish writes from reads

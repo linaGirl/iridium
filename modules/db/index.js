@@ -1,17 +1,18 @@
 
 
 
-	var MongoDB 		= require( "./dep/node-mongolian/mongolian" )
-		, mysql 		= require( "./dep/node-mysql" )
-		, mysqlQueues 	= require( "./dep/node-mysql-queues" )
-		, LRUCache 		= require( "./lib/lru" )
-		, TTLCache 		= require( "./lib/ttlcache" )
-		, MySQLPool 	= require( "./lib/mysql" )
-		, Model 		= require( "./lib/model" )
-		, Schema 		= require( "./lib/schema" )
-		, StaticModel 	= require( "./lib/staticmodel" );
+	var MongoDB 			= require( "./dep/node-mongolian/mongolian" )
+		, mysql 			= require( "./dep/node-mysql" )
+		, mysqlQueues 		= require( "./dep/node-mysql-queues" )
+		, LRUCache 			= require( "./lib/lru" )
+		, TTLCache 			= require( "./lib/ttlcache" )
+		, MySQLPool 		= require( "./lib/mysql" )
+		, Model 			= require( "./lib/model" )
+		, DistributedModel 	= require( "./lib/distributedModel" )
+		, Schema 			= require( "./lib/schema" )
+		, StaticModel 		= require( "./lib/staticmodel" );
 
-	var log 			= iridium( "log" );
+	var log 				= iridium( "log" );
 
 
 
@@ -40,17 +41,14 @@
 		}
 
 
-		, MySQLPool: MySQLPool
+		, MySQLPool: 		MySQLPool
+		, Model: 			Model
+		, DistributedModel: DistributedModel
+		, StaticModel: 		StaticModel
+		, Schema: 			Schema
 
-
-		, Model: Model
-		, StaticModel: StaticModel
-		, Schema: Schema
-
-
-
-		, LRUCache: LRUCache
-		, TTLCache: TTLCache
+		, LRUCache: 		LRUCache
+		, TTLCache: 		TTLCache
 
 
 		, MySQL: function( options ){

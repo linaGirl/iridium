@@ -10,13 +10,13 @@
 
 
 	var StaticModel 	= require( "./staticmodel" )
-		, MySQLPool 	= require( "./mysql" ); 
+		, MySQLPool 	= require( "./mysql" )
+		, LRUCache  	= require( "./lru" ); 
 
 
 
 	module.exports = new Class( {
-		$id: "schema"
-		, inherits: MySQLPool
+		inherits: MySQLPool
 
 
 		, __models: {}
@@ -33,6 +33,15 @@
 
 			// load schema files
 			this.__loadFiles( options.config.path + "/" + options.name );
+
+
+			// listen  for cache messages for distributed models
+			this.__dmodelsubject = "dmodel-" + this.__databaseName;
+			process.on( "message", function( message ){
+				if ( message.t === this.__dmodelsubject && this.__models[ message.m ] && this.__models[ message.m ].isDistributed() ) {
+					this.__models[ message.m ].cacheInstruction( message.a, message.k, message.d );
+				}
+			}.bind( this ) );
 		}
 
 

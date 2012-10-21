@@ -8,8 +8,7 @@
 
 
 	var Model = module.exports = new Class( {
-		$id: "model"
-		, inherits: Events
+		inherits: Events
 
 
 		, errors: false
@@ -51,12 +50,25 @@
 				} 
 			}
 
-			if ( options.$fromDB ) 	this.__isFromDB 	= true;
+			if ( options.$fromDB || this.isDistributed() ) 	this.__isFromDB 	= true;
 			if ( options.$db ) 		this.__db 			= options.$db;
 			if ( options.$dbName ) 	this.__databaseName = options.$dbName;
 			if ( options.$model ) 	this.__model 		= options.$model;
 
 			if ( Object.keys( this.__relations ).length > 0 ) this.__hasRelations = true;
+		}
+
+
+		, getChangedValues: function(){
+			var i = this.__changed.length
+				, values = {};
+
+			while( i-- ) values[ this.__changed[ i ] ] = this.__values[ this.__changed[ i ] ];
+			return values;
+		}
+
+		, getValues: function(){
+			return this.__values;
 		}
 
 
@@ -89,6 +101,7 @@
 			return this.__properties;
 		}
 
+		, isDistributed: function(){ return false; }
 
 		// create getters and setters for the properties
 		, __initModel: function(){
@@ -98,8 +111,8 @@
 				while( i-- ){
 					( function( key ){						
 						this.__defineSetter__( key, function( value ){
+							if ( this.__values[ key ] !== value && this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
 							this.__values[ key ] = value;
-							if ( this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
 						}.bind( this ) );
 
 						this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );

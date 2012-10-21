@@ -14,8 +14,7 @@
 
 
 	module.exports = new Class( {
-		$id: "db.mysql.connection"
-		, inherits: Events
+		inherits: Events
 
 
 		// connection config

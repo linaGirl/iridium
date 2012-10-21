@@ -4,9 +4,13 @@
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
-		, Waiter 		= iridium( "util" ).Waiter; 
+		, Waiter 		= iridium( "util" ).Waiter
+		, LRUCache 		= require( "./lru" )
+		, argv 			= iridium( "util" ).argv
+		, debug 		= argv.has( "trace-mysql-caching" ) || argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
 
+	var contructor;
 
 
 	var StaticModel = new Class( {
@@ -22,8 +26,48 @@
 
 			// need to get to the model config which is on the class config
 			this.__sample  	= new options.cls();
+
+			// create cache?
+			if ( this.isDistributed() ){
+				this.__cache = new LRUCache( {
+					ttl: this.getCacheTTL()
+					, limit: this.getCacheLimit()
+				} );
+			}
 		}
 
+
+		, cacheInstruction: function( action, key, data ){
+			if ( this.__cache ) {
+				if ( action === "init" ){
+					data.$fromDB = true;
+					data.$cache = true;
+					var instance = new contructor( data );
+					this.__cache.set( key, instance );
+				}
+				else if ( action === "update" ){
+					if ( this.__cache.has( key ) ){
+						this.__cache.get( key ).synchronize( data );
+					}
+				}
+			}
+		}
+
+
+		, isDistributed: function(){
+			return this.__sample.isDistributed();
+		}
+
+
+		, getCacheTTL: function(){
+			if ( this.__sample.cache ) return this.__sample.cache.ttl || 10 * 60 * 1000;
+			return 10 * 60 * 1000
+		}
+
+		, getCacheLimit: function(){
+			if ( this.__sample.cache ) return this.__sample.cache.limit || 10000;
+			return 10000
+		}
 
 
 		, update: function( config, updates, callback ){
@@ -95,6 +139,10 @@
 				config = key;
 				callback = value;
 			}
+
+			// check cache?
+			if ( this.isDistributed() && this.__cache.has( config.id ) ) return callback( null, this.__cache.get( config.id ) );
+
 
 			query = this.__prepareQuery( config );
 
@@ -193,6 +241,20 @@
 		 	// create insatnce
 		 	instance = new this.__class( opts );
 
+		 	// cacheing
+		 	if ( this.isDistributed() ){
+		 		this.__cache.set( instance.id, instance );
+		 		if ( debug ) log.debug( "[staticmodel] sending cache message for [dmodel-" + this.__database + "/" + this.__model + "@" + instance.id + "], action [init]: ", this ), log.dir( instance.getValues() );
+
+		 		process.send( {
+					  t: "dmodel-" + this.__database
+					, a: "init"
+					, k: instance.id
+					, d: instance.getValues()
+					, m: this.__model
+				} );
+		 	}
+
 		 	// cehk relations
 		 	if ( this.__sample.hasRelations() ){
 		 		relations = this.__sample.getRelations();
@@ -287,7 +349,7 @@
 				else if ( keys[ i ] === "$group" ){
 					result.group = config[ keys[ i ] ].join( ", " );
 				}
-				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null ){
+				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ] instanceof Date ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
 							queries.push( this.__db.escapeField( keys[ i ] ) + " IN ( ?" + new Array( config[ keys[ i ] ].in.length ).join( ", ?" ) + " )" );
@@ -334,7 +396,8 @@
 		var staticmodel = new StaticModel( cOptions );
 
 		// create a contructor proxy
-		var contructor = function( options ){
+		contructor = function( options ){
+
 			options 			= options || {};
 			options.$db 		= cOptions.db;
 			options.$dbName 	= cOptions.database;
@@ -344,11 +407,13 @@
 		}
 
 		// apply static methods on the constructor proxy
-		contructor.findOne 	= staticmodel.findOne.bind( staticmodel );
-		contructor.find 	= staticmodel.find.bind( staticmodel );
-		contructor.update 	= staticmodel.update.bind( staticmodel );
-		contructor.remove 	= staticmodel.remove.bind( staticmodel );
-		contructor.fetchAll	= staticmodel.fetchAll.bind( staticmodel );
+		contructor.findOne 			= staticmodel.findOne.bind( staticmodel );
+		contructor.find 			= staticmodel.find.bind( staticmodel );
+		contructor.update 			= staticmodel.update.bind( staticmodel );
+		contructor.remove 			= staticmodel.remove.bind( staticmodel );
+		contructor.fetchAll			= staticmodel.fetchAll.bind( staticmodel );
+		contructor.isDistributed	= staticmodel.isDistributed.bind( staticmodel );
+		contructor.cacheInstruction	= staticmodel.cacheInstruction.bind( staticmodel );
 
 		return contructor;
 	}

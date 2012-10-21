@@ -8,8 +8,7 @@
 
 
 	module.exports = new Class( {
-		$id: "LRUCache"
-		, inherits: Events
+		inherits: Events
 
 
 
@@ -65,6 +64,11 @@
 			}
 		}
 
+
+
+		, has: function( id ){
+			return !!this.__data[ id ];
+		}
 
 
 		, get: function( id ){

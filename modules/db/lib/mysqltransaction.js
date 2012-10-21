@@ -10,8 +10,7 @@
 
 
 	module.exports = new Class( {
-		$id: "db.mysql.transaction"
-		, inherits: Events
+		inherits: Events
 
 
 

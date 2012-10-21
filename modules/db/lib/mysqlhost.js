@@ -15,8 +15,7 @@
 
 
 	module.exports = new Class( {
-		$id: "db.mysql.host"
-		, inherits: Events
+		inherits: Events
 
 
 		// all connections of this host

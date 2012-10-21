@@ -8,8 +8,7 @@
 
 
 	module.exports = new Class( {
-		$id: "LRUCache"
-		, inherits: Events
+		inherits: Events
 
 
 
