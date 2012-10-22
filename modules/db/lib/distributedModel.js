@@ -15,7 +15,7 @@
 		inherits: Model
 
 		, save: function( callback ){
-			var isNew = this.isNew(), values = isNew ? this.getValues() : this.getChangedValues();;
+			var isNew = this.isNew(), values = isNew ? this.getValues() : this.getChangedValues();
 
 			this.__proto__.__proto__.__proto__.save.call( this, function( err, instance ){
 				if ( !err ){

@@ -50,7 +50,7 @@
 				} 
 			}
 
-			if ( options.$fromDB || this.isDistributed() ) 	this.__isFromDB 	= true;
+			if ( options.$fromDB || options.$cache ) 	this.__isFromDB 	= true;
 			if ( options.$db ) 		this.__db 			= options.$db;
 			if ( options.$dbName ) 	this.__databaseName = options.$dbName;
 			if ( options.$model ) 	this.__model 		= options.$model;
