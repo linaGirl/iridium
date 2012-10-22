@@ -349,7 +349,7 @@
 				else if ( keys[ i ] === "$group" ){
 					result.group = config[ keys[ i ] ].join( ", " );
 				}
-				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ] instanceof Date ){
+				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ].toISOString ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
 							queries.push( this.__db.escapeField( keys[ i ] ) + " IN ( ?" + new Array( config[ keys[ i ] ].in.length ).join( ", ?" ) + " )" );

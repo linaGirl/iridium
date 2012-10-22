@@ -218,6 +218,8 @@
 				, on: {
 					autoremove: function( session ){
 
+						if ( !session || !session.isMaster ) console.log( session );
+						
 						// create log entry
 						if ( session.isMaster() ){
 							new this.iridium.sessionlog( {
