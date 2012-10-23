@@ -1,0 +1,58 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/local/bin/node',
+1 verbose cli   '/usr/local/bin/npm',
+1 verbose cli   '-d',
+1 verbose cli   'install',
+1 verbose cli   'awssum' ]
+2 info using npm@1.1.63
+3 info using node@v0.8.12
+4 verbose read json /srv/eventbooster/iridium/modules/api/package.json
+5 verbose read json /srv/eventbooster/iridium/modules/api/node_modules/nodemailer/package.json
+6 verbose read json /srv/eventbooster/iridium/modules/api/node_modules/knox/package.json
+7 verbose read json /srv/eventbooster/iridium/modules/api/node_modules/gcm/package.json
+8 verbose read json /srv/eventbooster/iridium/modules/api/node_modules/apn/package.json
+9 verbose read json /srv/eventbooster/iridium/modules/api/package.json
+10 verbose cache add [ 'awssum', null ]
+11 silly cache add name=undefined spec="awssum" args=["awssum",null]
+12 verbose parsed url { pathname: 'awssum', path: 'awssum', href: 'awssum' }
+13 silly lockFile 2e76d768-awssum awssum
+14 verbose lock awssum /root/.npm/2e76d768-awssum.lock
+15 silly lockFile 2e76d768-awssum awssum
+16 verbose addNamed [ 'awssum', '' ]
+17 verbose addNamed [ null, '' ]
+18 silly lockFile e07fc707-awssum awssum@
+19 verbose lock awssum@ /root/.npm/e07fc707-awssum.lock
+20 silly addNameRange { name: 'awssum', range: '', hasData: false }
+21 verbose url raw awssum
+22 verbose url resolving [ 'https://registry.npmjs.org/', './awssum' ]
+23 verbose url resolved https://registry.npmjs.org/awssum
+24 info trying registry request attempt 1 at 20:56:06
+25 http GET https://registry.npmjs.org/awssum
+26 info retry will retry, error on last attempt: Error: connect ECONNREFUSED
+27 info trying registry request attempt 2 at 20:56:16
+28 http GET https://registry.npmjs.org/awssum
+29 info retry will retry, error on last attempt: Error: connect ECONNREFUSED
+30 info trying registry request attempt 3 at 20:57:16
+31 http GET https://registry.npmjs.org/awssum
+32 silly lockFile e07fc707-awssum awssum@
+33 error Error: connect ECONNREFUSED
+33 error     at errnoException (net.js:769:11)
+33 error     at Object.afterConnect [as oncomplete] (net.js:760:19)
+33 error  { [Error: connect ECONNREFUSED]
+33 error   code: 'ECONNREFUSED',
+33 error   errno: 'ECONNREFUSED',
+33 error   syscall: 'connect' }
+34 error If you are behind a proxy, please make sure that the
+34 error 'proxy' config is set properly.  See: 'npm help config'
+35 error System Linux 3.2.0-31-generic
+36 error command "/usr/local/bin/node" "/usr/local/bin/npm" "-d" "install" "awssum"
+37 error cwd /srv/eventbooster/iridium/modules/api
+38 error node -v v0.8.12
+39 error npm -v 1.1.63
+40 error syscall connect
+41 error code ECONNREFUSED
+42 error errno ECONNREFUSED
+43 error stack Error: connect ECONNREFUSED
+43 error stack     at errnoException (net.js:769:11)
+43 error stack     at Object.afterConnect [as oncomplete] (net.js:760:19)
+44 verbose exit [ 1, true ]

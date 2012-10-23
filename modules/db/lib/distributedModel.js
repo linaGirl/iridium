@@ -31,7 +31,7 @@
 					}
 				}
 
-				callback( err, instance );
+				if ( callback ) callback( err, instance );
 			}.bind( this ) );
 		}
 
