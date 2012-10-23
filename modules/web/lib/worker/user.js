@@ -106,6 +106,7 @@
 										}.bind( this ) );
 									}.bind( this ) );
 								}
+								else if ( callback ) callback();
 							} 
 						}.bind( this ) );
 					}

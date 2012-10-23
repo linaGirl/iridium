@@ -16,7 +16,7 @@
 		, WritableStream: 	require( "./lib/writablestream" )
 		, Object: 			require( "./lib/object" )
 
-
+		//, request: 			require( "./node_modules/request" )
 
 		, CamelCase: function(){
 			return Array.prototype.slice.call( arguments, 0 ).map( function( i, index ){ 

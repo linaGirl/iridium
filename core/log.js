@@ -241,6 +241,7 @@
 
 		// trace an error displaying an optional message
 		, trace: function trace( err, source ){
+			//throw err;
 			if ( nolog ) return;
 			source = source && source.$id ? source.$id : "" ;
 			var lines, current, i, l;
