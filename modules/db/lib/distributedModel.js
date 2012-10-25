@@ -18,7 +18,7 @@
 			var isNew = this.isNew(), values = isNew ? this.getValues() : this.getChangedValues();
 
 			this.__proto__.__proto__.__proto__.save.call( this, function( err, instance ){
-				if ( !err ){
+				if ( process.send && !err ){
 					if ( Object.keys( values ).length > 0 ){
 						if ( debug ) log.debug( "[ditributedmodel] sending cache message for [" + "dmodel-" + this.__database + "/" + this.__model + "@" + this.id + "], action [" + ( isNew ? "init" : "update" ) + "]: ", this ), log.dir( values );
 						process.send( {

@@ -5,7 +5,8 @@
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" );
 
-	var Cookie 			= require( "./cookie" );
+	var Cookie 			= require( "./cookie" )
+		, formidable 	= require( "../node_modules/formidable" );
 
 	var   url 			= require( "url" )
 		, querystring 	= require( "querystring" );
@@ -58,11 +59,27 @@
 					fn();
 				}
 			}.bind( this ) );
+
+			// use fromidable for form parsing
+			if ( this.getHeader( "x-iridium-upload" ) === "1" ){
+				new formidable.IncomingForm().parse( this.__request, function( err, fields, files ){
+					this.__files = files;
+					//log.dir( err, fields, files );
+				}.bind( this ) ).encoding = "binary";
+			}
 		}
 
+		, getRequest: function(){
+			return this.__request;
+		}
 
 		, hasEnded: function(){
 			return !!this.__ended;
+		}
+
+
+		, getFiles: function(){
+			return this.__files || null;
 		}
 
 		, getPostData: function( parsed ){
@@ -81,7 +98,7 @@
 				this.__request.on( "data", function( chunk ){
 					if ( !data ) data = chunk;
 					else {
-						data2 = new Buffer( data.length + data2.length );
+						data2 = new Buffer( data.length + chunk.length );
 						data.copy( data2 );
 						chunk.copy( data2, data.length );
 						data = data2;

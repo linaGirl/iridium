@@ -183,7 +183,7 @@
 				}
 				else {
 					while( i-- ){
-						updates.push( this.__changed[ i ] + " = ?" );
+						updates.push( "`" + this.__changed[ i ] + "` = ?" );
 						values.push( this.__values[ this.__changed[ i ] ] );
 					}
 					
@@ -192,13 +192,13 @@
 					if ( this.__primary ){
 						var keys = Object.keys( this.__primary ), k = keys.length;
 						while( k-- ){
-							whereConditions.push( keys[ k ] + " = ?" );
+							whereConditions.push( "`" + keys[ k ] + "` = ?" );
 							values.push( this.__values[ keys[ k ] ] );
 						}
 						where = "WHERE " + whereConditions.join( " AND " );
 					}
 					else{
-						where = "WHERE id = ?";
+						where = "WHERE `id` = ?";
 						values.push( this.id );
 					}
 
@@ -218,7 +218,7 @@
 			else {
 				while( i-- ){
 					values.push( this.__values[ this.__changed[ i ] ] );
-					updates.push( this.__changed[ i ] );
+					updates.push( "`" + this.__changed[ i ] + "`" );
 					val.push( "?" );
 				}
 				

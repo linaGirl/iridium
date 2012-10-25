@@ -19,4 +19,7 @@
 
 		  	// hogan compiler
 		  , hogan: 			require( "./dep/hogan.js/lib/hogan.js" )
+
+		  // form parsing
+		  , formidable: 	require( "./node_modules/formidable" )
 	};
