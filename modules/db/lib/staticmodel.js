@@ -141,7 +141,7 @@
 			}
 
 			// check cache?
-			if ( config.id && this.isDistributed() && this.__cache.has( config.id ) ) return callback( null, this.__cache.get( config.id ) );
+			if ( config && config.id && this.isDistributed() && this.__cache.has( config.id ) ) return callback( null, this.__cache.get( config.id ) );
 
 
 			query = this.__prepareQuery( config );
