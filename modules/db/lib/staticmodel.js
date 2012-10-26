@@ -126,7 +126,7 @@
 		, findOne: function( key, value, callback ){
 			var config = {}, query;
 
-			if ( typeof key === "string" ){
+			if ( typeof key !== "object" ){
 				if ( typeof value === "function" ){
 					callback = value;
 					config.id = key;
