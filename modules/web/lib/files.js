@@ -35,6 +35,8 @@
 		// depency graph for the includes
 		, __includeGraph: {}
 
+		// client templates
+		, __clientTemplates: {}
 
 
 
@@ -510,6 +512,7 @@
 
 				if ( current.extension === "tpl" || current.extension === "mustache" ){
 					current.isTemplate = true;
+					var webPath = current.path.substr( iridium.app.root.length + 3 );
 
 					// constants ...
 					if ( this.__constants ){
@@ -531,6 +534,7 @@
 					if ( this.__lang ){
 						var x = this.__lang.languages.length, currentLang;
 						current.templates = {};
+						current.stemplates = {};
 						current.isLocalized = true;
 
 						while( x-- ){
@@ -564,10 +568,12 @@
 
 							// compile the template
 							current.templates[ currentLang ] = hogan.compile( version );
+							current.stemplates[ currentLang ] = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( version, { asString: true } ) + "})(window);";
 						}
 					}
 					try {
-						current.template = hogan.compile( current.file );
+						current.template  = hogan.compile( current.file );
+						current.stemplate = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( current.file, { asString: true } ) + "})(window);";
 					} catch ( e ){
 						log.dir( current );
 					}

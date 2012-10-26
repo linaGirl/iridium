@@ -61,7 +61,6 @@
 				, response 		= new Response( { response: res, request: request } )
 				, fakeSession 	= !req.headers[ "user-agent" ] || /bot|googlebot|crawler|spider|robot|crawling/.test( ( req.headers[ "user-agent" ] || "" ) );
 
-
 			// lb health check
 			if ( req.url === "/ping" ){
 				response.send( 200, null, "healthy!" );
