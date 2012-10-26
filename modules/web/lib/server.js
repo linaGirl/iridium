@@ -137,9 +137,9 @@
 																	complete( session );
 																}.bind( this ) );
 															}
-														} else */
+														} else
 														complete( session );
-													} else complete( session );
+													} else  */complete( session );
 												}.bind( this );
 
 
