@@ -310,7 +310,7 @@
 										fs.readFile( iridium.app.root + sqlDir + "/" + file, function( err, data ){
 											if ( err ) throw new Error( "failed to load file [" + iridium.app.root + sqlDir + "/" + file + "]: " + err );
 											else {
-												this.__sql[ file.substr( 0, file.length - 4 ) ] = hogan.compile ( data.toString() );
+												this.__sql[ file.substr( 0, file.length - 4 ) ] = hogan.compile ( data.toString( "utf-8" ) );
 											}
 											cb();
 										}.bind( this ) );

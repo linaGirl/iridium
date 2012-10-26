@@ -187,7 +187,7 @@
 
 		, __connect: function(){
 			this.__connection = mysql.createConnection( this.__config );
-
+			
 			// handle connection level errors
 			this.__connection.on( "error", function( err ){
 				if ( debug ) log.error( "error on connection:", this ), log.trace( err );

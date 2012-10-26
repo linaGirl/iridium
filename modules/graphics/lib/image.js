@@ -61,6 +61,7 @@
 								, paddingW: paddingW
 								, paddingH: paddingH
 							}
+							, size: size
 						} );*/
 
 						this.__gm.resize( newW, newH );

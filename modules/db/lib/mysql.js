@@ -233,6 +233,7 @@
 						, user: 		configs[ i ].user
 						, password: 	configs[ i ].password
 						, database: 	database
+						, multipleStatements: true
 					}
 					, writable: 		configs[ i ].writable
 					, weight: 			configs[ i ].weight

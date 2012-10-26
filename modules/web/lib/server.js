@@ -119,7 +119,7 @@
 
 
 													// fake auth
-													if ( request.query.hasOwnProperty( "authenticated" ) ){
+													/*if ( request.query.hasOwnProperty( "authenticated" ) ){
 														var status = request.query.authenticated === "true";
 														if ( status !== session.authenticated ){
 															if ( !session.hasUser( 0 ) ){
@@ -137,7 +137,8 @@
 																	complete( session );
 																}.bind( this ) );
 															}
-														} else complete( session );
+														} else */
+														complete( session );
 													} else complete( session );
 												}.bind( this );
 
