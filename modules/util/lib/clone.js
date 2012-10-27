@@ -1,7 +1,7 @@
 	
 
 
-	var clone = module.exports  = function( input ){
+	var clone = module.exports = function( input ){
 		var result, i, keys;
 
 		switch ( typeof input ){

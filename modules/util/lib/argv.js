@@ -1,12 +1,8 @@
 
 
-	var Class = iridium( "class" );
+	module.exports = new ( iridium( "core" ).Class( {
 
-	global.__iridium_argv = module.exports = global.__iridium_argv || new ( new Class( {
-		$id: "argv"
-
-		, __argv: {}
-
+		  __argv: {}
 
 		, init: function(){
 			var argv = Array.prototype.slice.call( process.argv, 2 ).join( " " ).split( "--" ).filter( function( item ){ 
@@ -23,25 +19,17 @@
 			}.bind( this ) );
 
 			var stat = require( "fs" ).statSync( process.argv[ 1 ] );
-			if ( stat.isDirectory() ){
-				this.__callingPath = process.argv[ 1 ] + "/";
-			}
-			else {
-				this.__callingPath = process.argv[ 1 ].substr( 0, process.argv[ 1 ].lastIndexOf( "/" ) + 1 );
-			}
-			
+			if ( stat.isDirectory() ) this.__callingPath = process.argv[ 1 ] + "/";
+			else  this.__callingPath = process.argv[ 1 ].substr( 0, process.argv[ 1 ].lastIndexOf( "/" ) + 1 );			
 		}
-
 
 		, has: function( key ){
 			return this.__argv.hasOwnProperty( key );
 		}
 
-
 		, get: function( key ){
 			return this.__argv[ key ];
 		}
-
 
 		, getCallingPath: function(){
 			return this.__callingPath;

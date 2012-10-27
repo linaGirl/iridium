@@ -1,13 +1,11 @@
 
 
-
-	var Class = iridium( "class" )
-		, Events = iridium( "events" );
+	var core = iridium( "core" );
 
 
 
-	module.exports = new Class( {
-		inherits: Events
+	module.exports = new core.Class( {
+		inherits: core.Events
 
 		, __offset: 0
 		, __chunksize: 10240

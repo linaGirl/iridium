@@ -1,11 +1,7 @@
 
-
 	
 
-	var Class 			= iridium( "class" );
-
-
-	module.exports = new Class( {
+	module.exports = iridium( "core" ).Class( {
 
 		__jobs: []
 
