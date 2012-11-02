@@ -156,8 +156,8 @@
 
 		, __parseHeader: function( header ){
 			var parts = header.split( "," ).map( function( part ){
-				var items = /^([a-z]+)\-?([a-z]*)\;?q?=?([0-9\.]*)$/gi.exec( part );
-
+				var items = /^([a-z\+\*]+)[\/\-]?([a-z\+\*]*)\;?q?=?([0-9\.]*)$/gi.exec( part );
+				
 				return {
 					  value: 		items && items[ 1 ] ? items[ 1 ].toLowerCase() : ""
 					, value2: 		items && items[ 2 ] ? items[ 2 ].toLowerCase() : ""

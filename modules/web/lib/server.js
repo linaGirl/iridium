@@ -116,29 +116,7 @@
 													session.ip = req.connection.remoteAddress;
 													session.useragent = req.headers[ "user-agent" ];
 
-
-													// fake auth
-													/*if ( request.query.hasOwnProperty( "authenticated" ) ){
-														var status = request.query.authenticated === "true";
-														if ( status !== session.authenticated ){
-															if ( !session.hasUser( 0 ) ){
-																session.addUser( 0, function( err, sessionUser ){
-																	if ( !err && sessionUser ) {
-																		sessionUser.set( { authenticated: status, active: true }, function(){
-																			complete( session );
-																		}.bind( this )  );
-																	}
-																	else complete( session );
-																}.bind( this ) );
-															}
-															else {
-																session.getUser( 0 ).setAuthenticated( status, function(){
-																	complete( session );
-																}.bind( this ) );
-															}
-														} else
-														complete( session );
-													} else  */complete( session );
+													complete( session );
 												}.bind( this );
 
 
