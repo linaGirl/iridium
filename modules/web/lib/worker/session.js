@@ -125,10 +125,10 @@
 							session.save( function( err ){
 								if ( err ) callback( err );
 								else {
-									// store local
-									this.__sessionId = session.sessionId;
 									// tell the cache to change the key for this session
 									this.emit( "renew", this, this.__sessionId, session.sessionId );
+									// store local
+									this.__sessionId = session.sessionId;
 									// tell the other nodes about the new id
 									this.__broadcast( this.__sessionId, "renew", { sessionId: session.sessionId } );
 

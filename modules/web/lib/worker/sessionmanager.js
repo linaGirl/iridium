@@ -44,7 +44,7 @@
 
 				// wait until this class was returned ( events emit immediately )
 				process.nextTick( function(){ this.emit( "load" ); }.bind( this ) );
-			}
+			}			
 		}
 
 
@@ -86,7 +86,7 @@
 									, iridium: this.__iridium
 									, manager: this
 									, on: {
-										load:  function( err, session ){ 
+										load: function( err, session ){ 
 											if ( !err && session ) this.__cache.set( session.sessionId, session );
 										  	callback( err, session ); 
 										}.bind( this )

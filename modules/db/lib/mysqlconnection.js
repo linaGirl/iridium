@@ -67,7 +67,7 @@
 
 			if ( debug ) {
 				log.info( "<< --- QUERY ----------", "host: " + this.__config.host, this );
-				log.debug( query, this );
+				console.log( query );
 				if ( parameters ) log.dir( parameters );
 				log.debug( "--- QUERY ---------- >>", this );
 			}

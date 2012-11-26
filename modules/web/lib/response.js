@@ -93,6 +93,32 @@
 
 
 
+		, sendCompressed: function( statusCode, headers, data ){
+			var acceptEncoding = this.__request.getHeader( "accept-encoding" );
+			
+			if ( acceptEncoding && acceptEncoding.indexOf( "gzip" ) >= 0 ){
+				if ( debug ) log.debug( "compressing response ..." );
+				zlib.gzip( rendering, function( err, compressedData ){
+					if ( err ) this.send( statusCode, headers, data );
+					else {
+						if ( compressedData.length < data.length ){
+							if ( debug ) log.debug( "seding compressed response [" + compressedData.length + "] ( compressed ) vs [" + data.length + "] bytes ..." );
+							this.__response.setHeader( "content-encoding", "gzip" );
+							this.send( statusCode, headers, compressedData );
+						}
+						else {
+							this.send( statusCode, headers, data );
+						}						
+					}
+				}.bind( this ) );
+			}
+			else {
+				this.send( statusCode, headers, data );
+			}	
+		}
+
+
+
 		, send: function( statusCode, headers, data ){
 			this.setHeaders( headers );
 
