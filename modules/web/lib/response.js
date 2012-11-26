@@ -98,7 +98,7 @@
 			
 			if ( acceptEncoding && acceptEncoding.indexOf( "gzip" ) >= 0 ){
 				if ( debug ) log.debug( "compressing response ..." );
-				zlib.gzip( rendering, function( err, compressedData ){
+				zlib.gzip( data, function( err, compressedData ){
 					if ( err ) this.send( statusCode, headers, data );
 					else {
 						if ( compressedData.length < data.length ){
