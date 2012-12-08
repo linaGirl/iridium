@@ -131,6 +131,11 @@
 			return text;
 		}
 
+
+		, renderLocale: function( lang, id, data ){
+			return this.hasLocale( lang, id ) ? hogan.compile( this.getLocale( lang, id ) ).render( data ) : null;
+		}
+
 		, getLocales: function(){
 			return this.__locale;
 		}
