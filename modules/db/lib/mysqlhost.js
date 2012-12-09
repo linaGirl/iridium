@@ -69,7 +69,8 @@
 			this.__config.user = options.config.user;
 			this.__config.password = options.config.password;
 			this.__config.database = options.config.database;
-
+			this.__config.multipleStatements = true;
+			
 			// set the id
 			this.__id = options.id;
 			this.$id += "@" + this.__id;
