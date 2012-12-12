@@ -10,13 +10,17 @@
 		, debug 		= argv.has( "trace-mysql-caching" ) || argv.has( "trace-mysql" ) || argv.has( "trace-all" );
 
 
-	var contructor;
+	var classConstructors = {};
 
 
 	var StaticModel = new Class( {
 		
+
+		  PRIMARY: "$$__iridium_primary__$$"
+		, FK: "$$__iridium_fk__$$"
 		
-		init: function( options ){
+
+		, init: function( options ){
 			this.__db 		= options.db;
 			this.__database = options.database;
 			this.__model 	= options.model;
@@ -30,8 +34,8 @@
 			// create cache?
 			if ( this.isDistributed() ){
 				this.__cache = new LRUCache( {
-					ttl: this.getCacheTTL()
-					, limit: this.getCacheLimit()
+					  ttl: 		this.getCacheTTL()
+					, limit: 	this.getCacheLimit()
 				} );
 			}
 		}
@@ -42,7 +46,7 @@
 				if ( action === "init" ){
 					data.$fromDB = true;
 					data.$cache = true;
-					var instance = new contructor( data );
+					var instance = new classConstructors[ this.__model ]( data );
 					this.__cache.set( key, instance );
 				}
 				else if ( action === "update" ){
@@ -76,7 +80,7 @@
 			// create update
 			keys = Object.keys( updates ), k = keys.length;
 			while( k-- ){
-				updateConditions.push( keys[ k ] + "SET " + this.__db.escape( keys[ k ] ) + "= ?" );
+				updateConditions.push( keys[ k ] + " = ?" );
 				values.push( updates[ keys[ k ] ] );
 			}
 
@@ -96,7 +100,7 @@
 			}
 
 
-			this.__db.query( "UPDATE " + this.__from + " " + updateConditions.join( ", " ) + " " + where + " LIMIT 1;", values, callback );
+			this.__db.query( "UPDATE " + this.__from + " SET " + updateConditions.join( ", " ) + " " + where + " LIMIT 1;", values, callback );
 		}	
 
 
@@ -391,12 +395,14 @@
 
 	
 	module.exports = function( cOptions ){
-
+		
 		// create instance of the static model
 		var staticmodel = new StaticModel( cOptions );
 
-		// create a contructor proxy
-		contructor = function( options ){
+		clsCache = cOptions.cls;
+
+		// create a constructor proxy
+		var classConstructor = function( options ){
 
 			options 			= options || {};
 			options.$db 		= cOptions.db;
@@ -407,13 +413,15 @@
 		}
 
 		// apply static methods on the constructor proxy
-		contructor.findOne 			= staticmodel.findOne.bind( staticmodel );
-		contructor.find 			= staticmodel.find.bind( staticmodel );
-		contructor.update 			= staticmodel.update.bind( staticmodel );
-		contructor.remove 			= staticmodel.remove.bind( staticmodel );
-		contructor.fetchAll			= staticmodel.fetchAll.bind( staticmodel );
-		contructor.isDistributed	= staticmodel.isDistributed.bind( staticmodel );
-		contructor.cacheInstruction	= staticmodel.cacheInstruction.bind( staticmodel );
+		classConstructor.findOne 			= staticmodel.findOne.bind( staticmodel );
+		classConstructor.find 				= staticmodel.find.bind( staticmodel );
+		classConstructor.update 			= staticmodel.update.bind( staticmodel );
+		classConstructor.remove 			= staticmodel.remove.bind( staticmodel );
+		classConstructor.fetchAll			= staticmodel.fetchAll.bind( staticmodel );
+		classConstructor.isDistributed		= staticmodel.isDistributed.bind( staticmodel );
+		classConstructor.cacheInstruction	= staticmodel.cacheInstruction.bind( staticmodel );
+		
+		classConstructors[ cOptions.model ] = classConstructor;
 
-		return contructor;
+		return classConstructor;
 	}

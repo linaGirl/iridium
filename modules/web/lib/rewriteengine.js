@@ -32,6 +32,11 @@
 			else this.__rulesAfter.push( scope ? fn.bind( scope ) : fn.bind( this ) );
 		}
 
+		// set object property
+		, setProperty: function( key, value ){
+			this[ key ] = value;
+		}
+
 
 		// do the rewrite
 		, rewrite: function( request, response, callback ){

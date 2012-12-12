@@ -7,7 +7,7 @@
 	module.exports = function( url, callback ){
 		( url.indexOf( "https://" ) === -1 ? http : https ).get( url, function( res ){
 			var data, tdata;
-
+			
 			res.on( "data", function( c ){ 
 				if ( !data ) data = c;
 				else {
