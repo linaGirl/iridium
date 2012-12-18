@@ -89,8 +89,10 @@
 			if ( typeof config === "object" && config !== null ){
 				keys = Object.keys( config ), k = keys.length;
 				while( k-- ){
-					whereConditions.push( keys[ k ] + " = ?" );
-					values.push( config[ keys[ k ] ] );
+					if ( keys[ k ][ 0 ] !== "$" ){
+						whereConditions.push( keys[ k ] + " = ?" );
+						values.push( config[ keys[ k ] ] );
+					}
 				}
 				where = "WHERE " + whereConditions.join( " AND " );
 			}
@@ -100,7 +102,7 @@
 			}
 
 
-			this.__db.query( "UPDATE " + this.__from + " SET " + updateConditions.join( ", " ) + " " + where + " LIMIT 1;", values, callback );
+			this.__db.query( "UPDATE " + this.__from + " SET " + updateConditions.join( ", " ) + " " + where + " LIMIT " + ( config.$limit || 1 ) + ";", values, callback );
 		}	
 
 

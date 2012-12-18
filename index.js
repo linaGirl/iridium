@@ -142,11 +142,11 @@
 	};
 
 
-	process.on( "uncaughtException", function( err ){			
+	/*process.on( "uncaughtException", function( err ){			
 		log.error( "Uncaught Exception:", { $id: "iridium.index" } );
 		log.trace( err );
 		process.exit();
-	} );
+	} );*/
 
 
 
