@@ -22,7 +22,7 @@
 					if ( Object.keys( values ).length > 0 ){
 						if ( debug ) log.debug( "[ditributedmodel] sending cache message for [" + "dmodel-" + this.__database + "/" + this.__model + "@" + this.id + "], action [" + ( isNew ? "init" : "update" ) + "]: ", this ), log.dir( values );
 						process.send( {
-							  t: "dmodel-" + this.__database	// topic
+							  t: "dmodel-" + this.__databaseName	// topic
 							, a: isNew ? "init" : "update" 		// action
 							, k: this.id
 							, d: values
