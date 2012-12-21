@@ -131,6 +131,9 @@
 			this.__response.writeHead( statusCode || this.__statusCode, this.__headers );
 			this.__response.end( data );
 			this.__responseSent = true;
+
+			if ( debug ) log.warn( "sent response for [" + this.__request.url + "] - headers:" ), log.dir( this.__headers );
+
 			return this;
 		}
 
