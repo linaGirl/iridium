@@ -228,7 +228,7 @@
 							} ).save();
 						}
 
-						session.cleanup();
+						// session.cleanup();
 					}.bind( this )
 				}
 			} );
