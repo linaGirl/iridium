@@ -213,12 +213,10 @@
 
 			// session cache
 			this.__cache = new LRUCache( {
-				limit: 100000 			// 100k
+				  limit: 100000 			// 100k
 				, ttl: 2 * 3600 * 1000 	// 2h
 				, on: {
-					autoremove: function( session ){
-
-						if ( !session || !session.isMaster ) console.log( session );
+					autoremove: function( sessionId, session ){
 						
 						// create log entry
 						if ( session.isMaster() ){

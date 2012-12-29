@@ -56,7 +56,7 @@
 				this.__count++;
 
 				if ( this.__count > this.__limit ){
-					this.emit( "autoremove", this.__data[ this.__first ].v, this.__data[ this.__first ].t );
+					this.emit( "autoremove", this.__first, this.__data[ this.__first ].v, this.__data[ this.__first ].t );
 					this.remove( this.__first );
 				}
 
@@ -166,11 +166,13 @@
 		// removed expired items
 		, __ttlCheck: function(){
 			var maxItems 	= 100
-				, now 		= Date.now();
+				, now 		= Date.now()
+				, item;
 
 			while( maxItems-- && this.__first && this.__data[ this.__first ].t < now ){
-				this.emit( "autoremove", this.__first, this.__data[ this.__first ].v, this.__data[ this.__first ].t );
+				item = this.__data[ this.__first ];
 				this.remove( this.__first );
+				this.emit( "autoremove", item.id, item.v, item.t );
 			}
 		}
 	} );

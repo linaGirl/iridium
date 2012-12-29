@@ -9,4 +9,5 @@
 		, Image: 		require( "./lib/image" )
 		, PDFDocument: 	require( "pdfkit" )
 		, QREncoder:	require( "qr" ).Encoder
+		, PDFKit: 		require( "spindrift" )
 	};
