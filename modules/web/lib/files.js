@@ -327,33 +327,76 @@
 				, reg, result, file, ePath, parts;
 
 			// set md5 etag on all files
-			while( i-- ){ 
+			/*while( i-- ){ 
 				this.__files[ keys[ i ] ].md5 = util.md5( this.__files[ keys[ i ] ].etag ); 
-			}
+			}*/
+
 
 			
 			i = keys.length;
 			while( i-- ){
 				file = this.__files[ keys[ i ] ];
 
-				if ( file.extension.toLowerCase() === "mustache" || file.extension.toLowerCase() === "html" || file.extension.toLowerCase() === "tpl" ){
+				if ( file.extension.toLowerCase() === "mustache" || file.extension.toLowerCase() === "html" || file.extension.toLowerCase() === "tpl" || file.extension.toLowerCase() === "css" ){
+					
 					// pattern src="" in mustache, html
-					reg = /src=[\"\']([^\"\']+)[\"\']/gi;
+					reg = /(src=[\"\'])([^\"\']+)([\"\'])/gi;
 					while( result = reg.exec( file.file ) ){
-						ePath = result[ 1 ];
-						if ( ePath.substr( 0, 7 ) !== "http://" &&  ePath.substr( 0, 8 ) !== "https://" ){
+						ePath = result[ 2 ];
+
+						// ignore files with protocol specified and files containing dynamic stuff too
+						if ( ePath.indexOf( "{" ) === -1 && ePath.indexOf( "?" ) === -1 && ePath.substr( 0, 7 ) !== "http://" && ePath.substr( 0, 8 ) !== "https://" && ePath.substr( 0, 2 ) !== "//" ){
 							//parts = //gi.exec( ePath );
-							//console.log( ePath );
+
+							// get path without constancs
+							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							
+							// file exists ?
+							if ( this.__files[ cleanPath ] ){
+								file.file = file.file.replace( new RegExp( ( result[ 1 ] + ePath + result[ 3 ] ).replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1"), "gi" ), result[ 1 ] + ePath + "?__icv=" + this.__files[ cleanPath ].etag + result[ 3 ] );
+							}
 						}
 					}
 
-
 					// pattern link rel="" href=""  in mustache, html
+					reg = /(<link [^>]+ href=[\"\'])([^\"\']+)([\"\'][^>]*>)/gi;
+					while( result = reg.exec( file.file ) ){
+						ePath = result[ 2 ];
+						// ignore files with protocol specified and files containing dynamic stuff too
+						if ( ePath.indexOf( "{" ) === -1 && ePath.indexOf( "?" ) === -1 && ePath.substr( 0, 7 ) !== "http://" && ePath.substr( 0, 8 ) !== "https://" && ePath.substr( 0, 2 ) !== "//" ){
+							
+							// get path without constancs
+							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							
+							// file exists ?
+							if ( this.__files[ cleanPath ] ){
+								file.file = file.file.replace( new RegExp( ( result[ 1 ] + ePath + result[ 3 ] ).replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1"), "gi" ), result[ 1 ] + ePath + "?__icv=" + this.__files[ cleanPath ].etag + result[ 3 ] );
+							}
+						}
+					}
 
-				}
-				else if ( file.extension.toLowerCase() === "css" ){
-					// pattern url() in css
+					<!--[if lt IE 9]><script type="text/javascript" src="@constant(staticfiles);/scripts/vendor/html5shiv.js"></script><!
+																	src="@constant(staticfiles);/scripts/vendor/html5shiv.js"
 
+					// pattern link url() in css
+					reg = /(url\s*\(\s*[\"\']?)([^\)\"\']+)([\"\']?\s*\))/gi;
+					while( result = reg.exec( file.file ) ){
+						ePath = result[ 2 ];
+						// ignore files with protocol specified and files containing dynamic stuff too
+						if ( ePath.indexOf( "data:" ) === -1 && ePath.indexOf( "{" ) === -1 && ePath.indexOf( "?" ) === -1 && ePath.substr( 0, 7 ) !== "http://" && ePath.substr( 0, 8 ) !== "https://" && ePath.substr( 0, 2 ) !== "//" ){
+							
+							// get path without constancs
+							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							
+							// file exists ?
+							if ( this.__files[ cleanPath ] ){
+								file.file = file.file.replace( new RegExp( ( result[ 1 ] + ePath + result[ 3 ] ).replace(/([.?*+^$[\]\\(){}|-])/g, "\\$1"), "gi" ), result[ 1 ] + ePath + "?__icv=" + this.__files[ cleanPath ].etag + result[ 3 ] );
+							}
+						}
+					}
 				}
 			}
 

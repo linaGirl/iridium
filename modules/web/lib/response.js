@@ -59,6 +59,10 @@
 			return this;
 		}
 
+		, removeHeader: function( header ){
+			if ( this.__headers[ header ] ) delete this.__headers[ header ];
+		}
+
 
 
 		, render: function( file, language, content ){
@@ -126,7 +130,14 @@
 			if ( typeof data === "string" ) data = new Buffer( data );
 			this.setHeader( "Content-Length", data.length );
 			this.setHeader( "date", new Date().toGMTString() );
-			this.setHeader( "server", "iridium" );
+			this.setHeader( "server", "nginx" );
+
+			// this resource wont expire! ( expire in 10 years )
+			if ( this.__request.hasQueryParameter( "__icv" ) ) {
+				this.setHeader( "max-age", 3600 * 24 * 365 );
+				this.setHeader( "expires", new Date( 2050, 1, 1 ).toGMTString() );
+				//this.removeHeader( "etag" );
+			}
 
 			this.__response.writeHead( statusCode || this.__statusCode, this.__headers );
 			this.__response.end( data );
