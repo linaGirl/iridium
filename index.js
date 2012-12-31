@@ -1,5 +1,8 @@
 	"use strict";
 
+	require( "http" ).globalAgent.maxSockets = 1024;
+
+
 	// this is the mainfile required for operating using the iridium framework
 	// import this as fake sub repository into your project
 

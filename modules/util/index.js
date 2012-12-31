@@ -15,6 +15,8 @@
 		, ReadableStream: 	require( "./lib/readablestream" )
 		, WritableStream: 	require( "./lib/writablestream" )
 		, Object: 			require( "./lib/object" )
+		, request: 			require( "request" )
+
 
 		//, request: 			require( "./node_modules/request" )
 

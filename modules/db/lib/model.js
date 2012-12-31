@@ -151,7 +151,7 @@
 
 
 		, delete : function( callback ){
-			var where, keys, k, whereConditions = [];
+			var where, keys, k, whereConditions = [], values = [];
 
 			// create where 
 			if ( this.__primary ){

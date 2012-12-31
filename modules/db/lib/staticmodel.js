@@ -124,7 +124,7 @@
 				values.push( config );
 			}
 
-			this.__db.query( "DELETE FROM " + this.__from + " " + where + " LIMIT 1;", values, callback );
+			this.__db.query( "DELETE FROM " + this.__from + " " + where + ";", values, callback );
 		}
 
 

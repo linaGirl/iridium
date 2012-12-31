@@ -209,7 +209,7 @@
 				}
 
 				if ( this.__callback ){
-					this.__callback( err);
+					this.__callback( err );
 					this.__cancelQuerytimeout();
 					delete this.__callback;
 				}
@@ -233,8 +233,10 @@
 			this.__clearIdleTimeout();
 			this.__cancelQuerytimeout();
 			this.emit( "close", this );
-			this.__connection.end();
-			delete this.__connection;
+			if ( this.__connection ) {
+				this.__connection.end();
+				delete this.__connection;
+			}
 			this.off();
 		}	
 	} );
