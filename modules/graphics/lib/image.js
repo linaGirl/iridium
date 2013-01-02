@@ -15,15 +15,13 @@
 
 
 
-
-
 	module.exports = new Class( {
 		inherits: Events
 
 
 		, init: function( options ){
 			this.data = options.data;
-			this.__gm = gm( new ReadableStream( options ) );
+			this.__gm = new gm( new ReadableStream( options	 ) );
 		}
 
 
@@ -78,8 +76,37 @@
 		}
 
 
+
+		, shortResample: function( sideLength, mime, callback ){
+			if ( isNaN( sideLength ) ) callback( new Error( "invalid image resolution!" ) );
+			else {
+				this.getSize( function( err, size ){
+					if ( err ) callback( err );
+					else {
+						if ( size.width > sideLength && size.height > sideLength ){
+							var factor = sideLength / ( size.width > size.height ? size.height : size.width );
+							this.__gm.resize( Math.round( factor * size.width ), Math.round( factor * size.height ) );
+
+							this.toBuffer( mime, function( err, imagedata ){
+								callback( err, { image: imagedata, width: Math.round( factor * size.width ), height: Math.round( factor * size.height ) } );
+							}.bind( this ) );
+						}
+						else {
+							callback();
+						}
+					}
+				}.bind( this ) );
+			}
+			
+			return this;
+		}
+
+
+
+
+
 		, quality: function( val ){
-			this.__gm.quality( 80 );
+			this.__gm.quality( val );
 			return this;
 		}
 

@@ -37,9 +37,9 @@
 			this.__sqlfiles 	= options.sql;
 
 			var sequence = new Sequence();
-			sequence.add( this.__loadRules, this );
-			sequence.add( this.__loadLocale, this );
-			sequence.add( this.__loadSql, this );
+			sequence.add( this.__loadRules.bind( this ) );
+			sequence.add( this.__loadLocale.bind( this ) );
+			sequence.add( this.__loadSql.bind( this ));
 
 			sequence.start( function(){
 				this.emit( "load" );

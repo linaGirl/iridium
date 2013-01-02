@@ -9,18 +9,21 @@
 
 		__jobs: []
 
-		, add: function( job, scope ){
-			this.__jobs.push( job.bind( scope ) );
+		, add: function( job ){
+			this.__jobs.push( job );
 			return this;
 		}
 
 
-		, __do: function(){
-			if ( this.__jobs.length > 0 ){
-				this.__jobs.shift()( this.__do.bind( this ) );
-			}
+		, __do: function( err ){
+			if ( err ) this.__callback( err );
 			else {
-				this.__callback();
+				if ( this.__jobs.length > 0 ){
+					this.__jobs.shift()( this.__do.bind( this ) );
+				}
+				else {
+					this.__callback();
+				}
 			}
 		}
 

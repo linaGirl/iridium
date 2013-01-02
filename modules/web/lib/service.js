@@ -33,13 +33,13 @@
 
 			// sequential component loading
 			var sequence = new Sequence();
-			sequence.add( this.__loadSchemas, this );
-			sequence.add( this.__cacheResources, this );
-			sequence.add( this.__loadFiles, this );
-			sequence.add( this.__loadSessions, this );
-			sequence.add( this.__loadControllers, this );
-			sequence.add( this.__loadRewriteEngine, this );
-			sequence.add( this.__loadWebserver, this );
+			sequence.add( this.__loadSchemas.bind( this ) );
+			sequence.add( this.__cacheResources.bind( this ) );
+			sequence.add( this.__loadFiles.bind( this ) );
+			sequence.add( this.__loadSessions.bind( this ) );
+			sequence.add( this.__loadControllers.bind( this ) );
+			sequence.add( this.__loadRewriteEngine.bind( this ) );
+			sequence.add( this.__loadWebserver.bind( this ) );
 
 			// start loading ...
 			sequence.start( function(){
