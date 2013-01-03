@@ -87,8 +87,11 @@
 							response.sendError( 500, "rewrite_error" );
 						}
 						else if ( command ){
+							// does the required controlelr exist
 							if ( this.controllers.has( command.controller ) ){
 								controller = this.controllers.get( command.controller );
+
+								// is the action valid?
 								if ( controller.hasAction( command.action ) ){
 
 									// check if we need to get a session

@@ -297,7 +297,7 @@
 
 
 			// do file revisions
-			this.__doAssetsVersioning();
+			if ( !argv.has( "debug" ) this.__doAssetsVersioning();
 
 
 			// compile templates

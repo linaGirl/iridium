@@ -220,6 +220,7 @@
 		// send data to all other nodes
 		, __broadcast: function( sessionId, action ,data ){
 			if ( debug ) log.debug( "sending message [" + action + "]: ", this ), log.dir( data );
+			
 			// become master
 			this.__isMaster = true;
 

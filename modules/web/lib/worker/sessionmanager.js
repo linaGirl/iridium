@@ -124,9 +124,9 @@
 							if ( err ) callback( err );
 							else if ( exisitingSession ) {
 								new Session( { 
-									  dbSession: exisitingSession
-									, iridium: this.__iridium
-									, manager: this
+									  dbSession: 	exisitingSession
+									, iridium: 		this.__iridium
+									, manager: 		this
 									, on: {
 										load:  function( err, session ){ 
 											if ( !err && session ) this.__cache.set( session.sessionId, session );
@@ -212,15 +212,15 @@
 		, __createCache: function(){
 
 			// session cache
-			this.__cache = new LRUCache( {
-				  limit: 100000 			// 100k
-				, ttl: 2 * 3600 * 1000 	// 2h
+			this.__cache = new TTLCache( {
+				  limit: 	100000 			// 100k
+				, ttl: 		1800 * 1000 	// 30 min
 				, on: {
 					autoremove: function( sessionId, session ){
 						
 						// create log entry
 						if ( session.isMaster() ){
-							new this.iridium.sessionlog( {
+							new this.__iridium.sessionlog( {
 								  id_session: 	session.id
 								, accessed: 	new Date()
 								, ip: 			session.ip
