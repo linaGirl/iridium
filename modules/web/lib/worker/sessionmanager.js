@@ -3,7 +3,7 @@
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
-		, LRUCache		= iridium( "db" ).LRUCache
+		, TTLCache		= iridium( "db" ).TTLCache
 		, RandomData	= iridium( "crypto" ).RandomData
 		, util 			= iridium( "util" )
 		, Obj 			= util.Object
