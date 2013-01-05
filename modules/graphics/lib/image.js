@@ -21,7 +21,7 @@
 
 		, init: function( options ){
 			this.data = options.data;
-			this.__gm = new gm( new ReadableStream( options	 ) );
+			this.__gm = new gm( new ReadableStream( options ) );
 		}
 
 

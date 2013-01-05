@@ -76,6 +76,11 @@
 
 
 
+		, has: function( id ){
+			return !!this.__data[ id ];
+		}
+
+
 		, remove: function( id ){
 			var item = this.__removeFromList( id );
 			if ( item ) delete this.__data[ id ];
