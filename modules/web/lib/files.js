@@ -326,12 +326,6 @@
 				, paths = {}
 				, reg, result, file, ePath, parts;
 
-			// set md5 etag on all files
-			/*while( i-- ){ 
-				this.__files[ keys[ i ] ].md5 = util.md5( this.__files[ keys[ i ] ].etag ); 
-			}*/
-
-
 			
 			i = keys.length;
 			while( i-- ){
@@ -350,7 +344,7 @@
 
 							// get path without constancs
 							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
-							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ].replace( /[^\/]*$/gi, "" ) , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
 							
 							// file exists ?
 							if ( this.__files[ cleanPath ] ){
@@ -368,7 +362,7 @@
 							
 							// get path without constancs
 							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
-							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ].replace( /[^\/]*$/gi, "" ) , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
 							
 							// file exists ?
 							if ( this.__files[ cleanPath ] ){
@@ -386,10 +380,11 @@
 						ePath = result[ 2 ];
 						// ignore files with protocol specified and files containing dynamic stuff too
 						if ( ePath.indexOf( "data:" ) === -1 && ePath.indexOf( "{" ) === -1 && ePath.indexOf( "?" ) === -1 && ePath.substr( 0, 7 ) !== "http://" && ePath.substr( 0, 8 ) !== "https://" && ePath.substr( 0, 2 ) !== "//" ){
-							
+
+
 							// get path without constancs
 							var cleanPath = ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" );
-							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ] , ePath.replace( /@[a-z0-9]+\([a-z0-9]+\);/, "" ) );
+							if ( cleanPath[ 0 ] === "." ) cleanPath = path.join( keys[ i ].replace( /[^\/]*$/gi, "" ) , cleanPath );
 							
 							// file exists ?
 							if ( this.__files[ cleanPath ] ){

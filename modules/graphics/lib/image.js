@@ -106,7 +106,7 @@
 
 
 		, quality: function( val ){
-			this.__gm.quality( val );
+			this.__gm.quality( val || 60 ).compress( "Lossless" );
 			return this;
 		}
 

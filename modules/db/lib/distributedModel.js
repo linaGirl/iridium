@@ -4,7 +4,8 @@
 		, Events 		= iridium( "events" )
 		, log 			= iridium( "log" )
 		, argv 			= iridium( "util" ).argv
-		, debug 		= argv.has( "trace-mysql-caching" ) || argv.has( "trace-mysql" ) || argv.has( "trace-all" );
+		, debug 		= argv.has( "trace-mysql-caching" ) || argv.has( "trace-mysql" ) || argv.has( "trace-all" )
+		/*, messaging 	= require( "./messaging/index" )*/;
 
 
 	var Model 			= require( "./model" ); 
@@ -13,6 +14,9 @@
 
 	module.exports = new Class( {
 		inherits: Model
+
+		/*, __messaging: messaging*/
+
 
 		, save: function( callback ){
 			var isNew = this.isNew(), values = isNew ? this.getValues() : this.getChangedValues();

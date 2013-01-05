@@ -6,6 +6,7 @@
 		, mysqlQueues 		= require( "./dep/node-mysql-queues" )
 		, LRUCache 			= require( "./lib/lru" )
 		, TTLCache 			= require( "./lib/ttlcache" )
+		, TTLQueue 			= require( "./lib/ttlqueue" )
 		, MySQLPool 		= require( "./lib/mysql" )
 		, Model 			= require( "./lib/model" )
 		, DistributedModel 	= require( "./lib/distributedModel" )
