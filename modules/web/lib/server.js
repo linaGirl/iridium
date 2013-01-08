@@ -84,7 +84,8 @@
 		, __handleRequest: function( req, res ){
 
 			if ( req.url === "/ping" ){
-				response.send( 200, null, "healthy!" );
+				res.writeHead( 200 );
+				res.end( "healthy!" );
 				if ( debug ) log.debug( "LB ping ...", this );
 			} 
 			else {
