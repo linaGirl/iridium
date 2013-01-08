@@ -90,7 +90,7 @@
 			} 
 			else {
 				// basic auth required?
-				if ( !this.__basicAuth || req.url.indexOf( "/api/v1/" ) > 0 || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
+				if ( !this.__basicAuth || req.url.indexOf( "/api/v1/" ) >= 0 || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
 
 					var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
 						, response 		= new Response( { response: res, request: request } )
