@@ -89,7 +89,7 @@
 				}
 				else return this.__postData;
 			}
-			else  return null;
+			else return null;
 		}
 
 		, __collectData: function(){

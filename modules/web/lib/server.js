@@ -11,7 +11,8 @@
 
 
 	// node classes
-	var   http 				= require( "http" );
+	var   http 				= require( "http" )
+		, crypto 			= require( "crypto" );
 
 
 	// server components
@@ -26,6 +27,10 @@
 
 	module.exports = new Class( {
 		inherits: Events
+
+
+		, __basicAuth: false
+		, __users: {}
 
 
 		, init: function( options ){
@@ -48,8 +53,28 @@
 			// controllers
 			this.controllers = options.controllers;
 
+
+			// basic auth required( dev environment )
+			if ( iridium.app.config.basicAuth ){
+				this.__basicAuth = true;
+				var keys = Object.keys( iridium.app.config.basicAuth ), k = keys.length;
+				while( k-- ) this.__users[ keys[ k ] ] = crypto.createHash( "sha512" ).update( iridium.app.config.basicAuth[ keys[ k ] ] ).digest( "hex" )
+			}
+
+
 			// wait until this class was returned ( events emit immediately )
 			process.nextTick( function(){ this.emit( "load" ); }.bind( this ) );
+		}
+
+
+
+		
+		, __checkPassword: function( authHeader ){
+			var token = authHeader.split( /\s+/ ).pop() || ''
+				, auth = new Buffer( token, "base64" ).toString()
+				, parts = auth.split( /:/ );
+
+			return parts && this.__users[ parts[ 0 ] ] && crypto.createHash( "sha512" ).update( parts[ 1 ] ).digest( "hex" ) === this.__users[ parts[ 0 ] ];
 		}
 
 		
@@ -57,88 +82,101 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
-			var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
-				, response 		= new Response( { response: res, request: request } )
-				, fakeSession 	= !req.headers[ "user-agent" ] || /bot|googlebot|crawler|spider|robot|crawling/.test( ( req.headers[ "user-agent" ] || "" ) );
 
-			// lb health check
-			if ( req.url === "/ping" ){
-				response.send( 200, null, "healthy!" );
-				if ( debug ) log.debug( "LB ping ...", this );
-			} 
-			else {
-				if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
+			// basic auth required?
+			if ( !this.__basicAuth || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
 
-				// get the command from the rewrite engine
-				this.rewriteEngine.rewrite( request, response, function( err, command ){
-					var controller;
+				var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
+					, response 		= new Response( { response: res, request: request } )
+					, fakeSession 	= !req.headers[ "user-agent" ] || /bot|googlebot|crawler|spider|robot|crawling/.test( ( req.headers[ "user-agent" ] || "" ) );
 
-					if ( debug ){
-						log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
-						log.debug( "command -->", this );
-						log.dir( command );
-						log.debug( "<-- command", this );
-					} 
-					
+				// lb health check
+				if ( req.url === "/ping" ){
+					response.send( 200, null, "healthy!" );
+					if ( debug ) log.debug( "LB ping ...", this );
+				} 
+				else {
+					if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
 
+					// get the command from the rewrite engine
+					this.rewriteEngine.rewrite( request, response, function( err, command ){
+						var controller;
 
-					if ( !response.isSent ){
-						if ( err ){
-							response.sendError( 500, "rewrite_error" );
-						}
-						else if ( command ){
-							// does the required controlelr exist
-							if ( this.controllers.has( command.controller ) ){
-								controller = this.controllers.get( command.controller );
-
-								// is the action valid?
-								if ( controller.hasAction( command.action ) ){
-
-									// check if we need to get a session
-									if ( controller.requiresSession( command.action ) ){
-
-										// get session
-										var cookie = request.getCookie( "sid" );
-										this.sessions.get( cookie, function( err, existingSession ){
-											if ( err ) response.sendError( 500, "session error: " + err.message );
-											else {
-
-												var complete = function( session ){
-													if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-
-													command.data.authenticated = session.authenticated;
-													command.data.lang = request.language;
-													command.data[ "lang" + request.language[ 0 ].toUpperCase() + request.language[ 1 ].toLowerCase() ] = true;
-													
-													controller[ command.action ]( request, response, command, session );
-												}.bind( this );
+						if ( debug ){
+							log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
+							log.debug( "command -->", this );
+							log.dir( command );
+							log.debug( "<-- command", this );
+						} 
+						
 
 
-												var resume = function( session ){
-													// stats
-													session.ip = req.connection.remoteAddress;
-													session.useragent = req.headers[ "user-agent" ];
+						if ( !response.isSent ){
+							if ( err ){
+								response.sendError( 500, "rewrite_error" );
+							}
+							else if ( command ){
+								// does the required controlelr exist
+								if ( this.controllers.has( command.controller ) ){
+									controller = this.controllers.get( command.controller );
 
-													complete( session );
-												}.bind( this );
+									// is the action valid?
+									if ( controller.hasAction( command.action ) ){
 
+										// check if we need to get a session
+										if ( controller.requiresSession( command.action ) ){
 
-												if ( existingSession ) resume( existingSession );
+											// get session
+											var cookie = request.getCookie( "sid" );
+											this.sessions.get( cookie, function( err, existingSession ){
+												if ( err ) response.sendError( 500, "session error: " + err.message );
 												else {
-													this.sessions.create( function( err, newSession ){
-														if ( err ) response.sendError( 500, "session error: " + err.message );
-														else resume( newSession );
-													}.bind( this ), fakeSession );
-												}												
-											}
-										}.bind( this ), fakeSession );
-									} else controller[ command.action ]( request, response, command );									
-								} else response.sendError( 404, "invalid_action" );
-							} else response.sendError( 404, "invalid_controller" );
-						} else response.sendError( 404, "no_route" );
-					}
-				}.bind( this ) );
+
+													var complete = function( session ){
+														if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+
+														command.data.authenticated = session.authenticated;
+														command.data.lang = request.language;
+														command.data[ "lang" + request.language[ 0 ].toUpperCase() + request.language[ 1 ].toLowerCase() ] = true;
+														
+														controller[ command.action ]( request, response, command, session );
+													}.bind( this );
+
+
+													var resume = function( session ){
+														// stats
+														session.ip = req.connection.remoteAddress;
+														session.useragent = req.headers[ "user-agent" ];
+
+														complete( session );
+													}.bind( this );
+
+
+													if ( existingSession ) resume( existingSession );
+													else {
+														this.sessions.create( function( err, newSession ){
+															if ( err ) response.sendError( 500, "session error: " + err.message );
+															else resume( newSession );
+														}.bind( this ), fakeSession );
+													}												
+												}
+											}.bind( this ), fakeSession );
+										} else controller[ command.action ]( request, response, command );									
+									} else response.sendError( 404, "invalid_action" );
+								} else response.sendError( 404, "invalid_controller" );
+							} else response.sendError( 404, "no_route" );
+						}
+					}.bind( this ) );
+				}
+
 			}
+			else {
+				res.statusCode = 401;
+				res.setHeader( "WWW-Authenticate", "basic" );
+				res.end();
+			}
+
+
 		}
 
 
