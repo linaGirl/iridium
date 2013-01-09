@@ -87,7 +87,7 @@
 		, getPostData: function( parsed ){
 			if ( this.__ended && this.__postData ){
 				if ( parsed ){
-					if ( debug ) log.info( "post data:", this ), log.dir( this.__postData.toString() );
+					if ( debug ) log.info( "post data:", this ), log.dir( querystring.parse( this.__postData.toString() ) );
 					return querystring.parse( this.__postData.toString() );
 				}
 				else {
