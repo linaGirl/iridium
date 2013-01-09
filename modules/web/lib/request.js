@@ -3,7 +3,9 @@
 
 	var   Class 		= iridium( "class" )
 		, Events 		= iridium( "events" )
-		, log 			= iridium( "log" );
+		, log 			= iridium( "log" )
+		, argv 			= iridium( "util" ).argv
+		, debug 		= argv.has( "trace-all" ) || argv.has( "trace-webservice" );
 
 	var Cookie 			= require( "./cookie" )
 		, formidable 	= require( "../node_modules/formidable" );
@@ -85,9 +87,13 @@
 		, getPostData: function( parsed ){
 			if ( this.__ended && this.__postData ){
 				if ( parsed ){
+					if ( debug ) log.info( "post data:", this ), log.dir( this.__postData.toString() );
 					return querystring.parse( this.__postData.toString() );
 				}
-				else return this.__postData;
+				else {
+					if ( debug ) log.info( "post data:", this ), log.dir( this.__postData );
+					return this.__postData;
+				}
 			}
 			else return null;
 		}
