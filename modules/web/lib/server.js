@@ -82,6 +82,7 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
+			if ( debug ) log.info( "call on ", res.url, this );
 
 			if ( req.url === "/ping" ){
 				res.writeHead( 200 );
