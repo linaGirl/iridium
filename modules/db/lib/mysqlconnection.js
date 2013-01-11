@@ -80,27 +80,27 @@
 			this.__connection.query( query, parameters, function( err, result ){
 				if ( timing || debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
 
-				if ( !err || err.code === "ER_PARSE_ERROR" ){
+				//if ( !err || err.code === "ER_PARSE_ERROR" ){
 					// no or recoverable error
-					if ( err ) log.trace ( err );
-					this.__cancelQuerytimeout();
+				if ( err ) log.trace ( err );
+				this.__cancelQuerytimeout();
 
-					// call the callback
-					this.__callback( err, result );
-					delete this.__callback;
+				// call the callback
+				this.__callback( err, result );
+				delete this.__callback;
 
-					// timeouts
+				// timeouts
 
-					// im available agian
-					this.__setAvailable();
-				}
+				// im available agian
+				this.__setAvailable();
+				/*}
 				else {
 					// kill the connection, it may be broken
 					this.__callback( err, result );
 					delete this.__callback;					
 					this.__cancelQuerytimeout();
 					log.trace ( err );
-				}
+				}*/
 			}.bind( this ) );
 		}
 
