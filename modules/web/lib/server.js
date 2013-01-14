@@ -91,7 +91,7 @@
 			} 
 			else {
 				// basic auth required and we're not on a subdomain or the password is corrrect ?
-				if ( !this.__basicAuth || ( req.headers && req.headers.host && /[a-z0-9]+\·[a-z0-9]+\.[a-z0-9]+/gi.test( req.headers.host ) ) || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
+				if ( !this.__basicAuth || ( req.headers && req.headers.host && /.*\.[^\.]+\..*/gi.test( req.headers.host ) ) || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
 
 					var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
 						, response 		= new Response( { response: res, request: request } )
