@@ -154,7 +154,7 @@
 		, hasHeader: function( name ){
 			return !!this.__request.headers[ name ];
 		}
-
+		
 		, getUri: function(){
 			if ( ! this.__uri ) this.__uri = url.parse( "http://" + this.__request.headers.host + this.__request.url, true );
 			return this.__uri;
@@ -207,7 +207,9 @@
 					// set cookie
 					this.emit( "cookie", new Cookie( { name: "lang", value: this.__language, path: "/", httponly: true, maxage: 315360000 } ) );
 				}
-			} 
-			return this.__language;
+			}
+
+			// overrride language?
+			return argv.get( "override-language" ) || this.__language; 
 		}
 	} );
