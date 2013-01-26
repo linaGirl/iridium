@@ -65,7 +65,7 @@
 
 
 
-		, render: function( file, language, content ){
+		, render: function( file, language, content, partial ){
 			var rendering, acceptEncoding = this.__request.getHeader( "accept-encoding" );
 
 			if ( userDebug && this.__request.hasQueryParameter( "format", "json" ) ){
@@ -73,8 +73,8 @@
 				this.setHeader( "content-type", "application/json; charset=utf-8" );
 			}
 			else {
-				if ( language ) rendering = file.templates[ language ].render( content );
-				else rendering = file.template.render( content );					
+				if ( language ) rendering = file.templates[ language ].render( content, partial );
+				else rendering = file.template.render( content, partial );					
 				this.setHeader( "content-type", file.type );
 			}
 

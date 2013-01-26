@@ -242,6 +242,12 @@
 
 
 
+		, synchronize: function( data ){
+			data = data || {};
+			var keys = Object.keys( data ), k = keys.length;
+			while( i-- ) this[ keys[ k ] ] = data[ keys[ k ] ];
+		}
+
 
 		, toJSON: function(){
 			var keys = Object.keys( this ), i = keys.length, result = {};
