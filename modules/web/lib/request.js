@@ -31,8 +31,16 @@
 			return this.getUri().hostname;
 		}
 
+		, get url(){
+			return this.__request.url;
+		}
+
 		, get query(){	
 			return this.getUri().query;
+		}	
+
+		, get querystring(){	
+			return  url.parse( this.__request.url ).query;
 		}
 
 		, set query( query ){
