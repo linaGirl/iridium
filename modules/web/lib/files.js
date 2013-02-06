@@ -581,6 +581,9 @@
 							reg = /@locale\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 
 							while ( result = reg.exec( version ) ){
+								// index must be reset because there occurs a replacement lateron which may be shorter that this match
+								reg.lastIndex = result.index;
+
 								if ( this.__lang.locale[ currentLang ][ result[ 1 ] ] !== undefined ){
 									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ] );
 								}
@@ -592,8 +595,12 @@
 
 							if ( this.__navigation ){
 								navreg = /@navigation\s*\(\s*([^\)]+)\s*\)\s*;/gi;
-
+		
 								while ( result = navreg.exec( version ) ){
+
+										// index must be reset because there occurs a replacement lateron which may be shorter that this match
+									navreg.lastIndex = result.index;
+
 									if ( this.__navigation[ currentLang ][ result[ 1 ] ] !== undefined ){
 										version = version.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "/" + currentLang  + this.__navigation[ currentLang ][ result[ 1 ] ] );
 									}
