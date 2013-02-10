@@ -10,4 +10,5 @@
 		, PDFDocument: 	require( "pdfkit" )
 		, QREncoder:	require( "qr" ).Encoder
 		, PDFKit: 		require( "spindrift" )
+		, PDFMerger: 	require( "./lib/pdfMerger" )
 	};

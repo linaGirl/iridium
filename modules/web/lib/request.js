@@ -21,6 +21,9 @@
 
 		, __headers: []
 		, __language: null
+		, __fileCallbacks: []
+		, __fileReady: false
+		, __hasFiles: false
 
 
 		, get pathname(){			
@@ -72,9 +75,13 @@
 
 			// use fromidable for form parsing
 			if ( this.getHeader( "x-iridium-upload" ) === "1" ){
+				this.__hasFiles = true;
 				new formidable.IncomingForm().parse( this.__request, function( err, fields, files ){
 					this.__files = files;
-					//log.dir( err, fields, files );
+					this.__fileReady = true;
+					this.__fileCallbacks.forEach( function( cb ){
+						cb( files );
+					}.bind( this ) );
 				}.bind( this ) ).encoding = "binary";
 			}
 		}
@@ -90,6 +97,14 @@
 
 		, getFiles: function(){
 			return this.__files || null;
+		}
+
+		, getFilesAsync: function( callback ){
+			if ( this.__hasFiles ){
+				if ( this.__fileReady ) callback( this.__files || null );
+				else  this.__fileCallbacks.push( callback );
+			}
+			else callback( null );
 		}
 
 		, getPostData: function( parsed ){
