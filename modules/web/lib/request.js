@@ -30,6 +30,10 @@
 			return decodeURIComponent( this.getUri().pathname );
 		}
 
+		, set pathname( newPath ){
+			this.__uri.pathname = newPath;
+		}
+
 		, get hostname(){			
 			return this.getUri().hostname;
 		}
@@ -53,6 +57,11 @@
 		, get language(){
 			return this.__getRequestLanguage();
 		}
+
+		, set language( newLang ){
+			this.__language = newLang;
+		}
+
 
 		, get method(){
 			return this.__method.toLowerCase();

@@ -572,6 +572,7 @@
 					if ( this.__lang ){
 						var x = this.__lang.languages.length, currentLang;
 						current.templates = {};
+						current.rawTemplates = {};
 						current.stemplates = {};
 						current.isLocalized = true;
 
@@ -613,6 +614,7 @@
 
 							// compile the template
 							current.templates[ currentLang ] = hogan.compile( version );
+							current.rawTemplates[ currentLang ] = version;
 							current.stemplates[ currentLang ] = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( version, { asString: true } ) + "})(window);";
 						}
 					}
