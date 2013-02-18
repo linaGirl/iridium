@@ -13,6 +13,10 @@
 			this.resources 		= options.resources;
 			this.sessions 		= options.sessions;
 			this.files 			= options.files;
+
+			process.nextTick( function(){
+				if ( typeof this.initialize === "function" ) this.initialize();
+			}.bind( this ) ); 
 		}
 
 		, hasAction: function( action ){
