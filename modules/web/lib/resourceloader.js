@@ -258,7 +258,6 @@
 
 				while ( result = reg.exec( locale ) ){
 					if ( this.__navigation[ lang ][ result[ 1 ] ] !== undefined ){
-						log.info( "replacing", result[ 1 ], lang );
 						locale = locale.replace( new RegExp( "@navigation\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "/" + lang + this.__navigation[ lang ][ result[ 1 ] ] );
 					}
 					else{
