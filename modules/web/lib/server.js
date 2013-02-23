@@ -169,9 +169,9 @@
 													}
 												}.bind( this ), fakeSession );
 											} else controller[ command.action ]( request, response, command );									
-										} else response.sendError( 404, "invalid_action" );
-									} else response.sendError( 404, "invalid_controller" );
-								} else response.sendError( 404, "no_route" );
+										} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "invalid_action" );
+									} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //esponse.sendError( 404, "invalid_controller" );
+								} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "no_route" );
 							}
 						}.bind( this ) );
 					}

@@ -26,8 +26,14 @@
 		, __hasFiles: false
 
 
-		, get pathname(){			
-			return decodeURIComponent( this.getUri().pathname );
+		, get pathname(){
+			try{		
+				return decodeURIComponent( this.getUri().pathname || "" );
+			} catch ( e ){
+				log.trace( e );
+				log.info(  this.getUri().pathname );
+				return this.getUri().pathname;
+			}
 		}
 
 		, set pathname( newPath ){
