@@ -7,6 +7,7 @@
 		, log 				= iridium( "log" )
 		, argv 				= iridium( "util" ).argv
 		, debug 			= argv.has( "trace-all" ) || argv.has( "trace-webservice" )
+		, debugUrl 			= argv.has( "trace-all" ) || argv.has( "trace-urls" )
 		, userDebug 		= argv.has( "debug" );
 
 
@@ -82,7 +83,7 @@
 
 		// handlestandard http requests
 		, __handleRequest: function( req, res ){
-			if ( debug ) log.info( "call on ", res.url, this );
+			if ( debug || debugUrl ) log.info( "request on", req.url, this );
 
 			if ( req.url === "/ping" ){
 				res.writeHead( 200 );
