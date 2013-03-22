@@ -74,6 +74,11 @@
 		}
 
 
+		, get ip(){
+			return this.getHeader( "x-forwarded-for" ) || this.__request.connection.remoteAddress || "";
+		}
+
+
 		, init: function( options ){
 			this.__request = options.request;
 			this.__resources = options.resources;
