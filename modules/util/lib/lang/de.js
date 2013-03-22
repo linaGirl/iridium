@@ -17,7 +17,7 @@
             },
             calendar : {
                 sameDay: "[Heute]",
-                sameElse: "L",
+                sameElse: "dddd, Do MMMM",
                 nextDay: '[Morgen]',
                 nextWeek: 'dddd',
                 lastDay: '[Gestern]',

@@ -785,7 +785,7 @@
             nextWeek : 'dddd',
             lastDay : '[Yesterday]',
             lastWeek : '[last] dddd',
-            sameElse : 'L'
+            sameElse : 'dddd Do MMMM'
         },
         relativeTime : {
             future : "in %s",

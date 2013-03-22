@@ -21,7 +21,7 @@
                 nextWeek: 'dddd',
                 lastDay: '[Hier]',
                 lastWeek: 'dddd [dernier]',
-                sameElse: 'L'
+                sameElse: 'Do dddd MMMM'
             },
             relativeTime : {
                 future : "dans %s",

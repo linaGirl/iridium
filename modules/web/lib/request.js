@@ -30,8 +30,8 @@
 			try{		
 				return decodeURIComponent( this.getUri().pathname || "" );
 			} catch ( e ){
-				log.trace( e );
-				log.info(  this.getUri().pathname );
+				//log.trace( e );
+				//log.info(  this.getUri().pathname );
 				return this.getUri().pathname;
 			}
 		}
