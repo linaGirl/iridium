@@ -355,6 +355,20 @@
 				else if ( keys[ i ] === "$group" ){
 					result.group = config[ keys[ i ] ].join( ", " );
 				}
+				else if ( Array.isArray( config[ keys[ i ] ] ) ){
+					var len = config[ keys[ i ] ].length, m = 0;
+
+					config[ keys[ i ] ].forEach( function( item ){
+						var str = "";
+						if ( m === 0 ) str += " (";
+						if ( m > 0 && m < len ) str += " OR ";
+						str += keys[ i ] + this.__getOperator( item );
+						if ( m + 1 === len ) str += " )";
+						queries.push( str );
+						values.push( this.__getValue( item ) );
+						m++;
+					}.bind( this ) );
+				}
 				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ].toISOString ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
@@ -372,14 +386,36 @@
 					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
 				else {
-					queries.push( keys[ i ] + " = ?" );
-					values.push( config[ keys[ i ] ] );
+					queries.push( keys[ i ] + this.__getOperator( config[ keys[ i ] ] ) );
+					values.push( this.__getValue( config[ keys[ i ] ] ) );
 				}				
 			}
 
 			result.queries = queries;
 			result.values = values;
 			return result;
+		}
+
+
+
+		, __getOperator: function( item ){
+			if ( typeof item === "object" ){
+				if ( item.lt ) return " < ?";
+				if ( item.gt ) return " > ?";
+				if ( item.lte ) return " <= ?";
+				if ( item.gte ) return " >= ?";
+			} 
+			return  " = ?";
+		}
+
+		, __getValue: function( item ){
+			if ( typeof item === "object" ){
+				if ( item.lt ) return item.lt;
+				if ( item.gt ) return item.gt ;
+				if ( item.lte ) return item.lte;
+				if ( item.gte ) return item.gte;
+			} 
+			return item;
 		}
 
 

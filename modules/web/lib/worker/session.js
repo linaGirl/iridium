@@ -364,7 +364,9 @@
 			this.__iridium.session_user.findOne( { id_user: userId, id_session: this.id }, function( err, relation ){
 				if ( err ) { if ( callback ) callback( err ); }
 				else {
-					if ( relation ){ if ( callback ) callback( new Error( "user is alredy mapped to this session, aborting" ) ); }
+					if ( relation ){ 
+						if ( callback ) callback( null, relation );
+					 }
 					else {
 						var user = new this.__iridium.session_user( {
 							id_session: this.id
