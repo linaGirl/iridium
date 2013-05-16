@@ -3,7 +3,8 @@
 
 	var Class 			= iridium( "class" )
 		, Events 		= iridium( "events" )
-		, log 			= iridium( "log" ); 
+		, log 			= iridium( "log" )
+		, Waiter 		= iridium( "util" ).Waiter; 
 
 
 	var fs 				= require( "fs" );
@@ -11,6 +12,7 @@
 
 	var StaticModel 	= require( "./staticmodel" )
 		, MySQLPool 	= require( "./mysql" )
+		, Model 		= require( "./model" )
 		, LRUCache  	= require( "./lru" ); 
 
 
@@ -31,9 +33,10 @@
 			this.__databaseName = options.config.database;
 			this.__schema 		= options.name;
 
-			// load schema files
-			this.__loadFiles( options.config.path + "/" + options.name );
-
+			// get schame info
+			this.__loadSchemas( function(){
+				this.emit( "load" );
+			}.bind( this ) );
 
 			// listen  for cache messages for distributed models
 			this.__dmodelsubject = "dmodel-" + this.__databaseName;
@@ -46,47 +49,58 @@
 
 
 
+		, __loadSchemas: function( callback ){
+			var   tableInfo = {}
+				, relationInfo = null
+				, waiter = new Waiter();
 
-		// load files from the disk
-		, __loadFiles: function( dir ){
-			fs.exists( dir, function( exists ){
-				if ( exists ){
-					// get all models
-					fs.readdir( dir , function( err, files ){
-						if ( err ) {
-							throw new Error( "failed to load models dir " + dir + ": " + err );
-						}
 
-						var i = files.length, apiName, Model;
-						while( i-- ){
-							( function( filename ){
+			// get relations
+			this.query( "SELECT table_name, column_name, referenced_table_name, referenced_column_name FROM INFORMATION_SCHEMA.key_column_usage WHERE referenced_table_schema = ? AND referenced_table_name IS NOT NULL ORDER BY table_name, column_name;", [ this.__databaseName ], function( err, relations ){
+				if ( err ) throw err;
+				relationInfo = relations;
+			}.bind( this ) );
+			
 
-								// model name
-								var modelName = filename.substr( 0, filename.length - 3 )
-									, Model = require( dir + "/" + modelName );		
+			this.query( "SHOW TABLES in " + this.__databaseName + ";", function( err, tableNames ){
+				if ( err ) throw err;
 
-								// need to be class					
-								if ( typeof Model !== "function" ) throw new Error( "the module [" + dir + "/" + modelName + "] doesnt export a class!", this );
+				// create table info query
+				var query = tableNames.map( function( row ){
+					return "SELECT '" + row[ "Tables_in_" + this.__databaseName ] + "' as tableName; DESCRIBE " + this.__databaseName + "." + row[ "Tables_in_" + this.__databaseName ] + ";"
+				}.bind( this ) ).join( "" );
 
-								// create model
-								this.__models[ modelName ] = new StaticModel( { 
-									  db: 		this
-									, model: 	modelName
-									, database: this.__databaseName
-									, cls: 		Model 
-								} );
 
-								this.__defineSetter__( modelName, function(){ throw new Error( "you cannot overwrite the model [" + modelName + "] !" ); } );
-								this.__defineGetter__( modelName, function(){ return this.__models[ modelName ]; }.bind( this ) );
-							}.bind( this ) )( files[ i ] );
-						}
+				this.query( query, function( err, tableData ){
+					if ( err ) throw err;
+					for ( var l = tableData.length, i = 0; i < l; i++ ){
 
-						this.emit( "load" );
-					}.bind( this ) );
-				}
-				else {
-					throw new Error( "schema dir [" + dir + "] does not exist!" );
-				}
-			}.bind( this ) );			
+						( function( modelName, tableData ){
+							var properties = {};
+
+							tableData.forEach( function( column ){
+								properties[ column.Field ] = ( column.Key === "PRI" ? Model.PRIMARY : null )
+							}.bind( this ) );
+
+							this.__models[ modelName ] = new StaticModel( { 
+								  db: 		this
+								, model: 	modelName
+								, database: this.__databaseName
+								, cls: 		new Class( {
+									inherits: 		Model
+									, __properties: properties
+								} )
+							} );
+							
+							this.__defineSetter__( modelName, function(){ throw new Error( "you cannot overwrite the model [" + modelName + "] !" ); } );
+							this.__defineGetter__( modelName, function(){ return this.__models[ modelName ]; }.bind( this ) );
+						}.bind( this ) )( tableData[ i ][ 0 ].tableName, tableData[ i + 1 ] );
+
+						//tableInfo[ tableData[ i ][ 0 ].tableName ] = tableData[ i + 1 ];
+						i++;
+					}
+					callback();
+				}.bind( this ) );
+			}.bind( this ) );
 		}
 	} );

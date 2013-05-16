@@ -18,7 +18,7 @@
 		inherits: Events
 
 
-		, __controllers:{}
+		, __controllers: {}
 
 
 

@@ -16,6 +16,11 @@
 		// was the record oaded from the db?
 		, __isFromDB: false
 
+
+		// properties ( field names )
+		, __properties: {}
+		
+
 		// are ther changed values ?
 		, __changed: []
 		, __values: {}
