@@ -20,7 +20,8 @@
 	 	, ControllerManager	= require( "./controllermanager" )
 	 	, SessionManager	= require( "./worker/sessionmanager" )
 	 	, ResourceLoader	= require( "./resourceloader" )
-		, RewriteEngine 	= require( "./rewriteengine" );
+		, RewriteEngine 	= require( "./rewriteengine" )
+		, RESTManager 		= require( "./restmanager" );
 
 
 
@@ -38,6 +39,7 @@
 			sequence.add( this.__loadFiles.bind( this ) );
 			sequence.add( this.__loadSessions.bind( this ) );
 			sequence.add( this.__loadControllers.bind( this ) );
+			sequence.add( this.__loadRESTControllers.bind( this ) );
 			sequence.add( this.__loadRewriteEngine.bind( this ) );
 			sequence.add( this.__loadWebserver.bind( this ) );
 
@@ -52,6 +54,12 @@
 
 		, listen: function( port ){
 			this.__server.listen( port );
+		}
+
+
+		, setProperty: function( property, value ){
+			this.controllers.setProperty( property, value );
+			this.rest.setProperty( property, value );
 		}
 
 
@@ -134,6 +142,24 @@
 		}
 
 
+		// load rest controllers
+		, __loadRESTControllers: function( callback ){
+			if ( debug ) log.debug( "start loading REST controllers ...", this );
+
+			this.rest = new RESTManager( {
+				  path: 		this.__options.rest
+				, schemas: 		this.schemas
+				, resources: 	this.resources
+				, files: 		this.files
+				, sessions: 	this.sessions
+				, on: { load: function(){
+					if ( debug ) log.debug( "finished loading REST controllers ...", this );
+					callback();
+				}.bind( this ) }
+			} );
+		}
+
+
 
 		// load rewrite engine, either the one the user delivered, or the integrated one
 		, __loadRewriteEngine: function( callback ){
@@ -167,6 +193,7 @@
 				port: 				this.__options.port || 80
 				, rewriteEngine: 	this.rewriteEngine
 				, controllers: 		this.controllers
+				, rest: 			this.rest
 				, sessions: 		this.sessions
 				, resources: 		this.resources
 				, on: { 

@@ -34,6 +34,11 @@
 		}
 
 
+		, setProperty: function( property, value ){
+			this.__service.setProperty( property, value );
+		}
+
+
 
 		, __startWorker: function(){
 

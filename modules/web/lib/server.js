@@ -19,6 +19,7 @@
 	// server components
 	var   Request 			= require( "./request" )
 	 	, Response 			= require( "./response" )
+	 	, RESTResponder 	= require( "./restresponder" )
 	 	, Cookie 			= require( "./cookie" );
 
 
@@ -53,6 +54,12 @@
 
 			// controllers
 			this.controllers = options.controllers;
+
+			// default rest responder
+			this.__defaultResponder = new RESTResponder( { rest: options.rest } );
+
+			// rest controllers
+			this.rest = options.rest;
 
 
 			// basic auth required( dev environment )
@@ -103,78 +110,125 @@
 						response.send( 200, null, "healthy!" );
 						if ( debug ) log.debug( "LB ping ...", this );
 					} 
-					else {
-						if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
+					else { // http://b2b.apis.j.b/1/sessions/33
+						// check for rest api call
+						if ( request.hostname.indexOf( ".apis." ) > 0 ){
+							var components = /^\/([0-9a-z\.-]+)\/([0-9a-z\.-]+)\/?(.*)$/gi.exec( request.pathname );
 
-						// get the command from the rewrite engine
-						this.rewriteEngine.rewrite( request, response, function( err, command ){
-							var controller;
+							if ( !components ) this.__defaultResponder.respond( request, response, 400, { status: "bad request" } );
+							else {
+								var   version 		= ( components[ 1 ] || "" ).toLowerCase()
+									, resourceName	= ( components[ 2 ] || "" ).toLowerCase()
+									, identifier 	= ( components[ 3 ] || "" ).toLowerCase()
+									, verb 			= ( request.method.toLowerCase() )
+									, namespace		= ( ( /^([^\.]+)\.apis\./gi.exec( request.hostname ) || [ null, "" ] )[ 1 ] );
 
-							if ( debug ){
-								log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
-								log.debug( "command -->", this );
-								log.dir( command );
-								log.debug( "<-- command", this );
-							} 
-							
+								if ( this.rest.hasNamespace( namespace ) ){
+									if ( this.rest.has( namespace, resourceName ) ){
+										var resourceController = this.rest.get( namespace, resourceName );
 
-
-							if ( !response.isSent ){
-								if ( err ){
-									response.sendError( 500, "rewrite_error" );
-								}
-								else if ( command ){
-									// does the required controlelr exist
-									if ( this.controllers.has( command.controller ) ){
-										controller = this.controllers.get( command.controller );
-
-										// is the action valid?
-										if ( controller.hasAction( command.action ) ){
-
-											// check if we need to get a session
-											if ( controller.requiresSession( command.action ) ){
-
-												// get session
-												var cookie = request.getCookie( "sid" );
-												this.sessions.get( cookie, function( err, existingSession ){
-													if ( err ) response.sendError( 500, "session error: " + err.message );
-													else {
-
-														var complete = function( session ){
-															if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
-
-															command.data.authenticated = session.authenticated;
-															command.data.lang = request.language;
-															command.data[ "lang" + request.language[ 0 ].toUpperCase() + request.language[ 1 ].toLowerCase() ] = true;
-															
-															controller[ command.action ]( request, response, command, session );
-														}.bind( this );
-
-
-														var resume = function( session ){
-															// stats
-															session.ip = req.connection.remoteAddress;
-															session.useragent = req.headers[ "user-agent" ];
-
-															complete( session );
-														}.bind( this );
-
-
-														if ( existingSession ) resume( existingSession );
-														else {
-															this.sessions.create( function( err, newSession ){
-																if ( err ) response.sendError( 500, "session error: " + err.message );
-																else resume( newSession );
-															}.bind( this ), fakeSession );
-														}												
+										// call on collection or on the resource?
+										if ( identifier && identifier.length > 0 ){
+											if ( resourceController.hasResource() ){
+												var resource = resourceController.getResource();
+												
+												if ( resource.hasVerb( verb ) ){
+													if ( resource.hasCommonAction() ){
+														resource.doCommon( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ), function(){
+															resource[ verb ]( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ) );
+														}.bind( this ) );
 													}
-												}.bind( this ), fakeSession );
-											} else controller[ command.action ]( request, response, command );									
-										} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "invalid_action" );
-									} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //esponse.sendError( 404, "invalid_controller" );
-								} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "no_route" );
+													else resource[ verb ]( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ) );
+												} else this.__defaultResponder.respond( request, response, 501, { status: "Not Implemented" } );
+											} else this.__defaultResponder.respond( request, response, 404, { status: "resource not found" } );
+										}
+										else {
+											if ( resourceController.hasVerb( verb ) ){
+												if ( resourceController.hasCommonAction() ){
+													resourceController.doCommon( request, response, function( status, data ){ resourceController.respond( request, response, status, data ); }.bind( this ), function(){
+														resourceController[ verb ]( request, response, function( status, data ){ resourceController.respond( request, response, status, data ); }.bind( this ) );
+													}.bind( this ) );
+												}
+												else resourceController[ verb ]( request, response, function( status, data ){ resourceController.respond( request, response, status, data ); }.bind( this ) );
+											} else this.__defaultResponder.respond( request, response, 501, { status: "Not Implemented" } );
+										}									
+									} else this.__defaultResponder.respond( request, response, 404, { status: "collection not found" } );
+								} else this.__defaultResponder.respond( request, response, 404, { status: "namespace not found" } );
 							}
-						}.bind( this ) );
+						}
+						else {
+							if ( debug ) x = Date.now(), log.debug( "rewriting url...", this );
+
+							// get the command from the rewrite engine
+							this.rewriteEngine.rewrite( request, response, function( err, command ){
+								var controller;
+
+								if ( debug ){
+									log.debug( "rewrite completed after [" + ( Date.now() - x ) + "] ms ...", this );
+									log.debug( "command -->", this );
+									log.dir( command );
+									log.debug( "<-- command", this );
+								} 
+								
+
+
+								if ( !response.isSent ){
+									if ( err ){
+										response.sendError( 500, "rewrite_error" );
+									}
+									else if ( command ){
+										// does the required controlelr exist
+										if ( this.controllers.has( command.controller ) ){
+											controller = this.controllers.get( command.controller );
+
+											// is the action valid?
+											if ( controller.hasAction( command.action ) ){
+
+												// check if we need to get a session
+												if ( controller.requiresSession( command.action ) ){
+
+													// get session
+													var cookie = request.getCookie( "sid" );
+													this.sessions.get( cookie, function( err, existingSession ){
+														if ( err ) response.sendError( 500, "session error: " + err.message );
+														else {
+
+															var complete = function( session ){
+																if ( cookie !== session.sessionId ) response.setCookie( new Cookie( { name: "sid", value: session.sessionId, path: "/", httponly: true, maxage: 315360000 } ) );
+
+																command.data.authenticated = session.authenticated;
+																command.data.lang = request.language;
+																command.data[ "lang" + request.language[ 0 ].toUpperCase() + request.language[ 1 ].toLowerCase() ] = true;
+																
+																controller[ command.action ]( request, response, command, session );
+															}.bind( this );
+
+
+															var resume = function( session ){
+																// stats
+																session.ip = req.connection.remoteAddress;
+																session.useragent = req.headers[ "user-agent" ];
+
+																complete( session );
+															}.bind( this );
+
+
+															if ( existingSession ) resume( existingSession );
+															else {
+																this.sessions.create( function( err, newSession ){
+																	if ( err ) response.sendError( 500, "session error: " + err.message );
+																	else resume( newSession );
+																}.bind( this ), fakeSession );
+															}												
+														}
+													}.bind( this ), fakeSession );
+												} else controller[ command.action ]( request, response, command );									
+											} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "invalid_action" );
+										} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //esponse.sendError( 404, "invalid_controller" );
+									} else response.send( 302, { location: iridium.app.config.protocol +  iridium.app.config.host } ); //response.sendError( 404, "no_route" );
+								}
+							}.bind( this ) );
+						}
 					}
 
 				}
