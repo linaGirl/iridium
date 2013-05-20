@@ -54,6 +54,7 @@
 						this.rewriteEngine 	= this.__service.rewriteEngine;
 						this.server 		= this.__service.server;
 						this.controllers 	= this.__service.controllers;
+						this.rest 			= this.__service.rest;
 						this.files	 		= this.__service.files;
 
 

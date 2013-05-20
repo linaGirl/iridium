@@ -50,57 +50,77 @@
 
 
 		, __loadSchemas: function( callback ){
-			var   tableInfo = {}
-				, relationInfo = null
-				, waiter = new Waiter();
 
-
-			// get relations
+			// load relation data
 			this.query( "SELECT table_name, column_name, referenced_table_name, referenced_column_name FROM INFORMATION_SCHEMA.key_column_usage WHERE referenced_table_schema = ? AND referenced_table_name IS NOT NULL ORDER BY table_name, column_name;", [ this.__databaseName ], function( err, relations ){
 				if ( err ) throw err;
-				relationInfo = relations;
-			}.bind( this ) );
-			
+				var referenceInfo = {};
 
-			this.query( "SHOW TABLES in " + this.__databaseName + ";", function( err, tableNames ){
-				if ( err ) throw err;
+				// build reference info per table
+				relations.forEach( function( relation ){
+					if( !referenceInfo[ relation.table_name ] ) referenceInfo[ relation.table_name ] = {};
+					if( !referenceInfo[ relation.referenced_table_name ] ) referenceInfo[ relation.referenced_table_name ] = {};
+					if( !referenceInfo[ relation.table_name ][ relation.column_name ] ) referenceInfo[ relation.table_name ][ relation.column_name ] = [];
+					if( !referenceInfo[ relation.referenced_table_name ][ relation.referenced_column_name ] ) referenceInfo[ relation.referenced_table_name ][ relation.referenced_column_name ] = [];
 
-				// create table info query
-				var query = tableNames.map( function( row ){
-					return "SELECT '" + row[ "Tables_in_" + this.__databaseName ] + "' as tableName; DESCRIBE " + this.__databaseName + "." + row[ "Tables_in_" + this.__databaseName ] + ";"
-				}.bind( this ) ).join( "" );
-
-
-				this.query( query, function( err, tableData ){
-					if ( err ) throw err;
-					for ( var l = tableData.length, i = 0; i < l; i++ ){
-
-						( function( modelName, tableData ){
-							var properties = {};
-
-							tableData.forEach( function( column ){
-								properties[ column.Field ] = ( column.Key === "PRI" ? Model.PRIMARY : null )
-							}.bind( this ) );
-
-							this.__models[ modelName ] = new StaticModel( { 
-								  db: 		this
-								, model: 	modelName
-								, database: this.__databaseName
-								, cls: 		new Class( {
-									inherits: 		Model
-									, __properties: properties
-								} )
-							} );
-							
-							this.__defineSetter__( modelName, function(){ throw new Error( "you cannot overwrite the model [" + modelName + "] !" ); } );
-							this.__defineGetter__( modelName, function(){ return this.__models[ modelName ]; }.bind( this ) );
-						}.bind( this ) )( tableData[ i ][ 0 ].tableName, tableData[ i + 1 ] );
-
-						//tableInfo[ tableData[ i ][ 0 ].tableName ] = tableData[ i + 1 ];
-						i++;
-					}
-					callback();
+					referenceInfo[ relation.table_name ][ relation.column_name ].push( { table: relation.referenced_table_name, column: relation.referenced_column_name, type: Model.REFERENCE_TYPE_ONE } );
+					referenceInfo[ relation.referenced_table_name ][ relation.referenced_column_name ].push( { table: relation.table_name, column: relation.column_name, type: Model.REFERENCE_TYPE_MANY } );
 				}.bind( this ) );
-			}.bind( this ) );
+
+
+				// load a list of all tables
+				this.query( "SHOW TABLES in " + this.__databaseName + ";", function( err, tableNames ){
+					if ( err ) throw err;
+					
+					// create table info query
+					var query = tableNames.map( function( row ){
+						return "SELECT '" + row[ "Tables_in_" + this.__databaseName ] + "' as tableName; DESCRIBE " + this.__databaseName + "." + row[ "Tables_in_" + this.__databaseName ] + ";"
+					}.bind( this ) ).join( "" );
+
+					// get detailed table information
+					this.query( query, function( err, tableData ){
+						if ( err ) throw err;
+						for ( var l = tableData.length, i = 0; i < l; i++ ){
+
+							( function( modelName, tableData ){
+								var columns = {};
+
+								// make column definitions
+								tableData.forEach( function( column ){
+									columns[ column.Field ] = {
+										  isPrimary: 			column.Key === "PRI"
+										, isNonUniqueIndex: 	column.Key === "MUL"
+										, isUnique: 			column.Key === "UNI"
+										, isIndex: 				( column.Key === "MUL" || column.Key === "UNI" || column.Key === "PRI" )
+										, isNull: 				column.Null === "YES"
+										, autoIncrementing: 	column.extra === "auto_increment" 
+										, type: 				column.Type
+										, defaultValue: 		column.Default
+										, references: 			referenceInfo[ modelName ] && referenceInfo[ modelName ][ column.Field ] ? referenceInfo[ modelName ][ column.Field ] : []
+									};
+								}.bind( this ) );
+
+								// create static schema instance
+								this.__models[ modelName ] = new StaticModel( { 
+									  db: 		this
+									, model: 	modelName
+									, database: this.__databaseName
+									, cls: 		new Class( {
+										  inherits: 	Model
+										, __columns:	columns
+									} )
+								} );
+								
+								this.__defineSetter__( modelName, function(){ throw new Error( "you cannot overwrite the model [" + modelName + "] !" ); } );
+								this.__defineGetter__( modelName, function(){ return this.__models[ modelName ]; }.bind( this ) );
+							}.bind( this ) )( tableData[ i ][ 0 ].tableName, tableData[ i + 1 ] );
+
+							i++;
+						}
+
+						callback();
+					}.bind( this ) );
+				}.bind( this ) );		
+			}.bind( this ) );				
 		}
 	} );

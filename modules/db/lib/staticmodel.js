@@ -14,13 +14,10 @@
 
 
 	var StaticModel = new Class( {
-		
 
-		  PRIMARY: "$$__iridium_primary__$$"
-		, FK: "$$__iridium_fk__$$"
-		
+			
 
-		, init: function( options ){
+		init: function( options ){
 			this.__db 		= options.db;
 			this.__database = options.database;
 			this.__model 	= options.model;
@@ -39,7 +36,6 @@
 				} );
 			}
 		}
-
 
 		, cacheInstruction: function( action, key, data ){
 			if ( this.__cache ) {
@@ -129,6 +125,7 @@
 
 
 
+
 		, findOne: function( key, value, callback ){
 			var config = {}, query;
 
@@ -146,7 +143,7 @@
 				callback = value;
 			}
 
-			// check cache?
+			// check cache
 			if ( config && config.id && this.isDistributed() && this.__cache.has( config.id ) ) return callback( null, this.__cache.get( config.id ) );
 
 
@@ -261,48 +258,7 @@
 				} );
 		 	}
 
-		 	// cehk relations
-		 	if ( this.__sample.hasRelations() ){
-		 		relations = this.__sample.getRelations();
-		 		waiter = new Waiter();
-
-		 		rKeys = Object.keys( relations );
-		 		r = rKeys.length;
-		 		while( r-- ){
-		 			if ( relations[ rKeys[ r ] ] ){
-			 			( function( key ){
-			 				waiter.add( function( cb ){
-			 					this.__db.query( "SELECT " + key + ".* FROM " + this.__database + "." + this.__model + "_" + key + " rel JOIN " + this.__database + "." + key + " entity ON entity.id = rel.id_" + key + " WHERE rel.id_" + this.__model + " = ?;", [ record.id ], function( err, relatedRecords ){
-			 						if ( err ) waiter.cancel( err );
-			 						else {
-			 							instance.touchRelatedRecord( key );
-
-			 							if ( relatedRecords ){
-			 								var x = relatedRecords.length;
-			 								while( x-- ) {
-			 									relatedRecords[ x ].$fromDB = true;
-			 									relatedRecords[ x ].$db = this.__db;
-			 									relatedRecords[ x ].$dbName = this.__database
-			 									relatedRecords[ x ].$model = key;
-
-			 									instance.addRelatedRecord( key, new this.__db[ key ]( relatedRecords[ x ] ) );
-			 								}
-			 							}
-			 							cb();
-			 						}
-			 					}.bind( this ) );
-			 				}.bind( this ) );
-			 			}.bind( this ) )( pKeys[ p ] );
-			 		}	 			
-		 		}
-
-		 		waiter.start( function( err ){
-		 			callback( err, instance );
-		 		}.bind( this ) );
-		 	}
-		 	else {
-		 		callback( null, instance );
-		 	}
+		 	callback( null, instance );
 		}
 
 

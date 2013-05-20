@@ -152,6 +152,7 @@
 				, resources: 	this.resources
 				, files: 		this.files
 				, sessions: 	this.sessions
+				, languages: 	this.__options.restLanguages
 				, on: { load: function(){
 					if ( debug ) log.debug( "finished loading REST controllers ...", this );
 					callback();

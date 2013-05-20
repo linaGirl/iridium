@@ -22,4 +22,8 @@
 		, hasCommonAction: function(){
 			return typeof this.doCommon === "function";
 		}
+
+		, setProperty: function( property, value ){
+			this.resource[ property ] = value;
+		}
 	} );

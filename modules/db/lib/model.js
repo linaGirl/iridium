@@ -10,30 +10,25 @@
 	var Model = module.exports = new Class( {
 		inherits: Events
 
-
-		, errors: false
-
 		// was the record oaded from the db?
 		, __isFromDB: false
 
-
-		// properties ( field names )
-		, __properties: {}
-		
-
-		// are ther changed values ?
+		// chnaged fields
 		, __changed: []
+
+		// the actual field values
 		, __values: {}
+
+		// column definitions
+		, __columns: {}
+
+		// primary columns
 		, __primary: {}
-		, __relations: {}
-		, __properties: {}
-		, __relatedRecords: {}
-		, __foreignKeys: []
-		, __foreignRecords: []
 
 
-		, PRIMARY: "$$__iridium_primary__$$"
-		, FK: "$$__iridium_fk__$$"
+		, "static REFERENCE_TYPE_MANY": "many"
+		, "static REFERENCE_TYPE_ONE": "one"
+
 
 
 		// fill model with data
@@ -59,9 +54,8 @@
 			if ( options.$db ) 		this.__db 			= options.$db;
 			if ( options.$dbName ) 	this.__databaseName = options.$dbName;
 			if ( options.$model ) 	this.__model 		= options.$model;
-
-			if ( Object.keys( this.__relations ).length > 0 ) this.__hasRelations = true;
 		}
+
 
 
 		, getChangedValues: function(){
@@ -77,64 +71,28 @@
 		}
 
 
-		, hasForeignKeys: function(){
-			return !!this.__hasFK;
-		}
-
-		, getForeignKeys: function(){
-			return 
-		}
-
-		, hasRelations: function(){
-			return !!this.__hasRelations;
-		}
-
-		, getRelations: function(){
-			return this.__relations;
-		}
-
-		, touchRelatedRecord: function( id ){
-			if ( ! this.__relatedRecords[ id ] ) this.__relatedRecords[ id ] = [];
-		}
-
-		, addRelatedRecord: function( id, record ){
-			if ( ! this.__relatedRecords[ id ] ) this.__relatedRecords[ id ] = [];
-			this.__relatedRecords[ id ].push( record );
-		}
-
-		, getProperties: function(){
-			return this.__properties;
-		}
-
 		, isDistributed: function(){ return false; }
 
-		// create getters and setters for the properties
+
+		// create getters and setters for the columns
 		, __initModel: function(){
-			if ( this.__properties ){
-				var keys = Object.keys( this.__properties ), i = keys.length;
+			if ( this.__columns ){
+				var keys = Object.keys( this.__columns ), i = keys.length;
 
 				while( i-- ){
-					( function( key ){						
-						this.__defineSetter__( key, function( value ){
-							if ( this.__values[ key ] !== value && this.__changed.indexOf( key ) === -1 ) this.__changed.push( key );
-							this.__values[ key ] = value;
+					( function( columnName ){
+
+						// store only changes				
+						this.__defineSetter__( columnName, function( value ){
+							if ( this.__values[ columnName ] !== value && this.__changed.indexOf( columnName ) === -1 ) this.__changed.push( columnName );
+							this.__values[ columnName ] = value;
 						}.bind( this ) );
 
-						this.__defineGetter__( key, function(){ return this.__values[ key ]; }.bind( this ) );
+						// return the value
+						this.__defineGetter__( columnName, function(){ return this.__values[ columnName ]; }.bind( this ) );
 
-						this.__values[ key ] = this.__properties[ key ];
-
-						// primary?
-						if ( this.__properties[ key ] === Model.PRIMARY ){
-							this.__primary[ key ] = null;
-						}
-
-						// foreign ?
-						if ( this.__properties[ key ] === Model.FK ) {
-							this.__hasFK = true;
-							this.__foreignKeys.push( key );
-						}
-
+						// store primary key referenc
+						if ( this.__columns[ columnName ].isPrimary ) this.__primary[ columnName ] = null;
 					}.bind( this ) )( keys[ i ] );
 				}
 			}
@@ -209,13 +167,9 @@
 
 
 					( this.__transaction || this.__db ).query( "UPDATE " + this.__databaseName + "." + this.__model + " SET " + updates.join( ", " ) + " " + where + " LIMIT 1;", values, function( err, result ){
-						
-						if ( err ){
-							log.trace( err );
-						}
-						else {
-							this.__changed = [];
-						}
+						if ( err ) log.trace( err );
+						else this.__changed = [];
+
 						if ( callback ) callback( err, this );
 					}.bind( this ) );
 				}
@@ -246,7 +200,7 @@
 		}
 
 
-
+		// got data from other node ...
 		, synchronize: function( data ){
 			data = data || {};
 			var keys = Object.keys( data ), k = keys.length;
@@ -254,6 +208,7 @@
 		}
 
 
+		// serialize
 		, toJSON: function(){
 			var keys = Object.keys( this ), i = keys.length, result = {};
 			while( i-- ) {

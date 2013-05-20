@@ -24,6 +24,8 @@
 		, __controllers:{}
 		, __renderers: {}
 		, __defaultRenderer: null
+		, __availableLanguages: []
+		, __defaultLanguage: ""
 
 		, init: function( options ){
 			this.__path 			= options.path;
@@ -31,13 +33,17 @@
 			this.__files 			= options.files;
 			this.__schemas 			= options.schemas;
 			this.__sessions 		= options.sessions;
+
+			options.languages.forEach( function( language ){
+				this.addLanguage( language.iso, language.id, language.isDefault );
+			}.bind( this ) );
 			
 			this.__loadControllers( function(){
 				this.emit( "load" );
 			}.bind( this ) );
 
 			this.addRenderer( "Application/JSON", new JSONRenderer(), true );
-			this.addRenderer( "Text/HTML", new HTMLRenderer(), true );
+			this.addRenderer( "Text/HTML", new HTMLRenderer() );
 		}
 
 
@@ -60,10 +66,27 @@
 				var nameKeys = Object.keys( this.__controllers[ keys[ i ] ] ), k = nameKeys.length;
 				while( k-- ){
 					this.__controllers[ keys[ i ] ][ nameKeys[ k ] ][ property ] = value;
+					if ( this.__controllers[ keys[ i ] ][ nameKeys[ k ] ].hasResource() ) this.__controllers[ keys[ i ] ][ nameKeys[ k ] ].setProperty( property, value ); 
 				}
 			}
 		}
 
+
+		, addLanguage: function( language, languageId, isDefaultLanguage ){
+			if ( isDefaultLanguage ) this.__defaultLanguage = languageId;
+			this.__availableLanguages[ language.toLowerCase() ] = languageId;
+		}
+
+
+		, getResponseLanguage: function( request ){
+			var requestLanguages = request.getHeader( "accept-language", true ).map( function( x ){ return x.value.toLowerCase() } );
+
+			for( var l = requestLanguages.length, i = 0; i < l; i++ ){
+				if ( this.__availableLanguages[ requestLanguages[ i ] ] ) return this.__availableLanguages[ requestLanguages[ i ] ];
+			}
+
+			return this.__defaultLanguage;
+		}
 
 
 		, addRenderer: function( mime, renderer, isDefaultRenderer ){
@@ -87,7 +110,6 @@
 			}
 			return this.__defaultRenderer;
 		}
-
 
 
 		, __loadControllers: function( callback ){
@@ -134,17 +156,23 @@
 						( function( fileName ){
 							if ( debug ) log.info( "loading REST controller [" + fileName + "] ...", this );
 							if ( !this.__controllers[ name ] ) this.__controllers[ name ] = {};
-							this.__controllers[ name ][ fileName ] = new ( require( ( path + "/" + files[ i ] ).replace( "//", "/" ) ) )( {
-								  schemas: 		this.__schemas
-								, files: 		this.__files
-								, resources: 	this.__resources
-								, sessions: 	this.__sessions
-								, controllers: 	this.__controllers
-								, rest: 		this
-								, name: 		fileName
-								, namespace: 	name
-								, path: 		path
-							} );
+
+							try {
+								this.__controllers[ name ][ fileName ] = new ( require( ( path + "/" + files[ i ] ).replace( "//", "/" ) ) )( {
+									  schemas: 		this.__schemas
+									, files: 		this.__files
+									, resources: 	this.__resources
+									, sessions: 	this.__sessions
+									, controllers: 	this.__controllers
+									, rest: 		this
+									, name: 		fileName
+									, namespace: 	name
+									, path: 		path
+								} );
+							} catch ( e ){
+								log.error( "Failed to load REST-Controller [" + name + "/" + fileName + "]:", this );
+								log.trace( e ); 
+							}
 
 							this.__defineGetter__( fileName, function(){
 								return this.__controllers[ name ][ fileName ];

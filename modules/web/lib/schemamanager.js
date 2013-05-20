@@ -58,6 +58,7 @@
 					if ( schemaName === "iridium" ) this.__config[ schemaName ].path = iridium.root + "iridium/modules/web/lib/schema";
 					else this.__config[ schemaName ].path = iridium.app.root + this.__config[ keys[ i ] ].path;
 
+					
 					this.__schemas[ schemaName ] = new Schema( {
 						config: this.__config[ schemaName ]
 						, name: schemaName

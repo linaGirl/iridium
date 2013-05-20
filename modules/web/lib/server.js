@@ -113,13 +113,14 @@
 					else { // http://b2b.apis.j.b/1/sessions/33
 						// check for rest api call
 						if ( request.hostname.indexOf( ".apis." ) > 0 ){
-							var components = /^\/([0-9a-z\.-]+)\/([0-9a-z\.-]+)\/?(.*)$/gi.exec( request.pathname );
+							var components = /^\/([0-9a-z\.-]*)\/?(.*)$/gi.exec( request.pathname );
+
+							if ( !components[ 1 ] ) components[ 1 ] = "root";
 
 							if ( !components ) this.__defaultResponder.respond( request, response, 400, { status: "bad request" } );
 							else {
-								var   version 		= ( components[ 1 ] || "" ).toLowerCase()
-									, resourceName	= ( components[ 2 ] || "" ).toLowerCase()
-									, identifier 	= ( components[ 3 ] || "" ).toLowerCase()
+								var   resourceName	= ( components[ 1 ] || "" ).toLowerCase()
+									, identifier 	= ( components[ 2 ] || "" ).toLowerCase()
 									, verb 			= ( request.method.toLowerCase() )
 									, namespace		= ( ( /^([^\.]+)\.apis\./gi.exec( request.hostname ) || [ null, "" ] )[ 1 ] );
 
@@ -135,12 +136,12 @@
 												if ( resource.hasVerb( verb ) ){
 													if ( resource.hasCommonAction() ){
 														resource.doCommon( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ), function(){
-															resource[ verb ]( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ) );
+															resource[ verb ]( identifier, request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ) );
 														}.bind( this ) );
 													}
 													else resource[ verb ]( request, response, function( status, data ){ resource.respond( request, response, status, data ); }.bind( this ) );
-												} else this.__defaultResponder.respond( request, response, 501, { status: "Not Implemented" } );
-											} else this.__defaultResponder.respond( request, response, 404, { status: "resource not found" } );
+												} else this.__defaultResponder.respond( request, response, 501 );
+											} else this.__defaultResponder.respond( request, response, 404, { description: "resource not found" } );
 										}
 										else {
 											if ( resourceController.hasVerb( verb ) ){
@@ -150,10 +151,10 @@
 													}.bind( this ) );
 												}
 												else resourceController[ verb ]( request, response, function( status, data ){ resourceController.respond( request, response, status, data ); }.bind( this ) );
-											} else this.__defaultResponder.respond( request, response, 501, { status: "Not Implemented" } );
+											} else this.__defaultResponder.respond( request, response, 501 );
 										}									
-									} else this.__defaultResponder.respond( request, response, 404, { status: "collection not found" } );
-								} else this.__defaultResponder.respond( request, response, 404, { status: "namespace not found" } );
+									} else this.__defaultResponder.respond( request, response, 404, { description: "collection not found" } );
+								} else this.__defaultResponder.respond( request, response, 404, { description: "namespace not found" } );
 							}
 						}
 						else {
