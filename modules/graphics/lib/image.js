@@ -21,7 +21,7 @@
 
 		, init: function( options ){
 			this.data = options.data;
-			this.__gm = new gm( new ReadableStream( options ) );
+			this.__gm = new gm( options.data );
 		}
 
 
@@ -35,7 +35,6 @@
 		, smartcrop: function( width, height, mime, callback ){
 			if ( isNaN( width ), isNaN( height ) ) callback( new Error( "invalid image resolution!" ) );
 			else {
-				console.log( 1 );
 				this.getSize( function( err, size ){
 					if ( err ) callback( err );
 					else {
@@ -49,7 +48,7 @@
 
 						
 
-						console.log( {
+						/*console.log( {
 							resize: {
 								width: newW
 								, height: newH
@@ -61,14 +60,11 @@
 								, paddingH: paddingH
 							}
 							, size: size
-						} );
+						} );*/
 
 						this.__gm.resize( newW, newH );
-						console.log(2);
 						this.__gm.crop( Math.round( width ), Math.round( height ), paddingW, paddingH );
-						console.log(3);
 						this.toBuffer( mime, function( err, imagedata ){
-						console.log(4);
 							//console.log( err, imagedata, size );
 							callback( err, imagedata );
 						}.bind( this ) );
