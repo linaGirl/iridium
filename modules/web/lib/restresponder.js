@@ -8,7 +8,7 @@
 
 	module.exports = new Class( {
 
-		  __validVerbs: [ "head", "get", "put", "post", "delete" ]
+		  __validVerbs: [ "head", "get", "put", "post", "delete", "patch" ]
 
 
 		, __statusMap:{

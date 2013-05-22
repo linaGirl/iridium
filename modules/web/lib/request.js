@@ -142,7 +142,7 @@
 		}
 
 		, __collectData: function(){
-			if ( this.__request.method === "POST" ){
+			if ( this.__request.method === "POST" || this.__request.method === "PATCH" || this.__request.method === "PUT" ){
 				var data, data2;
 				this.__request.on( "data", function( chunk ){
 					if ( !data ) data = chunk;

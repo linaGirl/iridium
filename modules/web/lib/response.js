@@ -140,7 +140,7 @@
 			}
 
 			this.__response.writeHead( statusCode || this.__statusCode, this.__headers );
-			this.__response.end( data );
+			this.__response.end( this.__request.method.toLowerCase() === "head" ? undefined : data );
 			this.__responseSent = true;
 
 			if ( debug ) log.warn( "sent response for [" + this.__request.pathname + "] - headers:" ), log.dir( this.__headers );

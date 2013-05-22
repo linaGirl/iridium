@@ -121,7 +121,7 @@
 							else {
 								var   resourceName	= ( components[ 1 ] || "" ).toLowerCase()
 									, identifier 	= ( components[ 2 ] || "" ).toLowerCase()
-									, verb 			= ( request.method.toLowerCase() )
+									, verb 			= ( request.method.toLowerCase() === "head" ? "get" : request.method.toLowerCase() )
 									, namespace		= ( ( /^([^\.]+)\.apis\./gi.exec( request.hostname ) || [ null, "" ] )[ 1 ] );
 
 								if ( this.rest.hasNamespace( namespace ) ){
