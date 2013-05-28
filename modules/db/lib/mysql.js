@@ -200,6 +200,7 @@
 
 			while( i-- ){
 				current = this.__hosts[ keys[ i ] ];
+				log.dir( current.isAvailable(), writable ,current.isWritable() );
 				if ( current.isAvailable() && ( !writable || current.isWritable() ) ){
 					loadList.push( {
 						load: current.getLoad()
@@ -215,8 +216,6 @@
 
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
-
-			log.dir( loadList );
 
 			if ( debug ) log.debug( "failed to create new connection!", this );
 		}
