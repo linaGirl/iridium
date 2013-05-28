@@ -29,6 +29,8 @@
 			// init db
 			this.__proto__.__proto__.init.call( this, options.config );
 
+			this.$id += options.name;
+
 			// set database name
 			this.__databaseName = options.config.database;
 			this.__schema 		= options.name;
