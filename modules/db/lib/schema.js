@@ -80,7 +80,7 @@
 					}.bind( this ) ).join( "" );
 
 					// get detailed table information
-					this.query( query, function( err, tableData ){
+					this.query( query, [], function( err, tableData ){
 						if ( err ) throw err;
 						for ( var l = tableData.length, i = 0; i < l; i++ ){
 
@@ -121,7 +121,7 @@
 						}
 
 						callback();
-					}.bind( this ) );
+					}.bind( this ), false );
 				}.bind( this ) );		
 			}.bind( this ) );				
 		}

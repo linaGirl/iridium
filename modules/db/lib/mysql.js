@@ -200,7 +200,6 @@
 
 			while( i-- ){
 				current = this.__hosts[ keys[ i ] ];
-				log.dir( current.isAvailable(), writable ,current.isWritable() );
 				if ( current.isAvailable() && ( !writable || current.isWritable() ) ){
 					loadList.push( {
 						load: current.getLoad()
