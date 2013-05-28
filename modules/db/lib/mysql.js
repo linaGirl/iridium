@@ -226,7 +226,7 @@
 
 			while( i-- ){
 				this.__hosts[ i ] = new Host( {
-					id: "h" + i
+					id: "h" + i + "[" + configs[ i ].host + "]"
 					, config: {
 						  host: 		configs[ i ].host
 						, port: 		configs[ i ].port || 3306
