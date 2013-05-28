@@ -113,7 +113,6 @@
 
 
 		, __createConnection: function(){
-			log.dir( this.__maxConnections, this.__connections.length, this.__newConnectionBlock,  Date.now() );
 			if ( ( this.__maxConnections === 0 || this.__connections.length <= this.__maxConnections ) && this.__newConnectionBlock < Date.now() ){
 				
 				// block, do not try to open multiple connections at the same time aka throttling

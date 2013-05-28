@@ -216,6 +216,8 @@
 			var x = loadList.length;
 			while( x-- ) if ( this.__hosts[ loadList[ x ].id ].createConnection() ) return;
 
+			log.dir( loadList );
+
 			if ( debug ) log.debug( "failed to create new connection!", this );
 		}
 
