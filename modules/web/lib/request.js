@@ -84,6 +84,9 @@
 			this.__resources = options.resources;
 			this.__method = this.__request.method;
 
+			// remove double slashes
+			this.__request.url = this.__request.url.replace( /\/{2,}/gi, "/" );
+
 			this.__collectData();
 			if ( !this.__request.headers ) this.__request.headers = {};
 

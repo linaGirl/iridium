@@ -79,6 +79,10 @@
 			return this.__commands.hasOwnProperty( path.toLowerCase()  );
 		}
 
+		, overrideCommand: function( path ){
+			return this.hasCommand( path ) && this.getCommand( path ).override;
+		}
+
 		, getCommand: function( path ){
 			return this.__clone( this.__commands[ path.toLowerCase() ] || null );
 		}
@@ -225,6 +229,7 @@
 								}
 								, query: 		{}
 								, path: 		{}
+								, override: 	!!rule.override
 							};
 
 							paths = [];
@@ -238,7 +243,7 @@
 					}
 				}
 
-				//if ( debug ) log.dir( this.__commands, this.__navigation );
+				//log.dir( this.__commands, this.__navigation );
 
 				if ( debug ) log.info( "[ " + Object.keys( this.__commands ).length + " ] rules loaded ...", this );
 				callback();

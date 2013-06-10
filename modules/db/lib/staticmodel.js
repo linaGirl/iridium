@@ -339,6 +339,9 @@
 							values = values.concat( config[ keys[ i ] ].like );
 						}
 					}
+					else if ( config[ keys[ i ] ].hasOwnProperty( "nn" ) ){
+						queries.push( this.__db.escapeField( keys[ i ] ) + " is not null" );
+					}
 					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
 				else {
@@ -360,6 +363,7 @@
 				if ( item.gt ) return " > ?";
 				if ( item.lte ) return " <= ?";
 				if ( item.gte ) return " >= ?";
+				if ( item.nn ) return " is not null";
 			} 
 			return  " = ?";
 		}

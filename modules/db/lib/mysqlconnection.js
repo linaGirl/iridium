@@ -4,6 +4,7 @@
 		, log 			= iridium( "log" )
 		, argv 			= iridium( "util" ).argv
 		, debug 		= argv.has( "trace-mysql" ) || argv.has( "trace-all" )
+		, traceSlow 	= argv.has( "trace-mysql-slow-queries" )
 		, timing 		= argv.has( "trace-mysql-timing" );
 
 	var mysql 			= require( "../dep/node-mysql" );
@@ -79,6 +80,25 @@
 			if ( debug ) log.debug( "starting query ...", this );
 			this.__connection.query( query, parameters, function( err, result ){
 				if ( timing || debug ) log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
+				
+
+				if( traceSlow && ( Date.now() - now ) > 100 ) {
+					log.debug( "query took [" + ( Date.now() - now ) + "] ms", this );
+					//log.dir( query, parameters );
+					var debugQuery = query;
+					if ( parameters ) parameters.forEach( function( p ){
+						if ( require( "util" ).isDate( p ) ){
+							debugQuery = debugQuery.replace( "?", "'" + p.toISOString() + "'" );
+						}
+						else if ( typeof p === "string" ){
+							debugQuery = debugQuery.replace( "?", "'" + p + "'" );
+						}
+						else {
+							debugQuery = debugQuery.replace( "?", p );
+						}
+					} );
+					console.log( debugQuery );
+				}
 
 				//if ( !err || err.code === "ER_PARSE_ERROR" ){
 					// no or recoverable error

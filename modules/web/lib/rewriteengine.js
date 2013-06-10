@@ -74,8 +74,8 @@
 			if ( reg ){
 				if ( reg[ 2 ] ) path += reg[ 2 ] + "/";
 				if ( reg[ 3 ] ) path += reg[ 3 ] + "/";
-
-				if ( this.resources.hasCommand( path ) ){
+				
+				if ( this.resources.hasCommand( path ) && !this.resources.overrideCommand( path ) ){
 					if ( reg[ 4 ] ){
 						if ( !/[^0-9]/g.test( reg[ 4 ] ) ) request.query.page = parseInt( reg[ 4 ], 10 );
 						else request.query.parameters = reg[ 4 ].split( "/" ).filter( function( x ){ return !!x; } );
