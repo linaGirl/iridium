@@ -358,7 +358,7 @@
 
 
 		, __getOperator: function( item ){
-			if ( typeof item === "object" ){
+			if ( typeof item === "object" && item !== null ){
 				if ( item.lt ) return " < ?";
 				if ( item.gt ) return " > ?";
 				if ( item.lte ) return " <= ?";
@@ -369,7 +369,7 @@
 		}
 
 		, __getValue: function( item ){
-			if ( typeof item === "object" ){
+			if ( typeof item === "object" && item !== null ){
 				if ( item.lt ) return item.lt;
 				if ( item.gt ) return item.gt ;
 				if ( item.lte ) return item.lte;
