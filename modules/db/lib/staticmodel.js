@@ -342,6 +342,11 @@
 					else if ( config[ keys[ i ] ].hasOwnProperty( "nn" ) ){
 						queries.push( this.__db.escapeField( keys[ i ] ) + " is not null" );
 					}
+					else if ( config[ keys[ i ] ].hasOwnProperty( "gt" ) ){
+						queries.push( this.__db.escapeField( keys[ i ] ) + " > ?" );
+						values = values.concat( config[ keys[ i ] ].gt );
+					}
+
 					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
 				else {

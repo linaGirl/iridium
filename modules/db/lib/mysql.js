@@ -40,7 +40,7 @@
 			if ( !options.hosts ) throw new Error( "missing database configuration!" );
 			this.__createHosts( options.hosts, options.database );
 
-			this.__reg = /update|insert|delete|grant|create/gi;
+			this.__reg = /(update|insert|delete|grant|create)\s/gi;
 			this.__configs = options.hosts;
 
 
@@ -67,7 +67,7 @@
 				this.__buffer = this.__buffer.filter( function( item ){
 					if ( item.timeout < now ){
 						if ( typeof item.callback === "function" ){
-							item.callback( new Error( "failed to get a connection from the pool!" ).code = "connection_timeout" );
+							item.callback( new Error( "failed to get a connection from the pool, connection timeout!" ) );
 						}
 						return false;
 					}
