@@ -142,7 +142,7 @@
 			var updates = [],  values = [], val = [],  i = this.__changed.length, where, keys, k, whereConditions = [];
 			if ( this.__isFromDB ){
 				if ( this.__changed.length === 0 ){
-					if ( callback ) callback();
+					if ( callback ) callback( null, this );
 				}
 				else {
 					while( i-- ){
