@@ -342,10 +342,12 @@
 					else if ( config[ keys[ i ] ].hasOwnProperty( "nn" ) ){
 						queries.push( this.__db.escapeField( keys[ i ] ) + " is not null" );
 					}
-					else {
-						queries.push( keys[ i ] + this.__getOperator( config[ keys[ i ] ] ) );
-						values.push( this.__getValue( config[ keys[ i ] ] ) );
+					else if ( config[ keys[ i ] ].hasOwnProperty( "gt" ) ){
+						queries.push( this.__db.escapeField( keys[ i ] ) + " > ?" );
+						values = values.concat( config[ keys[ i ] ].gt );
 					}
+
+					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
 				else {
 					queries.push( keys[ i ] + this.__getOperator( config[ keys[ i ] ] ) );
