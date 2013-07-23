@@ -342,7 +342,10 @@
 					else if ( config[ keys[ i ] ].hasOwnProperty( "nn" ) ){
 						queries.push( this.__db.escapeField( keys[ i ] ) + " is not null" );
 					}
-					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
+					else {
+						queries.push( keys[ i ] + this.__getOperator( config[ keys[ i ] ] ) );
+						values.push( this.__getValue( config[ keys[ i ] ] ) );
+					}
 				}
 				else {
 					queries.push( keys[ i ] + this.__getOperator( config[ keys[ i ] ] ) );
@@ -359,21 +362,21 @@
 
 		, __getOperator: function( item ){
 			if ( typeof item === "object" && item !== null ){
-				if ( item.lt ) return " < ?";
-				if ( item.gt ) return " > ?";
-				if ( item.lte ) return " <= ?";
-				if ( item.gte ) return " >= ?";
-				if ( item.nn ) return " is not null";
+				if ( item.hasOwnProperty( "lt" ) ) return " < ?";
+				if ( item.hasOwnProperty( "gt" ) ) return " > ?";
+				if ( item.hasOwnProperty( "lte" ) ) return " <= ?";
+				if ( item.hasOwnProperty( "gte" ) ) return " >= ?";
+				if ( item.hasOwnProperty( "nn" ) ) return " is not null";
 			} 
 			return  " = ?";
 		}
 
 		, __getValue: function( item ){
 			if ( typeof item === "object" && item !== null ){
-				if ( item.lt ) return item.lt;
-				if ( item.gt ) return item.gt ;
-				if ( item.lte ) return item.lte;
-				if ( item.gte ) return item.gte;
+				if ( item.hasOwnProperty( "lt" ) ) return item.lt;
+				if ( item.hasOwnProperty( "gt" ) ) return item.gt ;
+				if ( item.hasOwnProperty( "lte" ) ) return item.lte;
+				if ( item.hasOwnProperty( "gte" ) ) return item.gte;
 			} 
 			return item;
 		}

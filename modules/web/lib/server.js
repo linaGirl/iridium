@@ -99,7 +99,7 @@
 			} 
 			else {
 				// basic auth required and we're not on a subdomain or the password is corrrect ?
-				if ( !this.__basicAuth || ( req.headers && req.headers.host && /.*\.[^\.]+\..*/gi.test( req.headers.host ) ) || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
+				if ( !this.__basicAuth || ( req.headers.authorization && this.__checkPassword( req.headers.authorization ) ) ){
 
 					var request 		= new Request( { request: req, resources: this.resources, on: { cookie: function( cookie ){ response.setCookie( cookie ); } } } )
 						, response 		= new Response( { response: res, request: request } )
@@ -114,6 +114,7 @@
 						// check for rest api call
 						if ( request.hostname.indexOf( ".apis." ) > 0 ){
 							var components = /^\/([0-9a-z\.-]*)\/?(.*)$/gi.exec( request.pathname );
+							if ( debugUrl ) log.debug( "call on REST [" + request.pathname + "]", this );
 
 							if ( !components[ 1 ] ) components[ 1 ] = "root";
 

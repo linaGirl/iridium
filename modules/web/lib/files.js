@@ -586,14 +586,14 @@
 								reg.lastIndex = result.index;
 
 								if ( this.__lang.locale[ currentLang ][ result[ 1 ] ] !== undefined ){
-									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ] );
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ].replace( /([“”"'’])/g, "\\$1" ) );
 								}
 								else{
 									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + result[ 1 ] );
 									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
 								}
-							}
-
+							
+}
 							if ( this.__navigation ){
 								navreg = /@navigation\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 		
