@@ -325,6 +325,9 @@
 						m++;
 					}.bind( this ) );
 				}
+				else if ( config[ keys[ i ] ] === null ){
+					queries.push( this.__db.escapeField( keys[ i ] ) + " is null" );
+				}
 				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ].toISOString ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
@@ -345,6 +348,10 @@
 					else if ( config[ keys[ i ] ].hasOwnProperty( "gt" ) ){
 						queries.push( this.__db.escapeField( keys[ i ] ) + " > ?" );
 						values = values.concat( config[ keys[ i ] ].gt );
+					}
+					else if ( config[ keys[ i ] ].hasOwnProperty( "lt" ) ){
+						queries.push( this.__db.escapeField( keys[ i ] ) + " < ?" );
+						values = values.concat( config[ keys[ i ] ].lt );
 					}
 
 					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
