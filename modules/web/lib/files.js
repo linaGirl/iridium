@@ -582,18 +582,24 @@
 							reg = /@locale\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 
 							while ( result = reg.exec( version ) ){
-								// index must be reset because there occurs a replacement lateron which may be shorter that this match
+								// index must be reset because there occurs a replacement later on which may be shorter that this match
 								reg.lastIndex = result.index;
 
-								if ( this.__lang.locale[ currentLang ][ result[ 1 ] ] !== undefined ){
-									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ].replace( /([“”"'’])/g, "\\$1" ) );
+
+								var   escape 		= result && result[ 1 ] && result[ 1 ].indexOf( "escape" ) >= 0
+									, key 			= result && result[ 1 ] ? result[ 1 ].replace( /\s*,\s*escape\s*/gi, "" ) : result[ 1 ]
+									, localeString 	= this.__lang.locale[ currentLang ][ key ];
+									
+
+								if ( localeString !== undefined ){
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), escape ? localeString.replace( /([“”"'’])/g, "\\$1" ) : localeString );
 								}
-								else{
-									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + result[ 1 ] );
-									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
-								}
-							
-}
+								else {
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + key );
+									log.warn( "missing locale [" + key + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
+								}							
+							}
+
 							if ( this.__navigation ){
 								navreg = /@navigation\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 		
