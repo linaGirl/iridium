@@ -71,7 +71,7 @@
 
 
 		, update: function( config, updates, callback ){
-			var where, keys, k, whereConditions = [], values = [], updateConditions = [];
+			var where, keys, k, query, values = [], updateConditions = [];
 
 			// create update
 			keys = Object.keys( updates ), k = keys.length;
@@ -80,42 +80,35 @@
 				values.push( updates[ keys[ k ] ] );
 			}
 
+			
 
 			// create where 
 			if ( typeof config === "object" && config !== null ){
-				keys = Object.keys( config ), k = keys.length;
-				while( k-- ){
-					if ( keys[ k ][ 0 ] !== "$" ){
-						whereConditions.push( keys[ k ] + " = ?" );
-						values.push( config[ keys[ k ] ] );
-					}
-				}
-				where = "WHERE " + whereConditions.join( " AND " );
+				query = this.__prepareQuery( config );
+				where = "WHERE " + query.queries.join( " AND " );
+				values = values.concat( query.values );
 			}
-			else{
+			else {
 				where = "WHERE id = ?";
 				values.push( config );
 			}
 
 
 			this.__db.query( "UPDATE " + this.__from + " SET " + updateConditions.join( ", " ) + " " + where + " LIMIT " + ( config.$limit || 1 ) + ";", values, callback );
-		}	
+		}
 
 
 
 		, remove: function( config, callback ){
-			var where, keys, k, whereConditions = [], values = [];
+			var where, keys, k, query, values = [];
 
 			// create where 
 			if ( typeof config === "object" && config !== null ){
-				keys = Object.keys( config ), k = keys.length;
-				while( k-- ){
-					whereConditions.push( keys[ k ] + " = ?" );
-					values.push( config[ keys[ k ] ] );
-				}
-				where = "WHERE " + whereConditions.join( " AND " );
+				query = this.__prepareQuery( config );
+				where = "WHERE " + query.queries.join( " AND " );
+				values = query.values;
 			}
-			else{
+			else {
 				where = "WHERE id = ?";
 				values.push( config );
 			}

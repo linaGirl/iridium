@@ -570,8 +570,8 @@
 						reg = /@constant\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 						
 						while ( result = reg.exec( current.file ) ){
-							if ( this.__constants[ result[ 1 ] ] !== undefined ){
-								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__constants[ result[ 1 ] ] );
+							if ( this.__constants[ result[ 1 ].trim() ] !== undefined ){
+								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__constants[ result[ 1 ].trim() ] );
 							}
 							else{
 								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "constant:" + result[ 1 ] );
@@ -601,7 +601,7 @@
 
 
 								var   escape 		= result && result[ 1 ] && result[ 1 ].indexOf( "escape" ) >= 0
-									, key 			= result && result[ 1 ] ? result[ 1 ].replace( /\s*,\s*escape\s*/gi, "" ) : result[ 1 ]
+									, key 			= ( result && result[ 1 ] ? result[ 1 ].replace( /\s*,\s*escape\s*/gi, "" ) : result[ 1 ] ).trim()
 									, localeString 	= this.__lang.locale[ currentLang ][ key ];
 									
 
