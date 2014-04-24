@@ -1,3 +1,3 @@
 # iridium framework 
 
-please use ee-* packages instead
+**DEPRECATED:** please use ee-* packages instead
