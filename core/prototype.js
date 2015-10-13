@@ -25,11 +25,14 @@
 		};
 		
 		[ "bold", "underline", "italic", "inverse", "grey", "yellow", "red", "green", "blue", "white", "cyan", "magenta" ].forEach( function( style ) {
-			Object.defineProperty( String.prototype, style, {
-				get: function () {
-					return stylize(this, style);
-				}
-			} );
+			try{
+				Object.defineProperty( String.prototype, style, {
+					get: function () {
+						return stylize(this, style);
+					}
+					, configurable: true
+				} );	
+			} catch(e){}
 		} );
 
 

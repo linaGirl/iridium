@@ -71,7 +71,7 @@
 
 
 		, update: function( config, updates, callback ){
-			var where, keys, k, whereConditions = [], values = [], updateConditions = [];
+			var where, keys, k, query, values = [], updateConditions = [];
 
 			// create update
 			keys = Object.keys( updates ), k = keys.length;
@@ -80,42 +80,35 @@
 				values.push( updates[ keys[ k ] ] );
 			}
 
+			
 
 			// create where 
 			if ( typeof config === "object" && config !== null ){
-				keys = Object.keys( config ), k = keys.length;
-				while( k-- ){
-					if ( keys[ k ][ 0 ] !== "$" ){
-						whereConditions.push( keys[ k ] + " = ?" );
-						values.push( config[ keys[ k ] ] );
-					}
-				}
-				where = "WHERE " + whereConditions.join( " AND " );
+				query = this.__prepareQuery( config );
+				where = "WHERE " + query.queries.join( " AND " );
+				values = values.concat( query.values );
 			}
-			else{
+			else {
 				where = "WHERE id = ?";
 				values.push( config );
 			}
 
 
 			this.__db.query( "UPDATE " + this.__from + " SET " + updateConditions.join( ", " ) + " " + where + " LIMIT " + ( config.$limit || 1 ) + ";", values, callback );
-		}	
+		}
 
 
 
 		, remove: function( config, callback ){
-			var where, keys, k, whereConditions = [], values = [];
+			var where, keys, k, query, values = [];
 
 			// create where 
 			if ( typeof config === "object" && config !== null ){
-				keys = Object.keys( config ), k = keys.length;
-				while( k-- ){
-					whereConditions.push( keys[ k ] + " = ?" );
-					values.push( config[ keys[ k ] ] );
-				}
-				where = "WHERE " + whereConditions.join( " AND " );
+				query = this.__prepareQuery( config );
+				where = "WHERE " + query.queries.join( " AND " );
+				values = query.values;
 			}
-			else{
+			else {
 				where = "WHERE id = ?";
 				values.push( config );
 			}
@@ -325,6 +318,9 @@
 						m++;
 					}.bind( this ) );
 				}
+				else if ( config[ keys[ i ] ] === null ){
+					queries.push( this.__db.escapeField( keys[ i ] ) + " is null" );
+				}
 				else if ( typeof config[ keys[ i ] ] === "object" && config[ keys[ i ] ] !== null && !config[ keys[ i ] ].toISOString ){
 					if ( config[ keys[ i ] ].in ){
 						if ( config[ keys[ i ] ].in.length > 0 ){
@@ -346,6 +342,10 @@
 						queries.push( this.__db.escapeField( keys[ i ] ) + " > ?" );
 						values = values.concat( config[ keys[ i ] ].gt );
 					}
+					else if ( config[ keys[ i ] ].hasOwnProperty( "lt" ) ){
+						queries.push( this.__db.escapeField( keys[ i ] ) + " < ?" );
+						values = values.concat( config[ keys[ i ] ].lt );
+					}
 
 					else throw new Error( "unknwown query format [" + keys[ i ] + "][" + typeof config[ keys[ i ] ] + "]!" );
 				}
@@ -364,21 +364,21 @@
 
 		, __getOperator: function( item ){
 			if ( typeof item === "object" && item !== null ){
-				if ( item.lt ) return " < ?";
-				if ( item.gt ) return " > ?";
-				if ( item.lte ) return " <= ?";
-				if ( item.gte ) return " >= ?";
-				if ( item.nn ) return " is not null";
+				if ( item.hasOwnProperty( "lt" ) ) return " < ?";
+				if ( item.hasOwnProperty( "gt" ) ) return " > ?";
+				if ( item.hasOwnProperty( "lte" ) ) return " <= ?";
+				if ( item.hasOwnProperty( "gte" ) ) return " >= ?";
+				if ( item.hasOwnProperty( "nn" ) ) return " is not null";
 			} 
 			return  " = ?";
 		}
 
 		, __getValue: function( item ){
 			if ( typeof item === "object" && item !== null ){
-				if ( item.lt ) return item.lt;
-				if ( item.gt ) return item.gt ;
-				if ( item.lte ) return item.lte;
-				if ( item.gte ) return item.gte;
+				if ( item.hasOwnProperty( "lt" ) ) return item.lt;
+				if ( item.hasOwnProperty( "gt" ) ) return item.gt ;
+				if ( item.hasOwnProperty( "lte" ) ) return item.lte;
+				if ( item.hasOwnProperty( "gte" ) ) return item.gte;
 			} 
 			return item;
 		}

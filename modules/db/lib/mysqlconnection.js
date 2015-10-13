@@ -75,7 +75,7 @@
 
 			// pseudo timeout
 			this.__setQueryTimeout( query, parameters );			
-			if ( timing || debug ) var now = Date.now();
+			if ( timing || debug || traceSlow ) var now = Date.now();
 
 			if ( debug ) log.debug( "starting query ...", this );
 			this.__connection.query( query, parameters, function( err, result ){

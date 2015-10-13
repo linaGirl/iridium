@@ -79,7 +79,7 @@
 
 
 		, __watch: function( path ){
-			path = path || this.__path;
+			/*path = path || this.__path;
 
 			fs.stat( path, function( err, stats ){
 				if ( err ) throw err;
@@ -98,7 +98,7 @@
 						while( i-- ) this.__watch( path + "/" + filelist[ i ] );
 					}.bind( this ) );
 				}
-			}.bind( this ) );
+			}.bind( this ) );*/
 		}
 
  
@@ -291,8 +291,13 @@
 			// add vendor prefixes to css files
 			//this.__addVendorPrefixes();
 
+			// compile locales, constants & navigation tags
+			log.debug( "compiling locale data ....", this );
+			this.__compileLocaleData();
 
-			// do the includes
+
+			// do the includes ( slow )
+			log.debug( "compiling includes ....", this );
 			this.__compileIncludes();
 
 
@@ -300,9 +305,9 @@
 			if ( !argv.has( "debug" ) ) this.__doAssetsVersioning();
 
 
-			// compile templates
+			// compile templates ( slow )
+			log.debug( "compiling hogan temples ....", this );
 			this.__compileTemplates();
-
 
 
 			// create locales fro templates
@@ -310,6 +315,7 @@
 
 
 			// create compressed versions of the files
+			log.debug( "compressing files ....", this );
 			this.__compressFiles( function(){
 				// ready :)
 				this.emit( "load" );
@@ -460,11 +466,10 @@
 			this.__includeGraph = {};
 
 
-
 			// collect depencies
 			while( i-- ){
 				current = this.__files[ keys[ i ] ];
-				reg = /@iridium\s*\(\s*([^\)]+)\s*\)\s*\;/gi;
+				reg = /@iridium\s*\(\s*([^\)]+)\s*\)\s*\;/g;
 				hit = false;
 				
 				if ( !current.isBinary ){
@@ -501,7 +506,6 @@
 					}
 				}
 			}
-			//log.dir(this.__includeGraph );
 
 			// compile
 			keys = Object.keys( this.__includeGraph ), i = keys.length;
@@ -516,11 +520,14 @@
 
 
 
-		, __compileIncludeFile: function( file, parents  ){
+		, __compileIncludeFile: function( file, parents, lang  ){
 			var i = this.__includeGraph[ file ].includes.length;
 
 			// toplevel file
-			if ( i === 0 ) return this.__files[ file ] ? this.__files[ file ].file: "Exception: include file [" + file + "] does not exist!";
+			if ( i === 0 ) {
+				if ( !lang ) return this.__files[ file ] ? this.__files[ file ].file: "Exception: include file [" + file + "] does not exist!";
+				else return this.__files[ file ] ? this.__files[ file ].rawTemplates[ lang ]: "Exception: include file [" + file + "] does not exist!";
+			}
 
 			// dont do loops
 			if ( parents.indexOf( file ) >= 0 ) {
@@ -529,20 +536,26 @@
 			parents.push( file );
 
 			while( i-- ){
-				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//gi, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], util.clone( parents ) ) );
+				this.__files[ file ].file = this.__files[ file ].file.replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//g, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], util.clone( parents ) ) );
+				
+				if ( this.__files[ file ].rawTemplates ){
+					Object.keys( this.__files[ file ].rawTemplates ).forEach( function( lang ){
+						this.__files[ file ].rawTemplates[ lang ] = this.__files[ file ].rawTemplates[ lang ].replace( new RegExp( "@iridium\\s*\\(\\s*" + this.__includeGraph[ file ].includeIds[ i ].replace( /\//g, "\\/" ) + "\\s*\\)\\s*\\;", "gi" ), this.__compileIncludeFile( this.__includeGraph[ file ].includes[ i ], util.clone( parents ), lang ) );
+					}.bind( this ) );
+				}
 			}
 
 			this.__files[ file ].etag = crypto.createHash( "sha1" ).update( this.__files[ file ].file ).digest( "hex" );
 			this.__files[ file ].length = Buffer.byteLength( this.__files[ file ].file );
-			return this.__files[ file ].file;
+			if ( !lang ) return this.__files[ file ].file;
+			else return this.__files[ file ].rawTemplates[ lang ];
 		}
 
 
 
 
 
-
-		, __compileTemplates: function(){
+		, __compileLocaleData: function(){
 			var keys = Object.keys( this.__files ), i = keys.length, current, version, reg, result, navreg;
 			
 			while( i-- ){
@@ -557,8 +570,8 @@
 						reg = /@constant\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 						
 						while ( result = reg.exec( current.file ) ){
-							if ( this.__constants[ result[ 1 ] ] !== undefined ){
-								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__constants[ result[ 1 ] ] );
+							if ( this.__constants[ result[ 1 ].trim() ] !== undefined ){
+								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__constants[ result[ 1 ].trim() ] );
 							}
 							else{
 								current.file = current.file.replace( new RegExp( "@constant\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "constant:" + result[ 1 ] );
@@ -572,9 +585,10 @@
 					if ( this.__lang ){
 						var x = this.__lang.languages.length, currentLang;
 						current.templates = {};
-						current.rawTemplates = {};
+						if ( !current.rawTemplates ) current.rawTemplates = {};
 						current.stemplates = {};
 						current.isLocalized = true;
+
 
 						while( x-- ){
 							version = current.file;
@@ -582,16 +596,22 @@
 							reg = /@locale\s*\(\s*([^\)]+)\s*\)\s*;/gi;
 
 							while ( result = reg.exec( version ) ){
-								// index must be reset because there occurs a replacement lateron which may be shorter that this match
+								// index must be reset because there occurs a replacement later on which may be shorter that this match
 								reg.lastIndex = result.index;
 
-								if ( this.__lang.locale[ currentLang ][ result[ 1 ] ] !== undefined ){
-									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), this.__lang.locale[ currentLang ][ result[ 1 ] ] );
+
+								var   escape 		= result && result[ 1 ] && result[ 1 ].indexOf( "escape" ) >= 0
+									, key 			= ( result && result[ 1 ] ? result[ 1 ].replace( /\s*,\s*escape\s*/gi, "" ) : result[ 1 ] ).trim()
+									, localeString 	= this.__lang.locale[ currentLang ][ key ];
+									
+
+								if ( localeString !== undefined ){
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), escape ? localeString.replace( /([“”"'’])/g, "\\$1" ) : localeString );
 								}
-								else{
-									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + result[ 1 ] );
-									log.warn( "missing locale [" + result[ 1 ] + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
-								}
+								else {
+									version = version.replace( new RegExp( "@locale\\s*\\(\\s*" + result[ 1 ] + "\\s*\\)\\s*;", "gi" ), "locale:" + key );
+									log.warn( "missing locale [" + key + "] used in template [" + current.path + "] for language [" + currentLang + "] ...", this );
+								}							
 							}
 
 							if ( this.__navigation ){
@@ -618,9 +638,39 @@
 							current.stemplates[ currentLang ] = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( version, { asString: true } ) + "})(window);";
 						}
 					}
+				}
+			}
+		}
+
+
+
+
+		, __compileTemplates: function(){
+			var keys = Object.keys( this.__files ), i = keys.length, current, version, reg, result, navreg;
+			
+			while( i-- ){
+				current = this.__files[ keys[ i ] ];
+
+				if ( current.extension === "tpl" || current.extension === "mustache" ){
+					var webPath = current.path.substr( iridium.app.root.length + 3 );
+					
+					// locale?
+					if ( this.__lang ){
+						var x = this.__lang.languages.length, currentLang;
+
+
+						while( x-- ){
+							currentLang = this.__lang.languages[ x ];
+							
+							// compile the template
+							current.templates[ currentLang ] = hogan.compile( current.rawTemplates[ currentLang ] );
+							//current.stemplates[ currentLang ] = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( current.rawTemplates[ currentLang ], { asString: true } ) + "})(window);";
+						}
+					}
+
 					try {
 						current.template  = hogan.compile( current.file );
-						current.stemplate = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( current.file, { asString: true } ) + "})(window);";
+						//current.stemplate = "(function(w){if(!w.$it)w.$it={};w.$it['" + webPath + "']=" + hogan.compile( current.file, { asString: true } ) + "})(window);";
 					} catch ( e ){
 						log.dir( current );
 					}
