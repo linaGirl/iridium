@@ -22,14 +22,14 @@
 
 
 		, get sessionId(){ return this.__sessionId; }
-		, set sessionId(){ throw new Error( "you cannot set the sessionId!" ); }
+		, set sessionId(x){ throw new Error( "you cannot set the sessionId!" ); }
 
 		, get authenticated(){ return this.__authenticated; }
-		, set authenticated(){ throw new Error( "you cannot change the authentication status on the session itself!" ); }
+		, set authenticated(x){ throw new Error( "you cannot change the authentication status on the session itself!" ); }
 
 
 		, get id(){ return this.__id;  }
-		, set id(){ throw new Error( "you cannot set the id!" ); }
+		, set id(x){ throw new Error( "you cannot set the id!" ); }
 
 		, get ip(){ return this.__ip;  }
 		, set ip( ip ){ this.__ip = ip; }

@@ -14,7 +14,7 @@
 		, __active: false
 
 		, get id(){ return this.__id;  }
-		, set id(){ throw new Error( "you cannot set the id!" ); }
+		, set id(x){ throw new Error( "you cannot set the id!" ); }
 
 		, get authenticated(){ return this.__authenticated; }
 		, get active(){ return this.__active; }
